@@ -1,22 +1,15 @@
 # Navidrome Player
 
-一个基于 Flutter 的 Navidrome 音乐播放器客户端，支持 Android 和 macOS 平台。
+一个基于 Flutter 的 Navidrome 音乐播放器客户端，面向 Navidrome/Subsonic 协议，当前支持 Android 与 macOS。
 
 > 项目灵感来源于 [音流 (Stream Music)](https://music.aqzscn.cn/)，专注于 Navidrome/Subsonic 协议的轻量级开源实现。
-
-## 截图
-
-<!-- TODO: 添加应用截图 -->
-| 登录页 | 首页 | 播放器 |
-|--------|------|--------|
-| 待添加 | 待添加 | 待添加 |
 
 ## 功能特性
 
 ### 已实现 (Phase 1: 能听)
 
-- Subsonic API 客户端（认证、浏览、搜索、收藏、scrobble）
-- 音频播放（just_audio 引擎，播放/暂停/上下曲/随机/循环）
+- Subsonic API 客户端（认证、浏览、搜索、收藏、scrobble、播放列表）
+- 音频播放（`just_audio`：播放/暂停/上下曲/随机/循环）
 - 后台播放支持（audio_service 通知栏/锁屏控制）
 - 登录页（服务器配置 + 连接测试）
 - 首页（最近添加专辑网格 + 专辑详情弹窗）
@@ -42,6 +35,18 @@
 | 窗口管理 | window_manager (macOS) |
 | 本地存储 | shared_preferences |
 | 设计系统 | Material 3 |
+
+## 设计与文档
+
+- 文档中心：[docs/README.md](./docs/README.md)
+- PC 端功能文档：[docs/navidrome-player-prd-pc.md](./docs/navidrome-player-prd-pc.md)
+- 移动端功能文档：[docs/navidrome-player-prd-mobile.md](./docs/navidrome-player-prd-mobile.md)
+- 统一版 PRD：[docs/navidrome-player-prd.md](./docs/navidrome-player-prd.md)
+- Pencil 设计稿管理：[docs/designs/pencil/README.md](./docs/designs/pencil/README.md)
+
+当前设计稿文件：
+- PC：`docs/designs/pencil/navidrome/navidrome-pc.pen`
+- 移动端：`docs/designs/pencil/navidrome/navidrome-mobile.pen`
 
 ## 快速开始
 
@@ -105,14 +110,21 @@ lib/
 
 | 阶段 | 名称 | 状态 | 说明 |
 |------|------|------|------|
-| Phase 1 | 能听 | ✅ 完成 | 基础播放功能，19 个文件，1370 行 |
+| Phase 1 | 能听 | ✅ 完成 | 基础播放链路可用（登录 + 首页 + MiniPlayer + 基础控制） |
 | Phase 2 | 好用 | 🔲 未开始 | 完整导航、浏览、搜索、播放列表 |
 | Phase 3 | 好看 | 🔲 未开始 | 视觉体验、歌词、动画 |
 | Phase 4 | 完善 | 🔲 未开始 | 离线、高级特性 |
 
+## 设计稿状态
+
+| 平台 | 当前页面数 | 页面 |
+|------|-----------|------|
+| 移动端 | 8 | Login / Home / Library / Search / Player / Playlists / Downloads / Settings |
+| PC 端 | 8 | 登录页 / 首页 / 音乐库 / 搜索 / 播放器 / 设置 / 播放列表 / 下载管理 |
+
 ## 文档
 
-完整文档请查看 [docs/](./docs/README.md)。
+完整文档请查看 [docs/README.md](./docs/README.md)。
 
 ## 许可证
 
