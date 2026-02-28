@@ -1,0 +1,47 @@
+import 'package:flutter/material.dart';
+import 'package:navidrome_player/api/models/models.dart';
+
+/// 歌曲列表项组件
+class SongTile extends StatelessWidget {
+  final Song song;
+  final VoidCallback? onTap;
+  final VoidCallback? onMore;
+
+  const SongTile({super.key, required this.song, this.onTap, this.onMore});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Text(
+          song.track?.toString() ?? '#',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ),
+      title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(
+        '${song.artist} · ${song.album}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (song.duration != null)
+            Text(_formatDuration(song.duration!), style: Theme.of(context).textTheme.bodySmall),
+          if (onMore != null)
+            IconButton(icon: const Icon(Icons.more_vert, size: 20), onPressed: onMore),
+        ],
+      ),
+      onTap: onTap,
+    );
+  }
+
+  String _formatDuration(int seconds) {
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+}

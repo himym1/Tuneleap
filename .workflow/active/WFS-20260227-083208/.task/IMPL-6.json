@@ -1,0 +1,168 @@
+{
+  "id": "IMPL-6",
+  "title": "Bug Fix Prerequisites - audio_handler 修复与路由同步",
+  "status": "completed",
+  "context_package_path": ".workflow/active/WFS-20260227-083208/.process/context-package.json",
+  "cli_execution_id": "WFS-20260227-083208-IMPL-6",
+  "cli_execution": {
+    "strategy": "new"
+  },
+  "meta": {
+    "type": "bugfix",
+    "agent": "@code-developer",
+    "execution_group": null,
+    "module": null,
+    "execution_config": {
+      "method": "agent",
+      "cli_tool": null,
+      "enable_resume": false
+    }
+  },
+  "context": {
+    "requirements": [
+      "Fix 1 file: lib/player/audio_handler.dart (from 32 lines incomplete stub to ~100-120 lines working handler)",
+      "Add 6 missing methods to NavidromeAudioHandler: [play(), pause(), stop(), skipToNext(), skipToPrevious(), seek()]",
+      "Add 1 missing method: _broadcastState() for playbackState stream broadcasting",
+      "Add 1 missing method: setQueue() for loading song list into queue",
+      "Verify 1 file: lib/app.dart routing approach (confirm go_router unused, document decision)",
+      "Create 1 file: docs/notes/routing-decision.md (~30-40 lines, documenting why go_router is not yet integrated)",
+      "Ensure compilation: flutter analyze must pass with 0 errors for audio_handler.dart"
+    ],
+    "focus_paths": [
+      "lib/player/audio_handler.dart",
+      "lib/app.dart",
+      "docs/notes/"
+    ],
+    "acceptance": [
+      "audio_handler.dart compiles: verify by flutter analyze lib/player/audio_handler.dart (0 errors)",
+      "6 handler methods implemented: verify by grep -c 'Future.*play\\|Future.*pause\\|Future.*stop\\|Future.*skip' lib/player/audio_handler.dart >= 4",
+      "_broadcastState implemented: verify by grep -c '_broadcastState' lib/player/audio_handler.dart >= 2",
+      "routing-decision.md created: verify by test -f docs/notes/routing-decision.md",
+      "Full project compiles: verify by flutter analyze (0 errors)"
+    ],
+    "depends_on": [],
+    "shared_context": {
+      "tech_stack": [
+        "Flutter 3.38",
+        "Dart 3.10",
+        "just_audio ^0.10.5",
+        "audio_service ^0.18.18"
+      ],
+      "current_audio_handler_state": "32 lines, has constructor + getters, missing all playback methods and _broadcastState",
+      "reference_service": "lib/player/audio_player_service.dart (168 lines, complete implementation to mirror)",
+      "audio_handler_dependencies": [
+        "AudioPlayer from just_audio",
+        "BaseAudioHandler from audio_service",
+        "SubsonicClient for stream URLs"
+      ],
+      "routing_context": "go_router ^17.1.0 in pubspec.yaml but app.dart uses MaterialApp.home directly"
+    },
+    "artifacts": []
+  },
+  "flow_control": {
+    "pre_analysis": [
+      {
+        "step": "analyze_audio_handler_gap",
+        "action": "Compare NavidromeAudioHandler with AudioPlayerService to identify missing implementations",
+        "commands": [
+          "bash(diff <(grep -n 'Future\\|void\\|Stream' lib/player/audio_player_service.dart) <(grep -n 'Future\\|void\\|Stream' lib/player/audio_handler.dart) || true)"
+        ],
+        "output_to": "handler_gap_analysis",
+        "on_error": "fail"
+      },
+      {
+        "step": "check_audio_service_api",
+        "action": "Verify BaseAudioHandler required methods from audio_service package",
+        "commands": [
+          "bash(find ~/.pub-cache -path '*/audio_service*/base_audio_handler.dart' -type f 2>/dev/null | head -1 | xargs grep 'Future.*play\\|Future.*pause\\|Future.*stop\\|Future.*skipTo' 2>/dev/null | head -20 || echo 'Check audio_service docs')"
+        ],
+        "output_to": "base_handler_api",
+        "on_error": "skip_optional"
+      },
+      {
+        "step": "verify_compilation_errors",
+        "action": "Run flutter analyze to identify exact compilation errors",
+        "commands": [
+          "bash(cd /Users/wangjianguo/MyProject/navidrome_player && flutter analyze 2>&1 | head -30)"
+        ],
+        "output_to": "compilation_errors",
+        "on_error": "skip_optional"
+      }
+    ],
+    "implementation_approach": [
+      {
+        "step": 1,
+        "title": "Complete NavidromeAudioHandler implementation",
+        "description": "Add all missing playback methods mirroring AudioPlayerService patterns, plus _broadcastState for notification/lockscreen integration",
+        "modification_points": [
+          "Add play() method: resume playback via _player.play()",
+          "Add pause() method: pause via _player.pause()",
+          "Add stop() method: stop + reset state",
+          "Add skipToNext() method: advance queue + load next song",
+          "Add skipToPrevious() method: rewind or go back in queue",
+          "Add seek() method: seek to position",
+          "Add _broadcastState() method: broadcast PlaybackState to audio_service",
+          "Add setQueue() method: load songs into handler queue",
+          "Add _songToMediaItem() helper: convert Song model to MediaItem"
+        ],
+        "logic_flow": [
+          "Study AudioPlayerService (168 lines) for queue management patterns",
+          "Implement play/pause/stop delegating to _player",
+          "Implement skip methods with queue bounds checking",
+          "Implement _broadcastState mapping just_audio events to audio_service PlaybackState",
+          "Implement _songToMediaItem converting Song fields to MediaItem",
+          "Implement setQueue for initializing the handler with a song list",
+          "Ensure all methods update mediaItem and playbackState streams"
+        ],
+        "depends_on": [],
+        "output": "audio_handler_fix"
+      },
+      {
+        "step": 2,
+        "title": "Create routing decision note",
+        "description": "Document the decision about go_router integration status for future reference",
+        "modification_points": [
+          "Create 1 file: docs/notes/routing-decision.md (~30-40 lines)",
+          "Document: go_router in pubspec but unused, current approach, migration plan"
+        ],
+        "logic_flow": [
+          "Note current routing: MaterialApp.home with manual _loggedIn state",
+          "Explain why go_router is planned but not yet used",
+          "Outline Phase 2 migration plan: ShellRoute for tab navigation",
+          "Reference PROJECT_PLAN.md section 9.2 for navigation framework spec"
+        ],
+        "depends_on": [],
+        "output": "routing_note"
+      },
+      {
+        "step": 3,
+        "title": "Verify compilation",
+        "description": "Run flutter analyze to confirm zero compilation errors across the project",
+        "modification_points": [
+          "Run flutter analyze on full project",
+          "Fix any remaining issues discovered during analysis"
+        ],
+        "logic_flow": [
+          "Run flutter analyze",
+          "If errors found: fix them",
+          "Re-run until 0 errors confirmed"
+        ],
+        "depends_on": [
+          1
+        ],
+        "output": "compilation_verified"
+      }
+    ],
+    "target_files": [
+      "lib/player/audio_handler.dart",
+      "docs/notes/routing-decision.md"
+    ]
+  },
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-28T12:08:11+08:00"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:music.aqzscn.cn)",
+      "Bash(flutter analyze:*)",
+      "Bash(ls:*)",
+      "Bash(echo:*)"
+    ]
+  }
+}

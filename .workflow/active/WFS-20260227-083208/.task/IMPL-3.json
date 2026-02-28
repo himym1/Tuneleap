@@ -1,0 +1,196 @@
+{
+  "id": "IMPL-3",
+  "title": "Core Documentation - 技术规格与项目同步",
+  "status": "completed",
+  "context_package_path": ".workflow/active/WFS-20260227-083208/.process/context-package.json",
+  "cli_execution_id": "WFS-20260227-083208-IMPL-3",
+  "cli_execution": {
+    "strategy": "resume",
+    "resume_from": "WFS-20260227-083208-IMPL-2"
+  },
+  "meta": {
+    "type": "docs",
+    "agent": "@code-developer",
+    "execution_group": null,
+    "module": null,
+    "execution_config": {
+      "method": "agent",
+      "cli_tool": null,
+      "enable_resume": false
+    }
+  },
+  "context": {
+    "requirements": [
+      "Create 1 file: docs/services/subsonic-api.md (Subsonic API 对接文档，~150-180 lines)",
+      "Create 1 file: docs/development-guide.md (开发环境搭建与构建说明，~100-120 lines)",
+      "Update 1 file: PROJECT_PLAN.md (同步实际实现状态，修正 ~15 处偏差)",
+      "Create 1 file: CHANGELOG.md (变更日志，记录 Phase 1 完成内容，~40-60 lines)",
+      "subsonic-api.md must cover 6 API categories: [系统, 浏览, 搜索, 媒体, 播放列表, 标记]",
+      "subsonic-api.md must document 15 API endpoints from SubsonicClient",
+      "PROJECT_PLAN.md updates: sync Phase 1 checklist, note go_router unused, note audio_handler incomplete"
+    ],
+    "focus_paths": [
+      "docs/services/subsonic-api.md",
+      "docs/development-guide.md",
+      "PROJECT_PLAN.md",
+      "CHANGELOG.md"
+    ],
+    "acceptance": [
+      "docs/services/subsonic-api.md created: verify by test -f docs/services/subsonic-api.md && wc -l >= 100",
+      "subsonic-api.md covers 15 endpoints: verify by grep -c '###\\|`' docs/services/subsonic-api.md >= 15",
+      "docs/development-guide.md created: verify by test -f docs/development-guide.md && wc -l >= 80",
+      "PROJECT_PLAN.md updated: verify by grep -c 'audio_handler.*incomplete\\|go_router.*unused' PROJECT_PLAN.md >= 1",
+      "CHANGELOG.md created: verify by test -f CHANGELOG.md && grep -c 'Phase 1' CHANGELOG.md >= 1"
+    ],
+    "depends_on": [
+      "IMPL-1"
+    ],
+    "inherited": {
+      "from": "IMPL-1",
+      "context": [
+        "docs/ directory structure created"
+      ]
+    },
+    "shared_context": {
+      "tech_stack": [
+        "Flutter 3.38",
+        "Dart 3.10",
+        "Riverpod 3.x",
+        "just_audio",
+        "dio"
+      ],
+      "api_client_file": "lib/api/subsonic_client.dart (231 lines, 15 API endpoints)",
+      "api_categories": [
+        "系统(ping)",
+        "浏览(getArtists/getArtist/getAlbum/getAlbumList2)",
+        "搜索(search3)",
+        "媒体(stream/getCoverArt)",
+        "播放列表(getPlaylists/getPlaylist)",
+        "标记(star/unstar/scrobble)"
+      ],
+      "project_divergences": [
+        "go_router declared in pubspec.yaml but not used in app.dart (uses MaterialApp.home)",
+        "audio_handler.dart only 32 lines, incomplete (missing play/pause/skip methods)",
+        "drift/sqlite not in pubspec.yaml despite being in PROJECT_PLAN.md",
+        "palette_generator not in pubspec.yaml despite being in PROJECT_PLAN.md",
+        "riverpod_generator/build_runner not in pubspec.yaml"
+      ]
+    },
+    "artifacts": []
+  },
+  "flow_control": {
+    "pre_analysis": [
+      {
+        "step": "extract_api_endpoints",
+        "action": "Extract all API endpoints and their signatures from subsonic_client.dart",
+        "commands": [
+          "bash(grep -n 'Future\\|String.*Url\\|void ' lib/api/subsonic_client.dart)"
+        ],
+        "output_to": "api_endpoints",
+        "on_error": "fail"
+      },
+      {
+        "step": "identify_plan_divergences",
+        "action": "Compare PROJECT_PLAN.md planned structure with actual lib/ structure",
+        "commands": [
+          "bash(find lib/ -name '*.dart' -type f | sort)",
+          "bash(grep -n 'endpoints/\\|data/\\|queue_manager' PROJECT_PLAN.md)"
+        ],
+        "output_to": "plan_divergences",
+        "on_error": "skip_optional"
+      }
+    ],
+    "implementation_approach": [
+      {
+        "step": 1,
+        "title": "Create docs/services/subsonic-api.md",
+        "description": "Document all 15 Subsonic API endpoints used by the client, including authentication mechanism and Navidrome extensions",
+        "modification_points": [
+          "Create 1 file: docs/services/subsonic-api.md (~150-180 lines)",
+          "Document 6 API categories with 15 endpoints",
+          "Include authentication mechanism (token = md5(password + salt))",
+          "Document Navidrome-specific extensions (lyrics, transcoding)"
+        ],
+        "logic_flow": [
+          "Describe Subsonic API protocol overview and version (1.16.1)",
+          "Document token authentication with salt-based MD5",
+          "List all 15 endpoints grouped by category with parameters and response format",
+          "Note Navidrome-specific extensions",
+          "Include example request/response for key endpoints (ping, stream, search3)",
+          "Document error handling (SubsonicApiException codes)"
+        ],
+        "depends_on": [],
+        "output": "api_reference"
+      },
+      {
+        "step": 2,
+        "title": "Create docs/development-guide.md",
+        "description": "Write development setup guide covering environment, build, run, and test instructions",
+        "modification_points": [
+          "Create 1 file: docs/development-guide.md (~100-120 lines)",
+          "Cover 5 topics: [环境要求, 项目搭建, 构建运行, 代码规范, 调试技巧]"
+        ],
+        "logic_flow": [
+          "List environment prerequisites (Flutter 3.38, Dart 3.10, Android SDK, Xcode)",
+          "Write step-by-step setup instructions (clone, pub get, configure IDE)",
+          "Document build commands for Android and macOS",
+          "Describe coding conventions from PROJECT_PLAN.md section 7",
+          "Add debugging tips for Navidrome connection issues"
+        ],
+        "depends_on": [],
+        "output": "dev_guide"
+      },
+      {
+        "step": 3,
+        "title": "Sync PROJECT_PLAN.md with actual implementation",
+        "description": "Update PROJECT_PLAN.md to reflect actual code state, noting divergences and actual completion status",
+        "modification_points": [
+          "Update ~15 items in PROJECT_PLAN.md",
+          "Correct directory structure (section 2.2) to match actual lib/ layout",
+          "Add notes about go_router unused, audio_handler incomplete, drift/palette_generator not included",
+          "Update Phase 1 checklist with actual completion notes",
+          "Add section documenting known divergences between plan and implementation"
+        ],
+        "logic_flow": [
+          "Compare planned directory structure with actual",
+          "Mark which planned files exist and which are missing",
+          "Update dependency list to match actual pubspec.yaml",
+          "Add implementation notes to Phase 1 checklist items",
+          "Create new section 'Implementation Notes' documenting divergences"
+        ],
+        "depends_on": [],
+        "output": "plan_sync"
+      },
+      {
+        "step": 4,
+        "title": "Create CHANGELOG.md",
+        "description": "Create changelog documenting Phase 1 completion with Keep a Changelog format",
+        "modification_points": [
+          "Create 1 file: CHANGELOG.md (~40-60 lines)",
+          "Document Phase 1 deliverables in 3 categories: [Added, Changed, Known Issues]"
+        ],
+        "logic_flow": [
+          "Use Keep a Changelog format (keepachangelog.com)",
+          "List Phase 1 'Added' items: API client, player service, login/home UI, models",
+          "List 'Known Issues': audio_handler incomplete, go_router unused",
+          "Add placeholder for Phase 2 (Unreleased section)"
+        ],
+        "depends_on": [],
+        "output": "changelog"
+      }
+    ],
+    "target_files": [
+      "docs/services/subsonic-api.md",
+      "docs/development-guide.md",
+      "PROJECT_PLAN.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-28T12:08:11+08:00"
+    }
+  ]
+}

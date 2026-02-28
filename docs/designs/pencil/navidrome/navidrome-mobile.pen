@@ -1,0 +1,1440 @@
+{
+  "version": "2.4",
+  "children": [
+    {
+      "type": "frame",
+      "id": "suite001",
+      "name": "Navidrome Player UI Suite",
+      "x": 0,
+      "y": 0,
+      "width": 3940,
+      "height": 980,
+      "layout": "horizontal",
+      "gap": 40,
+      "padding": 40,
+      "fill": "#ECEBE7",
+      "children": [
+        {
+          "type": "frame",
+          "id": "scrLogin",
+          "name": "01 Login",
+          "width": 390,
+          "height": 844,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 28,
+          "fill": "#F5F4F1",
+          "children": [
+            {
+              "type": "frame",
+              "id": "lgStatus",
+              "width": 390,
+              "height": 62,
+              "padding": [0, 24],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lgTime",
+                  "content": "9:41",
+                  "fontFamily": "Outfit",
+                  "fontSize": 14,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lgBody",
+              "width": 390,
+              "height": 782,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lgBadge",
+                  "width": 80,
+                  "height": 80,
+                  "cornerRadius": 40,
+                  "fill": "#E5F4EA",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lgBadgeText",
+                      "content": "♪",
+                      "fontSize": 30,
+                      "fontWeight": "700",
+                      "fill": "#3D8A5A"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "lgTitle",
+                  "content": "Navidrome Player",
+                  "fontFamily": "Outfit",
+                  "fontSize": 32,
+                  "fontWeight": "700",
+                  "fill": "#1A1918"
+                },
+                {
+                  "type": "text",
+                  "id": "lgSub",
+                  "content": "Connect your private music server.",
+                  "fontSize": 14,
+                  "fill": "#6D6C6A"
+                },
+                {
+                  "type": "frame",
+                  "id": "lgUrl",
+                  "width": 342,
+                  "height": 56,
+                  "cornerRadius": 12,
+                  "padding": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lgUrlText",
+                      "content": "Server URL",
+                      "fontSize": 13,
+                      "fill": "#9C9B99"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lgUser",
+                  "width": 342,
+                  "height": 56,
+                  "cornerRadius": 12,
+                  "padding": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lgUserText",
+                      "content": "Username",
+                      "fontSize": 13,
+                      "fill": "#9C9B99"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lgPass",
+                  "width": 342,
+                  "height": 56,
+                  "cornerRadius": 12,
+                  "padding": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lgPassText",
+                      "content": "Password",
+                      "fontSize": 13,
+                      "fill": "#9C9B99"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lgBtn",
+                  "width": 342,
+                  "height": 52,
+                  "cornerRadius": 26,
+                  "padding": 16,
+                  "fill": "#3D8A5A",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lgBtnText",
+                      "content": "CONNECT",
+                      "fontSize": 12,
+                      "fontWeight": "600",
+                      "letterSpacing": 0.5,
+                      "fill": "#FFFFFF"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "scrHome",
+          "name": "02 Home",
+          "width": 390,
+          "height": 844,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 28,
+          "fill": "#F5F4F1",
+          "children": [
+            {
+              "type": "frame",
+              "id": "hmStatus",
+              "width": 390,
+              "height": 62,
+              "padding": [0, 24],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hmTime",
+                  "content": "9:41",
+                  "fontFamily": "Outfit",
+                  "fontSize": 14,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hmBody",
+              "width": 390,
+              "height": 616,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hmTitle",
+                  "content": "For You",
+                  "fontFamily": "Outfit",
+                  "fontSize": 26,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                },
+                {
+                  "type": "text",
+                  "id": "hmSub",
+                  "content": "Recently added and continue listening",
+                  "fontSize": 13,
+                  "fill": "#6D6C6A"
+                },
+                {
+                  "type": "frame",
+                  "id": "hmSearch",
+                  "width": 342,
+                  "height": 44,
+                  "cornerRadius": 12,
+                  "padding": 14,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "hmSearchText",
+                      "content": "Search albums or songs",
+                      "fontSize": 12,
+                      "fill": "#9C9B99"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "hmRecent",
+                  "content": "Recently Added",
+                  "fontFamily": "Outfit",
+                  "fontSize": 18,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                },
+                {
+                  "type": "frame",
+                  "id": "hmCards",
+                  "width": 342,
+                  "height": 170,
+                  "layout": "horizontal",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "hmCard1",
+                      "width": 165,
+                      "height": 170,
+                      "layout": "vertical",
+                      "gap": 8,
+                      "padding": 8,
+                      "cornerRadius": 16,
+                      "fill": "#FFFFFF",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "hmCover1",
+                          "width": 149,
+                          "height": 106,
+                          "cornerRadius": 12,
+                          "fill": "#EDECEA"
+                        },
+                        {
+                          "type": "text",
+                          "id": "hmLabel1",
+                          "content": "Morning Radio",
+                          "fontSize": 12,
+                          "fontWeight": "600",
+                          "fill": "#1A1918"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hmCard2",
+                      "width": 165,
+                      "height": 170,
+                      "layout": "vertical",
+                      "gap": 8,
+                      "padding": 8,
+                      "cornerRadius": 16,
+                      "fill": "#FFFFFF",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "hmCover2",
+                          "width": 149,
+                          "height": 106,
+                          "cornerRadius": 12,
+                          "fill": "#DDEEE2"
+                        },
+                        {
+                          "type": "text",
+                          "id": "hmLabel2",
+                          "content": "Late Night Mix",
+                          "fontSize": 12,
+                          "fontWeight": "600",
+                          "fill": "#1A1918"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hmMini",
+              "width": 390,
+              "height": 70,
+              "padding": 16,
+              "fill": "#FFFFFF",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hmMiniText",
+                  "content": "Now Playing  ·  Skybound",
+                  "fontSize": 13,
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hmTabWrap",
+              "width": 390,
+              "height": 96,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "hmTabPill",
+                  "width": 358,
+                  "height": 62,
+                  "layout": "horizontal",
+                  "gap": 8,
+                  "padding": 4,
+                  "cornerRadius": 31,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "hmTabActive",
+                      "width": 112,
+                      "height": 54,
+                      "cornerRadius": 26,
+                      "fill": "#3D8A5A",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "hmTabActiveText",
+                          "content": "HOME",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hmTab2",
+                      "width": 112,
+                      "height": 54,
+                      "cornerRadius": 26,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "hmTab2Text",
+                          "content": "LIBRARY",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "fill": "#9C9B99"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hmTab3",
+                      "width": 112,
+                      "height": 54,
+                      "cornerRadius": 26,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "hmTab3Text",
+                          "content": "SEARCH",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "fill": "#9C9B99"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "scrLibrary",
+          "name": "03 Library",
+          "width": 390,
+          "height": 844,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 28,
+          "fill": "#F5F4F1",
+          "children": [
+            {
+              "type": "frame",
+              "id": "lbStatus",
+              "width": 390,
+              "height": 62,
+              "padding": [0, 24],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lbTime",
+                  "content": "9:41",
+                  "fontFamily": "Outfit",
+                  "fontSize": 14,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lbBody",
+              "width": 390,
+              "height": 616,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lbTitle",
+                  "content": "Library",
+                  "fontFamily": "Outfit",
+                  "fontSize": 26,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                },
+                {
+                  "type": "frame",
+                  "id": "lbSeg",
+                  "width": 342,
+                  "height": 44,
+                  "layout": "horizontal",
+                  "gap": 8,
+                  "padding": 4,
+                  "cornerRadius": 22,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "lbSegActive",
+                      "width": 163,
+                      "height": 36,
+                      "cornerRadius": 18,
+                      "fill": "#3D8A5A",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lbSegActiveText",
+                          "content": "ARTISTS",
+                          "fontSize": 11,
+                          "fontWeight": "600",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lbSeg2",
+                      "width": 163,
+                      "height": 36,
+                      "cornerRadius": 18,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lbSeg2Text",
+                          "content": "ALBUMS",
+                          "fontSize": 11,
+                          "fontWeight": "600",
+                          "fill": "#9C9B99"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lbItem1",
+                  "width": 342,
+                  "height": 74,
+                  "layout": "vertical",
+                  "gap": 4,
+                  "padding": 14,
+                  "cornerRadius": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lbItem1Title",
+                      "content": "A · Aurora Echo",
+                      "fontSize": 15,
+                      "fontWeight": "600",
+                      "fill": "#1A1918"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lbItem1Meta",
+                      "content": "12 albums · 134 songs",
+                      "fontSize": 12,
+                      "fill": "#6D6C6A"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lbItem2",
+                  "width": 342,
+                  "height": 74,
+                  "layout": "vertical",
+                  "gap": 4,
+                  "padding": 14,
+                  "cornerRadius": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lbItem2Title",
+                      "content": "B · Blue Transit",
+                      "fontSize": 15,
+                      "fontWeight": "600",
+                      "fill": "#1A1918"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lbItem2Meta",
+                      "content": "8 albums · 79 songs",
+                      "fontSize": 12,
+                      "fill": "#6D6C6A"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lbMini",
+              "width": 390,
+              "height": 70,
+              "padding": 16,
+              "fill": "#FFFFFF",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lbMiniText",
+                  "content": "Now Playing  ·  Dawn Lines",
+                  "fontSize": 13,
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lbTabWrap",
+              "width": 390,
+              "height": 96,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lbTabPill",
+                  "width": 358,
+                  "height": 62,
+                  "layout": "horizontal",
+                  "gap": 8,
+                  "padding": 4,
+                  "cornerRadius": 31,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "lbTabActive",
+                      "width": 112,
+                      "height": 54,
+                      "cornerRadius": 26,
+                      "fill": "#3D8A5A",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lbTabActiveText",
+                          "content": "LIBRARY",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "scrSearch",
+          "name": "04 Search",
+          "width": 390,
+          "height": 844,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 28,
+          "fill": "#F5F4F1",
+          "children": [
+            {
+              "type": "frame",
+              "id": "srStatus",
+              "width": 390,
+              "height": 62,
+              "padding": [0, 24],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "srTime",
+                  "content": "9:41",
+                  "fontFamily": "Outfit",
+                  "fontSize": 14,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "srBody",
+              "width": 390,
+              "height": 616,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "srTitle",
+                  "content": "Search",
+                  "fontFamily": "Outfit",
+                  "fontSize": 26,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                },
+                {
+                  "type": "frame",
+                  "id": "srInput",
+                  "width": 342,
+                  "height": 46,
+                  "cornerRadius": 12,
+                  "padding": 14,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "srInputText",
+                      "content": "city lights",
+                      "fontSize": 13,
+                      "fill": "#1A1918"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "srTopTitle",
+                  "content": "Top Results",
+                  "fontFamily": "Outfit",
+                  "fontSize": 18,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                },
+                {
+                  "type": "frame",
+                  "id": "srResult1",
+                  "width": 342,
+                  "height": 78,
+                  "layout": "vertical",
+                  "gap": 4,
+                  "padding": 14,
+                  "cornerRadius": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "srResult1Title",
+                      "content": "City Lights",
+                      "fontSize": 15,
+                      "fontWeight": "600",
+                      "fill": "#1A1918"
+                    },
+                    {
+                      "type": "text",
+                      "id": "srResult1Meta",
+                      "content": "Song · Skyline Echo",
+                      "fontSize": 12,
+                      "fill": "#6D6C6A"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "srMini",
+              "width": 390,
+              "height": 70,
+              "padding": 16,
+              "fill": "#FFFFFF",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "srMiniText",
+                  "content": "Now Playing  ·  Neon Road",
+                  "fontSize": 13,
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "srTabWrap",
+              "width": 390,
+              "height": 96,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "srTabPill",
+                  "width": 358,
+                  "height": 62,
+                  "layout": "horizontal",
+                  "gap": 8,
+                  "padding": 4,
+                  "cornerRadius": 31,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "srTabActive",
+                      "width": 112,
+                      "height": 54,
+                      "cornerRadius": 26,
+                      "fill": "#3D8A5A",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "srTabActiveText",
+                          "content": "SEARCH",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "scrPlayer",
+          "name": "05 Player",
+          "width": 390,
+          "height": 844,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 28,
+          "fill": "#F5F4F1",
+          "children": [
+            {
+              "type": "frame",
+              "id": "plStatus",
+              "width": 390,
+              "height": 62,
+              "padding": [0, 24],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "plTime",
+                  "content": "9:41",
+                  "fontFamily": "Outfit",
+                  "fontSize": 14,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "plBody",
+              "width": 390,
+              "height": 782,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "plCover",
+                  "width": 342,
+                  "height": 340,
+                  "cornerRadius": 24,
+                  "fill": "#DDEEE2"
+                },
+                {
+                  "type": "text",
+                  "id": "plTitle",
+                  "content": "Skybound Horizon",
+                  "fontFamily": "Outfit",
+                  "fontSize": 32,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                },
+                {
+                  "type": "text",
+                  "id": "plMeta",
+                  "content": "Aurora Echo  ·  Northern Lights",
+                  "fontSize": 13,
+                  "fill": "#6D6C6A"
+                },
+                {
+                  "type": "frame",
+                  "id": "plProgressCard",
+                  "width": 342,
+                  "height": 70,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 14,
+                  "cornerRadius": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "plProgressTime",
+                      "content": "1:28 / 4:20",
+                      "fontSize": 12,
+                      "fill": "#6D6C6A"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "plTrack",
+                      "width": 314,
+                      "height": 8,
+                      "cornerRadius": 4,
+                      "fill": "#EDECEA",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "plTrackFill",
+                          "width": 170,
+                          "height": 8,
+                          "cornerRadius": 4,
+                          "fill": "#3D8A5A"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "plControls",
+                  "width": 342,
+                  "height": 84,
+                  "layout": "horizontal",
+                  "gap": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "plPrev",
+                      "width": 62,
+                      "height": 62,
+                      "cornerRadius": 31,
+                      "fill": "#FFFFFF",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "plPrevText",
+                          "content": "◀",
+                          "fontSize": 14,
+                          "fontWeight": "600",
+                          "fill": "#1A1918"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "plPlay",
+                      "width": 84,
+                      "height": 84,
+                      "cornerRadius": 42,
+                      "fill": "#3D8A5A",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "plPlayText",
+                          "content": "▶",
+                          "fontSize": 18,
+                          "fontWeight": "700",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "plNext",
+                      "width": 62,
+                      "height": 62,
+                      "cornerRadius": 31,
+                      "fill": "#FFFFFF",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "plNextText",
+                          "content": "▶▶",
+                          "fontSize": 12,
+                          "fontWeight": "600",
+                          "fill": "#1A1918"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "scrPlaylists",
+          "name": "06 Playlists",
+          "width": 390,
+          "height": 844,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 28,
+          "fill": "#F5F4F1",
+          "children": [
+            {
+              "type": "frame",
+              "id": "lsStatus",
+              "width": 390,
+              "height": 62,
+              "padding": [0, 24],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lsTime",
+                  "content": "9:41",
+                  "fontFamily": "Outfit",
+                  "fontSize": 14,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lsBody",
+              "width": 390,
+              "height": 616,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lsTitle",
+                  "content": "Playlists",
+                  "fontFamily": "Outfit",
+                  "fontSize": 26,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                },
+                {
+                  "type": "frame",
+                  "id": "lsBtn",
+                  "width": 342,
+                  "height": 46,
+                  "cornerRadius": 23,
+                  "fill": "#3D8A5A",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lsBtnText",
+                      "content": "NEW PLAYLIST",
+                      "fontSize": 11,
+                      "fontWeight": "600",
+                      "fill": "#FFFFFF"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lsItem1",
+                  "width": 342,
+                  "height": 82,
+                  "layout": "vertical",
+                  "gap": 4,
+                  "padding": 14,
+                  "cornerRadius": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lsItem1Title",
+                      "content": "Drive Session",
+                      "fontSize": 15,
+                      "fontWeight": "600",
+                      "fill": "#1A1918"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lsItem1Meta",
+                      "content": "28 songs · 1h 42m",
+                      "fontSize": 12,
+                      "fill": "#6D6C6A"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lsMini",
+              "width": 390,
+              "height": 70,
+              "padding": 16,
+              "fill": "#FFFFFF",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lsMiniText",
+                  "content": "Now Playing  ·  Ocean Sleep",
+                  "fontSize": 13,
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lsTabWrap",
+              "width": 390,
+              "height": 96,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lsTabPill",
+                  "width": 358,
+                  "height": 62,
+                  "layout": "horizontal",
+                  "gap": 8,
+                  "padding": 4,
+                  "cornerRadius": 31,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "lsTabActive",
+                      "width": 112,
+                      "height": 54,
+                      "cornerRadius": 26,
+                      "fill": "#3D8A5A",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lsTabActiveText",
+                          "content": "LISTS",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "scrDownloads",
+          "name": "07 Downloads",
+          "width": 390,
+          "height": 844,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 28,
+          "fill": "#F5F4F1",
+          "children": [
+            {
+              "type": "frame",
+              "id": "dnStatus",
+              "width": 390,
+              "height": 62,
+              "padding": [0, 24],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "dnTime",
+                  "content": "9:41",
+                  "fontFamily": "Outfit",
+                  "fontSize": 14,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dnBody",
+              "width": 390,
+              "height": 616,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "dnTitle",
+                  "content": "Downloads",
+                  "fontFamily": "Outfit",
+                  "fontSize": 26,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                },
+                {
+                  "type": "frame",
+                  "id": "dnStorage",
+                  "width": 342,
+                  "height": 92,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 14,
+                  "cornerRadius": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dnStorageTitle",
+                      "content": "Storage Used  18.4 GB / 64 GB",
+                      "fontSize": 12,
+                      "fill": "#1A1918"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dnStorageTrack",
+                      "width": 314,
+                      "height": 8,
+                      "cornerRadius": 4,
+                      "fill": "#EDECEA",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "dnStorageFill",
+                          "width": 190,
+                          "height": 8,
+                          "cornerRadius": 4,
+                          "fill": "#3D8A5A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dnMini",
+              "width": 390,
+              "height": 70,
+              "padding": 16,
+              "fill": "#FFFFFF",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "dnMiniText",
+                  "content": "Now Playing  ·  River Pulse",
+                  "fontSize": 13,
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dnTabWrap",
+              "width": 390,
+              "height": 96,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "dnTabPill",
+                  "width": 358,
+                  "height": 62,
+                  "layout": "horizontal",
+                  "gap": 8,
+                  "padding": 4,
+                  "cornerRadius": 31,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "dnTabActive",
+                      "width": 112,
+                      "height": 54,
+                      "cornerRadius": 26,
+                      "fill": "#3D8A5A",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "dnTabActiveText",
+                          "content": "OFFLINE",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "scrSettings",
+          "name": "08 Settings",
+          "width": 390,
+          "height": 844,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 28,
+          "fill": "#F5F4F1",
+          "children": [
+            {
+              "type": "frame",
+              "id": "stStatus",
+              "width": 390,
+              "height": 62,
+              "padding": [0, 24],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "stTime",
+                  "content": "9:41",
+                  "fontFamily": "Outfit",
+                  "fontSize": 14,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "stBody",
+              "width": 390,
+              "height": 782,
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "stTitle",
+                  "content": "Settings",
+                  "fontFamily": "Outfit",
+                  "fontSize": 26,
+                  "fontWeight": "600",
+                  "fill": "#1A1918"
+                },
+                {
+                  "type": "frame",
+                  "id": "stServerCard",
+                  "width": 342,
+                  "height": 116,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 14,
+                  "cornerRadius": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "stServerTitle",
+                      "content": "Active Server",
+                      "fontFamily": "Outfit",
+                      "fontSize": 16,
+                      "fontWeight": "600",
+                      "fill": "#1A1918"
+                    },
+                    {
+                      "type": "text",
+                      "id": "stServerMeta",
+                      "content": "music.home.lab  ·  user: admin",
+                      "fontSize": 12,
+                      "fill": "#6D6C6A"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "stThemeCard",
+                  "width": 342,
+                  "height": 116,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 14,
+                  "cornerRadius": 16,
+                  "fill": "#FFFFFF",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "stThemeTitle",
+                      "content": "Theme",
+                      "fontFamily": "Outfit",
+                      "fontSize": 16,
+                      "fontWeight": "600",
+                      "fill": "#1A1918"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "stThemeRow",
+                      "width": 314,
+                      "height": 34,
+                      "layout": "horizontal",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "stThemeActive",
+                          "width": 84,
+                          "height": 34,
+                          "cornerRadius": 17,
+                          "fill": "#3D8A5A",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "stThemeActiveText",
+                              "content": "SYSTEM",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "fill": "#FFFFFF"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "stThemeLight",
+                          "width": 84,
+                          "height": 34,
+                          "cornerRadius": 17,
+                          "fill": "#F5F4F1",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "stThemeLightText",
+                              "content": "LIGHT",
+                              "fontSize": 10,
+                              "fontWeight": "600",
+                              "fill": "#6D6C6A"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
