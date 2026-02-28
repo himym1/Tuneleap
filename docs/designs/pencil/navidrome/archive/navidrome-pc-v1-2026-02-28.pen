@@ -1,0 +1,1454 @@
+{
+  "version": "2.4",
+  "variables": {
+    "color-bg": {
+      "type": "color",
+      "value": "#F7F7F4"
+    },
+    "color-surface": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "color-surface-soft": {
+      "type": "color",
+      "value": "#F5F4F1"
+    },
+    "color-text": {
+      "type": "color",
+      "value": "#1A1918"
+    },
+    "color-text-muted": {
+      "type": "color",
+      "value": "#6D6C6A"
+    },
+    "color-text-faint": {
+      "type": "color",
+      "value": "#9C9B99"
+    },
+    "color-primary": {
+      "type": "color",
+      "value": "#3D8A5A"
+    },
+    "font-display": {
+      "type": "string",
+      "value": "Outfit"
+    },
+    "font-body": {
+      "type": "string",
+      "value": "Inter"
+    }
+  },
+  "children": [
+    {
+      "type": "frame",
+      "id": "component_board",
+      "name": "组件库",
+      "x": 40,
+      "y": 40,
+      "width": 2000,
+      "height": 260,
+      "layout": "horizontal",
+      "gap": 16,
+      "padding": 16,
+      "fill": "#ECEBE7",
+      "children": [
+        {
+          "type": "frame",
+          "id": "cmp_primary_button",
+          "name": "组件/主按钮",
+          "reusable": true,
+          "width": 220,
+          "height": 48,
+          "layout": "horizontal",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "cornerRadius": 24,
+          "fill": "$color-primary",
+          "children": [
+            {
+              "type": "text",
+              "id": "cmp_primary_button_label",
+              "content": "主按钮",
+              "fontFamily": "$font-body",
+              "fontSize": 14,
+              "fontWeight": "600",
+              "fill": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cmp_input_field",
+          "name": "组件/输入框",
+          "reusable": true,
+          "width": 428,
+          "height": 58,
+          "layout": "horizontal",
+          "alignItems": "center",
+          "padding": [0, 16],
+          "cornerRadius": 12,
+          "fill": "$color-surface-soft",
+          "children": [
+            {
+              "type": "text",
+              "id": "cmp_input_field_label",
+              "content": "输入内容",
+              "fontFamily": "$font-body",
+              "fontSize": 13,
+              "fill": "$color-text-faint"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cmp_nav_default",
+          "name": "组件/导航项/默认",
+          "reusable": true,
+          "width": 208,
+          "height": 42,
+          "layout": "horizontal",
+          "alignItems": "center",
+          "padding": [0, 14],
+          "cornerRadius": 12,
+          "fill": "$color-surface-soft",
+          "children": [
+            {
+              "type": "text",
+              "id": "cmp_nav_default_label",
+              "content": "默认导航",
+              "fontFamily": "$font-body",
+              "fontSize": 13,
+              "fill": "$color-text-muted"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cmp_nav_active",
+          "name": "组件/导航项/激活",
+          "reusable": true,
+          "width": 208,
+          "height": 42,
+          "layout": "horizontal",
+          "alignItems": "center",
+          "padding": [0, 14],
+          "cornerRadius": 12,
+          "fill": "$color-primary",
+          "children": [
+            {
+              "type": "text",
+              "id": "cmp_nav_active_label",
+              "content": "激活导航",
+              "fontFamily": "$font-body",
+              "fontSize": 13,
+              "fontWeight": "600",
+              "fill": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cmp_stat_card",
+          "name": "组件/统计卡片",
+          "reusable": true,
+          "width": 373,
+          "height": 120,
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 18,
+          "cornerRadius": 16,
+          "fill": "$color-surface",
+          "children": [
+            {
+              "type": "text",
+              "id": "cmp_stat_title",
+              "content": "统计标题",
+              "fontFamily": "$font-body",
+              "fontSize": 12,
+              "fill": "$color-text-muted"
+            },
+            {
+              "type": "text",
+              "id": "cmp_stat_value",
+              "content": "0",
+              "fontFamily": "$font-display",
+              "fontSize": 28,
+              "fontWeight": "700",
+              "fill": "$color-text"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cmp_list_row",
+          "name": "组件/列表行",
+          "reusable": true,
+          "width": 1152,
+          "height": 74,
+          "layout": "vertical",
+          "gap": 4,
+          "padding": 16,
+          "cornerRadius": 14,
+          "fill": "$color-surface",
+          "children": [
+            {
+              "type": "text",
+              "id": "cmp_list_row_title",
+              "content": "行标题",
+              "fontFamily": "$font-body",
+              "fontSize": 15,
+              "fontWeight": "600",
+              "fill": "$color-text"
+            },
+            {
+              "type": "text",
+              "id": "cmp_list_row_meta",
+              "content": "行描述",
+              "fontFamily": "$font-body",
+              "fontSize": 12,
+              "fill": "$color-text-muted"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cmp_section_card",
+          "name": "组件/设置区块",
+          "reusable": true,
+          "width": 1152,
+          "height": 130,
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 18,
+          "cornerRadius": 16,
+          "fill": "$color-surface",
+          "children": [
+            {
+              "type": "text",
+              "id": "cmp_section_title",
+              "content": "区块标题",
+              "fontFamily": "$font-display",
+              "fontSize": 18,
+              "fontWeight": "600",
+              "fill": "$color-text"
+            },
+            {
+              "type": "text",
+              "id": "cmp_section_meta",
+              "content": "区块描述",
+              "fontFamily": "$font-body",
+              "fontSize": 13,
+              "fill": "$color-text-muted"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cmp_search_input",
+          "name": "组件/搜索输入",
+          "reusable": true,
+          "width": 1152,
+          "height": 52,
+          "layout": "horizontal",
+          "alignItems": "center",
+          "padding": [0, 16],
+          "cornerRadius": 12,
+          "fill": "$color-surface",
+          "children": [
+            {
+              "type": "text",
+              "id": "cmp_search_placeholder",
+              "content": "输入关键词搜索",
+              "fontFamily": "$font-body",
+              "fontSize": 13,
+              "fill": "$color-text-faint"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cmp_progress_card",
+          "name": "组件/播放进度",
+          "reusable": true,
+          "width": 784,
+          "height": 104,
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 16,
+          "cornerRadius": 14,
+          "fill": "$color-surface-soft",
+          "children": [
+            {
+              "type": "text",
+              "id": "cmp_progress_time",
+              "content": "00:00 / 00:00",
+              "fontFamily": "$font-body",
+              "fontSize": 13,
+              "fill": "$color-text-muted"
+            },
+            {
+              "type": "frame",
+              "id": "cmp_progress_track",
+              "width": 752,
+              "height": 10,
+              "cornerRadius": 5,
+              "fill": "#E3E3E0",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cmp_progress_fill",
+                  "width": 320,
+                  "height": 10,
+                  "cornerRadius": 5,
+                  "fill": "$color-primary"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "pc_suite_v2",
+      "name": "Navidrome 桌面端 UI（组件化）",
+      "x": 40,
+      "y": 340,
+      "width": 9040,
+      "height": 980,
+      "layout": "horizontal",
+      "gap": 80,
+      "padding": 40,
+      "fill": "#ECEBE7",
+      "children": [
+        {
+          "type": "frame",
+          "id": "pc_login_screen",
+          "name": "01 登录页",
+          "width": 1440,
+          "height": 900,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 20,
+          "fill": "$color-bg",
+          "children": [
+            {
+              "type": "frame",
+              "id": "pc_login_top",
+              "width": 1440,
+              "height": 72,
+              "layout": "horizontal",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "padding": [0, 32],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pc_login_brand",
+                  "content": "Navidrome Player",
+                  "fontFamily": "$font-display",
+                  "fontSize": 20,
+                  "fontWeight": "700",
+                  "fill": "$color-text"
+                },
+                {
+                  "type": "text",
+                  "id": "pc_login_platform",
+                  "content": "桌面端",
+                  "fontFamily": "$font-body",
+                  "fontSize": 13,
+                  "fill": "$color-text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pc_login_body",
+              "width": 1440,
+              "height": 828,
+              "layout": "horizontal",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pc_login_card",
+                  "width": 520,
+                  "height": 580,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 36,
+                  "cornerRadius": 24,
+                  "fill": "$color-surface",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pc_login_title",
+                      "content": "连接你的音乐服务器",
+                      "fontFamily": "$font-display",
+                      "fontSize": 32,
+                      "fontWeight": "700",
+                      "fill": "$color-text"
+                    },
+                    {
+                      "type": "text",
+                      "id": "pc_login_subtitle",
+                      "content": "输入服务器地址与账号后开始播放",
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fill": "$color-text-muted"
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_login_url_field",
+                      "ref": "cmp_input_field",
+                      "descendants": {
+                        "cmp_input_field_label": {
+                          "content": "服务器地址（例如：https://music.example.com）"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_login_user_field",
+                      "ref": "cmp_input_field",
+                      "descendants": {
+                        "cmp_input_field_label": {
+                          "content": "用户名"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_login_pass_field",
+                      "ref": "cmp_input_field",
+                      "descendants": {
+                        "cmp_input_field_label": {
+                          "content": "密码"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_login_button",
+                      "ref": "cmp_primary_button",
+                      "width": 428,
+                      "descendants": {
+                        "cmp_primary_button_label": {
+                          "content": "连接并进入"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "pc_home_screen",
+          "name": "02 首页",
+          "width": 1440,
+          "height": 900,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 20,
+          "fill": "$color-bg",
+          "children": [
+            {
+              "type": "frame",
+              "id": "pc_home_top",
+              "width": 1440,
+              "height": 72,
+              "layout": "horizontal",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "padding": [0, 32],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pc_home_title",
+                  "content": "首页",
+                  "fontFamily": "$font-display",
+                  "fontSize": 26,
+                  "fontWeight": "700",
+                  "fill": "$color-text"
+                },
+                {
+                  "type": "text",
+                  "id": "pc_home_user",
+                  "content": "欢迎，管理员",
+                  "fontFamily": "$font-body",
+                  "fontSize": 13,
+                  "fill": "$color-text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pc_home_body",
+              "width": 1440,
+              "height": 828,
+              "layout": "horizontal",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pc_home_sidebar",
+                  "width": 240,
+                  "height": 828,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "fill": "$color-surface",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pc_home_nav_title",
+                      "content": "导航",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fill": "$color-text-faint"
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_home_nav_home",
+                      "ref": "cmp_nav_active",
+                      "descendants": {
+                        "cmp_nav_active_label": {
+                          "content": "首页"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_home_nav_library",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "音乐库"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_home_nav_search",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "搜索"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_home_nav_playlist",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "播放列表"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_home_nav_download",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "下载"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_home_nav_settings",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "设置"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pc_home_main",
+                  "width": 1200,
+                  "height": 828,
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pc_home_main_title",
+                      "content": "今天想听点什么？",
+                      "fontFamily": "$font-display",
+                      "fontSize": 28,
+                      "fontWeight": "700",
+                      "fill": "$color-text"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pc_home_stat_row",
+                      "width": 1152,
+                      "height": 120,
+                      "layout": "horizontal",
+                      "gap": 16,
+                      "children": [
+                        {
+                          "type": "ref",
+                          "id": "pc_home_stat_1",
+                          "ref": "cmp_stat_card",
+                          "descendants": {
+                            "cmp_stat_title": {
+                              "content": "最近播放"
+                            },
+                            "cmp_stat_value": {
+                              "content": "128 首"
+                            }
+                          }
+                        },
+                        {
+                          "type": "ref",
+                          "id": "pc_home_stat_2",
+                          "ref": "cmp_stat_card",
+                          "descendants": {
+                            "cmp_stat_title": {
+                              "content": "收藏歌曲"
+                            },
+                            "cmp_stat_value": {
+                              "content": "342 首"
+                            }
+                          }
+                        },
+                        {
+                          "type": "ref",
+                          "id": "pc_home_stat_3",
+                          "ref": "cmp_stat_card",
+                          "descendants": {
+                            "cmp_stat_title": {
+                              "content": "离线缓存"
+                            },
+                            "cmp_stat_value": {
+                              "content": "18.4 GB"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "pc_home_recent_title",
+                      "content": "最近添加",
+                      "fontFamily": "$font-display",
+                      "fontSize": 22,
+                      "fontWeight": "600",
+                      "fill": "$color-text"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pc_home_album_row",
+                      "width": 1152,
+                      "height": 240,
+                      "layout": "horizontal",
+                      "gap": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "pc_home_album_1",
+                          "width": 276,
+                          "height": 240,
+                          "layout": "vertical",
+                          "gap": 10,
+                          "padding": 12,
+                          "cornerRadius": 16,
+                          "fill": "$color-surface",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "pc_home_album_1_cover",
+                              "width": 252,
+                              "height": 170,
+                              "cornerRadius": 12,
+                              "fill": "#DDEEE2"
+                            },
+                            {
+                              "type": "text",
+                              "id": "pc_home_album_1_text",
+                              "content": "晨光电台",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600",
+                              "fill": "$color-text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "pc_home_album_2",
+                          "width": 276,
+                          "height": 240,
+                          "layout": "vertical",
+                          "gap": 10,
+                          "padding": 12,
+                          "cornerRadius": 16,
+                          "fill": "$color-surface",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "pc_home_album_2_cover",
+                              "width": 252,
+                              "height": 170,
+                              "cornerRadius": 12,
+                              "fill": "#EDECEA"
+                            },
+                            {
+                              "type": "text",
+                              "id": "pc_home_album_2_text",
+                              "content": "深夜混音",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600",
+                              "fill": "$color-text"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "pc_library_screen",
+          "name": "03 音乐库",
+          "width": 1440,
+          "height": 900,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 20,
+          "fill": "$color-bg",
+          "children": [
+            {
+              "type": "frame",
+              "id": "pc_library_top",
+              "width": 1440,
+              "height": 72,
+              "layout": "horizontal",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "padding": [0, 32],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pc_library_title",
+                  "content": "音乐库",
+                  "fontFamily": "$font-display",
+                  "fontSize": 26,
+                  "fontWeight": "700",
+                  "fill": "$color-text"
+                },
+                {
+                  "type": "text",
+                  "id": "pc_library_info",
+                  "content": "共 1,284 首歌曲",
+                  "fontFamily": "$font-body",
+                  "fontSize": 13,
+                  "fill": "$color-text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pc_library_body",
+              "width": 1440,
+              "height": 828,
+              "layout": "horizontal",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pc_library_sidebar",
+                  "width": 240,
+                  "height": 828,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "fill": "$color-surface",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pc_library_nav_title",
+                      "content": "导航",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fill": "$color-text-faint"
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_library_nav_home",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "首页"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_library_nav_library",
+                      "ref": "cmp_nav_active",
+                      "descendants": {
+                        "cmp_nav_active_label": {
+                          "content": "音乐库"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_library_nav_search",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "搜索"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_library_nav_settings",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "设置"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pc_library_main",
+                  "width": 1200,
+                  "height": 828,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "pc_library_header_row",
+                      "width": 1152,
+                      "height": 42,
+                      "layout": "horizontal",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pc_library_header_left",
+                          "content": "艺术家列表",
+                          "fontFamily": "$font-display",
+                          "fontSize": 20,
+                          "fontWeight": "600",
+                          "fill": "$color-text"
+                        },
+                        {
+                          "type": "text",
+                          "id": "pc_library_header_right",
+                          "content": "按字母排序",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fill": "$color-text-faint"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_library_row_1",
+                      "ref": "cmp_list_row",
+                      "descendants": {
+                        "cmp_list_row_title": {
+                          "content": "A · 北极回声"
+                        },
+                        "cmp_list_row_meta": {
+                          "content": "12 张专辑 · 134 首歌曲"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_library_row_2",
+                      "ref": "cmp_list_row",
+                      "descendants": {
+                        "cmp_list_row_title": {
+                          "content": "B · 城市灯火"
+                        },
+                        "cmp_list_row_meta": {
+                          "content": "8 张专辑 · 79 首歌曲"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_library_row_3",
+                      "ref": "cmp_list_row",
+                      "descendants": {
+                        "cmp_list_row_title": {
+                          "content": "C · 暮色列车"
+                        },
+                        "cmp_list_row_meta": {
+                          "content": "16 张专辑 · 201 首歌曲"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "pc_search_screen",
+          "name": "04 搜索",
+          "width": 1440,
+          "height": 900,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 20,
+          "fill": "$color-bg",
+          "children": [
+            {
+              "type": "frame",
+              "id": "pc_search_top",
+              "width": 1440,
+              "height": 72,
+              "layout": "horizontal",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "padding": [0, 32],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pc_search_title",
+                  "content": "搜索",
+                  "fontFamily": "$font-display",
+                  "fontSize": 26,
+                  "fontWeight": "700",
+                  "fill": "$color-text"
+                },
+                {
+                  "type": "text",
+                  "id": "pc_search_info",
+                  "content": "支持艺术家 / 专辑 / 歌曲",
+                  "fontFamily": "$font-body",
+                  "fontSize": 13,
+                  "fill": "$color-text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pc_search_body",
+              "width": 1440,
+              "height": 828,
+              "layout": "horizontal",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pc_search_sidebar",
+                  "width": 240,
+                  "height": 828,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "fill": "$color-surface",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pc_search_nav_title",
+                      "content": "导航",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fill": "$color-text-faint"
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_search_nav_home",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "首页"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_search_nav_library",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "音乐库"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_search_nav_search",
+                      "ref": "cmp_nav_active",
+                      "descendants": {
+                        "cmp_nav_active_label": {
+                          "content": "搜索"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_search_nav_settings",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "设置"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pc_search_main",
+                  "width": 1200,
+                  "height": 828,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "ref",
+                      "id": "pc_search_input_ref",
+                      "ref": "cmp_search_input",
+                      "descendants": {
+                        "cmp_search_placeholder": {
+                          "content": "输入关键词，例如：城市灯火"
+                        }
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "pc_search_result_title",
+                      "content": "搜索结果",
+                      "fontFamily": "$font-display",
+                      "fontSize": 22,
+                      "fontWeight": "600",
+                      "fill": "$color-text"
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_search_row_1",
+                      "ref": "cmp_list_row",
+                      "descendants": {
+                        "cmp_list_row_title": {
+                          "content": "城市灯火"
+                        },
+                        "cmp_list_row_meta": {
+                          "content": "歌曲 · Skyline Echo"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_search_row_2",
+                      "ref": "cmp_list_row",
+                      "descendants": {
+                        "cmp_list_row_title": {
+                          "content": "城市灯火"
+                        },
+                        "cmp_list_row_meta": {
+                          "content": "专辑 · 北极回声"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "pc_player_screen",
+          "name": "05 播放器",
+          "width": 1440,
+          "height": 900,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 20,
+          "fill": "$color-bg",
+          "children": [
+            {
+              "type": "frame",
+              "id": "pc_player_top",
+              "width": 1440,
+              "height": 72,
+              "layout": "horizontal",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "padding": [0, 32],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pc_player_title",
+                  "content": "正在播放",
+                  "fontFamily": "$font-display",
+                  "fontSize": 26,
+                  "fontWeight": "700",
+                  "fill": "$color-text"
+                },
+                {
+                  "type": "text",
+                  "id": "pc_player_queue",
+                  "content": "队列 24 首",
+                  "fontFamily": "$font-body",
+                  "fontSize": 13,
+                  "fill": "$color-text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pc_player_body",
+              "width": 1440,
+              "height": 828,
+              "layout": "horizontal",
+              "gap": 24,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pc_player_left",
+                  "width": 560,
+                  "height": 780,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 24,
+                  "cornerRadius": 20,
+                  "fill": "$color-surface",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "pc_player_cover",
+                      "width": 512,
+                      "height": 512,
+                      "cornerRadius": 16,
+                      "fill": "#DDEEE2"
+                    },
+                    {
+                      "type": "text",
+                      "id": "pc_player_song",
+                      "content": "天际线",
+                      "fontFamily": "$font-display",
+                      "fontSize": 32,
+                      "fontWeight": "700",
+                      "fill": "$color-text"
+                    },
+                    {
+                      "type": "text",
+                      "id": "pc_player_artist",
+                      "content": "北极回声 · 追光专辑",
+                      "fontFamily": "$font-body",
+                      "fontSize": 14,
+                      "fill": "$color-text-muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pc_player_right",
+                  "width": 832,
+                  "height": 780,
+                  "layout": "vertical",
+                  "gap": 18,
+                  "padding": 24,
+                  "cornerRadius": 20,
+                  "fill": "$color-surface",
+                  "children": [
+                    {
+                      "type": "ref",
+                      "id": "pc_player_progress_ref",
+                      "ref": "cmp_progress_card",
+                      "descendants": {
+                        "cmp_progress_time": {
+                          "content": "01:28 / 04:20"
+                        },
+                        "cmp_progress_fill": {
+                          "width": 336
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pc_player_controls",
+                      "width": 784,
+                      "height": 90,
+                      "layout": "horizontal",
+                      "gap": 14,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "ref",
+                          "id": "pc_player_prev_btn",
+                          "ref": "cmp_nav_default",
+                          "width": 120,
+                          "descendants": {
+                            "cmp_nav_default_label": {
+                              "content": "上一首"
+                            }
+                          }
+                        },
+                        {
+                          "type": "ref",
+                          "id": "pc_player_play_btn",
+                          "ref": "cmp_primary_button",
+                          "width": 180,
+                          "descendants": {
+                            "cmp_primary_button_label": {
+                              "content": "播放 / 暂停"
+                            }
+                          }
+                        },
+                        {
+                          "type": "ref",
+                          "id": "pc_player_next_btn",
+                          "ref": "cmp_nav_default",
+                          "width": 120,
+                          "descendants": {
+                            "cmp_nav_default_label": {
+                              "content": "下一首"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "pc_player_queue_title",
+                      "content": "播放队列",
+                      "fontFamily": "$font-display",
+                      "fontSize": 20,
+                      "fontWeight": "600",
+                      "fill": "$color-text"
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_player_queue_row_1",
+                      "ref": "cmp_list_row",
+                      "descendants": {
+                        "cmp_list_row_title": {
+                          "content": "1. 天际线"
+                        },
+                        "cmp_list_row_meta": {
+                          "content": "当前播放"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_player_queue_row_2",
+                      "ref": "cmp_list_row",
+                      "descendants": {
+                        "cmp_list_row_title": {
+                          "content": "2. 城市灯火"
+                        },
+                        "cmp_list_row_meta": {
+                          "content": "下一首"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "pc_settings_screen",
+          "name": "06 设置",
+          "width": 1440,
+          "height": 900,
+          "layout": "vertical",
+          "clip": true,
+          "cornerRadius": 20,
+          "fill": "$color-bg",
+          "children": [
+            {
+              "type": "frame",
+              "id": "pc_settings_top",
+              "width": 1440,
+              "height": 72,
+              "layout": "horizontal",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "padding": [0, 32],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pc_settings_title",
+                  "content": "设置",
+                  "fontFamily": "$font-display",
+                  "fontSize": 26,
+                  "fontWeight": "700",
+                  "fill": "$color-text"
+                },
+                {
+                  "type": "text",
+                  "id": "pc_settings_ver",
+                  "content": "版本 1.0.0",
+                  "fontFamily": "$font-body",
+                  "fontSize": 13,
+                  "fill": "$color-text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pc_settings_body",
+              "width": 1440,
+              "height": 828,
+              "layout": "horizontal",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pc_settings_sidebar",
+                  "width": 240,
+                  "height": 828,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "fill": "$color-surface",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pc_settings_nav_title",
+                      "content": "导航",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fill": "$color-text-faint"
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_settings_nav_home",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "首页"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_settings_nav_library",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "音乐库"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_settings_nav_search",
+                      "ref": "cmp_nav_default",
+                      "descendants": {
+                        "cmp_nav_default_label": {
+                          "content": "搜索"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_settings_nav_settings",
+                      "ref": "cmp_nav_active",
+                      "descendants": {
+                        "cmp_nav_active_label": {
+                          "content": "设置"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pc_settings_main",
+                  "width": 1200,
+                  "height": 828,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "ref",
+                      "id": "pc_settings_card_server",
+                      "ref": "cmp_section_card",
+                      "descendants": {
+                        "cmp_section_title": {
+                          "content": "当前服务器"
+                        },
+                        "cmp_section_meta": {
+                          "content": "music.home.lab · 用户：admin"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_settings_card_theme",
+                      "ref": "cmp_section_card",
+                      "descendants": {
+                        "cmp_section_title": {
+                          "content": "主题模式"
+                        },
+                        "cmp_section_meta": {
+                          "content": "跟随系统 / 浅色 / 深色"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_settings_card_audio",
+                      "ref": "cmp_section_card",
+                      "descendants": {
+                        "cmp_section_title": {
+                          "content": "高级音频"
+                        },
+                        "cmp_section_meta": {
+                          "content": "音质选择 · 均衡器 · 键盘快捷键"
+                        }
+                      }
+                    },
+                    {
+                      "type": "ref",
+                      "id": "pc_settings_save_btn",
+                      "ref": "cmp_primary_button",
+                      "width": 220,
+                      "descendants": {
+                        "cmp_primary_button_label": {
+                          "content": "保存设置"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
