@@ -1,52 +1,40 @@
 # Navidrome Player
 
-一个基于 Flutter 的 Navidrome 音乐播放器客户端，面向 Navidrome/Subsonic 协议，当前支持 Android 与 macOS。
+一个基于 Flutter 的 Navidrome 音乐播放器客户端，面向 Navidrome/Subsonic 协议，支持 Android 与 macOS。
 
 > 项目灵感来源于 [音流 (Stream Music)](https://music.aqzscn.cn/)，专注于 Navidrome/Subsonic 协议的轻量级开源实现。
 
 ## 功能特性
 
-### 已实现 (Phase 1: 能听)
-
-- Subsonic API 客户端（认证、浏览、搜索、收藏、scrobble、播放列表）
-- 音频播放（`just_audio`：播放/暂停/上下曲/随机/循环）
-- 后台播放支持（audio_service 通知栏/锁屏控制）
-- 登录页（服务器配置 + 连接测试）
-- 首页（最近添加专辑网格 + 专辑详情弹窗）
-- 迷你播放条（封面 + 歌曲信息 + 播放控制）
-- 深色/浅色主题（Material 3，跟随系统）
-
-### 规划中
-
-- **Phase 2 好用**: 主导航框架、艺术家/专辑浏览、搜索、全屏播放页、播放列表、设置
-- **Phase 3 好看**: 完整播放页、封面取色主题、歌词显示、动画、响应式布局
-- **Phase 4 完善**: 离线缓存、scrobble 统计、音质选择、均衡器、键盘快捷键
+- **Subsonic API 客户端** — 已接入认证、浏览、搜索、封面、歌词、scrobble、播放列表等基础接口
+- **音频播放** — `just_audio` 引擎，支持播放/暂停/上下曲/随机/循环/音量/倍速
+- **后台播放** — 已接入 `audio_service`，提供基础通知栏/锁屏控制能力
+- **主导航框架** — 移动端 BottomNavigationBar / 桌面端 NavigationRail
+- **音乐库浏览** — 已有艺术家/专辑/歌曲多维度浏览页面
+- **专辑/艺术家详情** — 独立详情页已接入基础数据与播放入口
+- **搜索** — 全局搜索艺术家、专辑、歌曲
+- **全屏播放页** — 已有大封面、进度、歌词、队列、倍速、音量等主链路
+- **播放列表管理** — 已支持浏览、创建、删除；更多编辑能力待完善
+- **收藏体系** — 已有歌曲/专辑/艺术家收藏页面与交互，稳定性仍需补强
+- **下载管理** — 已有基础下载与离线回退能力，暂停/续传等高级能力待补
+- **多服务器支持** — 已支持多 Navidrome 实例的增删改切换
+- **设置** — 已有主题切换、音质选择、缓存信息、服务器信息等设置项
+- **安全存储** — 密码通过 `flutter_secure_storage` 加密存储
+- **深色/浅色主题** — Material 3，跟随系统 / 手动切换
 
 ## 技术栈
 
 | 类别 | 技术 |
-|------|------|
+| ---- | ---- |
 | 框架 | Flutter 3.38 / Dart 3.10 |
 | 状态管理 | Riverpod 3.x |
 | 音频引擎 | just_audio + audio_service |
 | 网络请求 | dio 5.x |
 | 图片缓存 | cached_network_image |
-| 路由 | go_router（Phase 2 启用） |
+| 路由 | go_router |
 | 窗口管理 | window_manager (macOS) |
-| 本地存储 | shared_preferences |
+| 本地存储 | shared_preferences + flutter_secure_storage |
 | 设计系统 | Material 3 |
-
-## 设计与文档
-
-- 文档中心：[docs/README.md](./docs/README.md)
-- PC 端功能文档：[docs/navidrome-player-prd-pc.md](./docs/navidrome-player-prd-pc.md)
-- 移动端功能文档：[docs/navidrome-player-prd-mobile.md](./docs/navidrome-player-prd-mobile.md)
-- 统一版 PRD：[docs/navidrome-player-prd.md](./docs/navidrome-player-prd.md)
-- Pencil 设计稿管理：[docs/designs/pencil/README.md](./docs/designs/pencil/README.md)
-
-当前设计稿文件：
-- PC：`docs/designs/pencil/navidrome/navidrome-pc.pen`
-- 移动端：`docs/designs/pencil/navidrome/navidrome-mobile.pen`
 
 ## 快速开始
 
@@ -78,6 +66,7 @@ flutter run -d macos
 ### 配置服务器
 
 启动应用后在登录页输入：
+
 - 服务器地址（如 `http://192.168.1.100:4533`）
 - 用户名和密码
 
@@ -85,47 +74,56 @@ flutter run -d macos
 
 ## 项目结构
 
-```
+```text
 lib/
-├── main.dart                    # 应用入口
-├── app.dart                     # MaterialApp 配置 + 路由
+├── main.dart                        # 应用入口
+├── app.dart                         # MaterialApp 配置 + go_router 路由
 ├── api/
-│   ├── subsonic_client.dart     # Subsonic API 客户端 (15 个端点)
-│   └── models/                  # 数据模型 (Song, Album, Artist, Playlist)
+│   ├── subsonic_client.dart         # Subsonic API 客户端
+│   └── models/                      # 数据模型 (Song, Album, Artist, Playlist 等)
 ├── player/
-│   ├── audio_player_service.dart # 音频播放服务 (just_audio 封装)
-│   └── audio_handler.dart       # 后台播放 Handler (audio_service)
+│   ├── audio_player_service.dart    # 音频播放服务 (just_audio 封装)
+│   └── audio_handler.dart           # 后台播放 Handler (audio_service)
 ├── providers/
-│   └── providers.dart           # Riverpod 全局 Provider
+│   ├── providers.dart               # 核心 Provider
+│   ├── audio_providers.dart         # 音频相关 Provider
+│   ├── server_config_provider.dart  # 服务器配置 Provider
+│   ├── download_provider.dart       # 下载管理 Provider
+│   ├── theme_provider.dart          # 主题 Provider
+│   ├── starred_provider.dart        # 收藏 Provider
+│   └── cover_color_provider.dart    # 封面取色 Provider
 ├── ui/
 │   ├── screens/
-│   │   ├── home/                # 首页
-│   │   └── login/               # 登录页
-│   ├── widgets/                 # 通用组件 (CoverArt, MiniPlayer, SongTile)
-│   └── theme/                   # 主题定义
-└── utils/                       # 工具函数
+│   │   ├── shell/                   # 主导航框架 (AppShell)
+│   │   ├── home/                    # 首页
+│   │   ├── login/                   # 登录页
+│   │   ├── library/                 # 音乐库
+│   │   ├── search/                  # 搜索
+│   │   ├── player/                  # 全屏播放页
+│   │   ├── album_detail/            # 专辑详情
+│   │   ├── artist_detail/           # 艺术家详情
+│   │   ├── playlists/               # 播放列表
+│   │   ├── favorites/               # 收藏
+│   │   ├── downloads/               # 下载管理
+│   │   ├── settings/                # 设置
+│   │   ├── multi_server/            # 多服务器管理
+│   │   ├── audio_quality/           # 音质设置
+│   │   └── scrobble/                # 播放记录
+│   ├── widgets/                     # 通用组件 (CoverArt, MiniPlayer, SongTile, SongContextMenu)
+│   └── theme/                       # 主题定义
+├── data/
+│   └── tables/                      # 本地数据表
+└── utils/                           # 工具函数
 ```
-
-## 开发状态
-
-| 阶段 | 名称 | 状态 | 说明 |
-|------|------|------|------|
-| Phase 1 | 能听 | ✅ 完成 | 基础播放链路可用（登录 + 首页 + MiniPlayer + 基础控制） |
-| Phase 2 | 好用 | 🔲 未开始 | 完整导航、浏览、搜索、播放列表 |
-| Phase 3 | 好看 | 🔲 未开始 | 视觉体验、歌词、动画 |
-| Phase 4 | 完善 | 🔲 未开始 | 离线、高级特性 |
-
-## 设计稿状态
-
-| 平台 | 当前页面数 | 页面 |
-|------|-----------|------|
-| 移动端 | 8 | Login / Home / Library / Search / Player / Playlists / Downloads / Settings |
-| PC 端 | 8 | 登录页 / 首页 / 音乐库 / 搜索 / 播放器 / 设置 / 播放列表 / 下载管理 |
 
 ## 文档
 
-完整文档请查看 [docs/README.md](./docs/README.md)。
+- 文档中心：[docs/README.md](./docs/README.md)
+- 统一版 PRD：[docs/navidrome-player-prd.md](./docs/navidrome-player-prd.md)
+- PC 端功能文档：[docs/navidrome-player-prd-pc.md](./docs/navidrome-player-prd-pc.md)
+- 移动端功能文档：[docs/navidrome-player-prd-mobile.md](./docs/navidrome-player-prd-mobile.md)
+- 设计稿：[docs/designs/pencil/README.md](./docs/designs/pencil/README.md)
 
 ## 许可证
 
-<!-- TODO: 选择并添加许可证 -->
+本项目基于 [MIT License](./LICENSE) 开源。

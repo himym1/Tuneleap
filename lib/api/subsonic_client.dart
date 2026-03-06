@@ -10,6 +10,8 @@ class SubsonicClient {
   late String _baseUrl;
   late String _username;
   late String _password;
+  // 每次 configure() 时生成一次，后续复用，保证 URL 稳定可被缓存
+  String? _cachedSalt;
 
   static const String _apiVersion = '1.16.1';
   static const String _clientName = 'NavidromePlayer';
@@ -22,14 +24,17 @@ class SubsonicClient {
     required String username,
     required String password,
   }) {
-    _baseUrl = serverUrl.endsWith('/') ? serverUrl.substring(0, serverUrl.length - 1) : serverUrl;
+    _baseUrl = serverUrl.endsWith('/')
+        ? serverUrl.substring(0, serverUrl.length - 1)
+        : serverUrl;
     _username = username;
     _password = password;
+    _cachedSalt = _generateSalt(); // 生成一次，复用
   }
 
-  /// 生成认证参数
+  /// 生成认证参数（使用固定 salt，保证封面/流媒体 URL 稳定可缓存）
   Map<String, String> _authParams() {
-    final salt = _generateSalt();
+    final salt = _cachedSalt ?? _generateSalt();
     final token = md5.convert(utf8.encode('$_password$salt')).toString();
     return {
       'u': _username,
@@ -43,11 +48,17 @@ class SubsonicClient {
 
   String _generateSalt() {
     final random = Random.secure();
-    return List.generate(12, (_) => random.nextInt(36).toRadixString(36)).join();
+    return List.generate(
+      12,
+      (_) => random.nextInt(36).toRadixString(36),
+    ).join();
   }
 
   /// 发起 API 请求
-  Future<Map<String, dynamic>> _request(String endpoint, {Map<String, dynamic>? params}) async {
+  Future<Map<String, dynamic>> _request(
+    String endpoint, {
+    Map<String, dynamic>? params,
+  }) async {
     final queryParams = <String, dynamic>{..._authParams()};
     if (params != null) queryParams.addAll(params);
 
@@ -101,7 +112,9 @@ class SubsonicClient {
     final data = response['artist'] as Map<String, dynamic>;
     final artist = Artist.fromJson(data);
     final albumList = data['album'] as List<dynamic>? ?? [];
-    final albums = albumList.map((a) => Album.fromJson(a as Map<String, dynamic>)).toList();
+    final albums = albumList
+        .map((a) => Album.fromJson(a as Map<String, dynamic>))
+        .toList();
     return ArtistDetail(artist: artist, albums: albums);
   }
 
@@ -117,40 +130,60 @@ class SubsonicClient {
     int size = 20,
     int offset = 0,
   }) async {
-    final response = await _request('getAlbumList2', params: {
-      'type': type,
-      'size': size,
-      'offset': offset,
-    });
+    final response = await _request(
+      'getAlbumList2',
+      params: {'type': type, 'size': size, 'offset': offset},
+    );
     final albumList = response['albumList2']?['album'] as List<dynamic>? ?? [];
-    return albumList.map((a) => Album.fromJson(a as Map<String, dynamic>)).toList();
+    return albumList
+        .map((a) => Album.fromJson(a as Map<String, dynamic>))
+        .toList();
   }
 
   // === 搜索 ===
 
   /// 全局搜索
-  Future<SearchResult> search3(String query, {int artistCount = 10, int albumCount = 10, int songCount = 20}) async {
-    final response = await _request('search3', params: {
-      'query': query,
-      'artistCount': artistCount,
-      'albumCount': albumCount,
-      'songCount': songCount,
-    });
+  Future<SearchResult> search3(
+    String query, {
+    int artistCount = 10,
+    int albumCount = 10,
+    int songCount = 20,
+  }) async {
+    final response = await _request(
+      'search3',
+      params: {
+        'query': query,
+        'artistCount': artistCount,
+        'albumCount': albumCount,
+        'songCount': songCount,
+      },
+    );
     final result = response['searchResult3'] as Map<String, dynamic>? ?? {};
     return SearchResult(
-      artists: (result['artist'] as List<dynamic>? ?? []).map((a) => Artist.fromJson(a as Map<String, dynamic>)).toList(),
-      albums: (result['album'] as List<dynamic>? ?? []).map((a) => Album.fromJson(a as Map<String, dynamic>)).toList(),
-      songs: (result['song'] as List<dynamic>? ?? []).map((s) => Song.fromJson(s as Map<String, dynamic>)).toList(),
+      artists: (result['artist'] as List<dynamic>? ?? [])
+          .map((a) => Artist.fromJson(a as Map<String, dynamic>))
+          .toList(),
+      albums: (result['album'] as List<dynamic>? ?? [])
+          .map((a) => Album.fromJson(a as Map<String, dynamic>))
+          .toList(),
+      songs: (result['song'] as List<dynamic>? ?? [])
+          .map((s) => Song.fromJson(s as Map<String, dynamic>))
+          .toList(),
     );
   }
 
   // === 媒体 ===
 
   /// 获取音频流 URL
-  String streamUrl(String id) {
+  String streamUrl(String id, {int? maxBitRate}) {
     final params = _authParams();
     params['id'] = id;
-    final query = params.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
+    if (maxBitRate != null && maxBitRate > 0) {
+      params['maxBitRate'] = maxBitRate.toString();
+    }
+    final query = params.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
     return '$_baseUrl/rest/stream?$query';
   }
 
@@ -160,7 +193,9 @@ class SubsonicClient {
     final params = _authParams();
     params['id'] = coverArtId;
     params['size'] = size.toString();
-    final query = params.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
+    final query = params.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
     return '$_baseUrl/rest/getCoverArt?$query';
   }
 
@@ -169,8 +204,11 @@ class SubsonicClient {
   /// 获取所有播放列表
   Future<List<Playlist>> getPlaylists() async {
     final response = await _request('getPlaylists');
-    final playlists = response['playlists']?['playlist'] as List<dynamic>? ?? [];
-    return playlists.map((p) => Playlist.fromJson(p as Map<String, dynamic>)).toList();
+    final playlists =
+        response['playlists']?['playlist'] as List<dynamic>? ?? [];
+    return playlists
+        .map((p) => Playlist.fromJson(p as Map<String, dynamic>))
+        .toList();
   }
 
   /// 获取播放列表详情
@@ -179,30 +217,152 @@ class SubsonicClient {
     return Playlist.fromJson(response['playlist'] as Map<String, dynamic>);
   }
 
+  /// 创建播放列表
+  Future<void> createPlaylist(String name, {List<String>? songIds}) async {
+    final params = <String, dynamic>{'name': name};
+    if (songIds != null && songIds.isNotEmpty) {
+      params['songId'] = songIds;
+    }
+    await _request('createPlaylist', params: params);
+  }
+
+  /// 更新播放列表（重命名、添加歌曲、移除歌曲）
+  Future<void> updatePlaylist(
+    String id, {
+    String? name,
+    List<String>? songIdsToAdd,
+    List<int>? songIndexesToRemove,
+  }) async {
+    final params = <String, dynamic>{'playlistId': id};
+    if (name != null) params['name'] = name;
+    if (songIdsToAdd != null) params['songIdToAdd'] = songIdsToAdd;
+    if (songIndexesToRemove != null) {
+      params['songIndexToRemove'] = songIndexesToRemove;
+    }
+    await _request('updatePlaylist', params: params);
+  }
+
+  /// 删除播放列表
+  Future<void> deletePlaylist(String id) async {
+    await _request('deletePlaylist', params: {'id': id});
+  }
+
   // === 标记 ===
 
   /// 收藏
   Future<void> star({String? id, String? albumId, String? artistId}) async {
-    await _request('star', params: {
-      if (id != null) 'id': id,
-      if (albumId != null) 'albumId': albumId,
-      if (artistId != null) 'artistId': artistId,
-    });
+    final params = <String, dynamic>{
+      ...?switch (id) { final value? => {'id': value}, null => null },
+      ...?switch (albumId) {
+        final value? => {'albumId': value},
+        null => null,
+      },
+      ...?switch (artistId) {
+        final value? => {'artistId': value},
+        null => null,
+      },
+    };
+    if (params.isEmpty) {
+      throw ArgumentError('At least one target id must be provided');
+    }
+    await _request(
+      'star',
+      params: params,
+    );
   }
 
   /// 取消收藏
   Future<void> unstar({String? id, String? albumId, String? artistId}) async {
-    await _request('unstar', params: {
-      if (id != null) 'id': id,
-      if (albumId != null) 'albumId': albumId,
-      if (artistId != null) 'artistId': artistId,
-    });
+    final params = <String, dynamic>{
+      ...?switch (id) { final value? => {'id': value}, null => null },
+      ...?switch (albumId) {
+        final value? => {'albumId': value},
+        null => null,
+      },
+      ...?switch (artistId) {
+        final value? => {'artistId': value},
+        null => null,
+      },
+    };
+    if (params.isEmpty) {
+      throw ArgumentError('At least one target id must be provided');
+    }
+    await _request(
+      'unstar',
+      params: params,
+    );
+  }
+
+  /// 获取收藏内容
+  Future<StarredResult> getStarred2() async {
+    final data = await _request('getStarred2');
+    final starred = data['starred2'] ?? {};
+    return StarredResult(
+      songs:
+          (starred['song'] as List?)?.map((e) => Song.fromJson(e)).toList() ??
+          [],
+      albums:
+          (starred['album'] as List?)?.map((e) => Album.fromJson(e)).toList() ??
+          [],
+      artists:
+          (starred['artist'] as List?)
+              ?.map((e) => Artist.fromJson(e))
+              .toList() ??
+          [],
+    );
+  }
+
+  /// 获取随机歌曲
+  Future<List<Song>> getRandomSongs({int size = 50}) async {
+    final response = await _request('getRandomSongs', params: {'size': size});
+    final songs = response['randomSongs']?['song'] as List<dynamic>? ?? [];
+    return songs.map((s) => Song.fromJson(s as Map<String, dynamic>)).toList();
   }
 
   /// 上报播放记录
   Future<void> scrobble(String id) async {
     await _request('scrobble', params: {'id': id});
   }
+
+  /// 获取歌词（getLyricsBySongId，Subsonic API 1.14+）
+  Future<LyricsList?> getLyricsBySongId(String id) async {
+    try {
+      final response = await _request('getLyricsBySongId', params: {'id': id});
+      final lyricsList = response['lyricsList'] as Map<String, dynamic>?;
+      if (lyricsList == null) return null;
+      final structured = lyricsList['structuredLyrics'] as List<dynamic>?;
+      if (structured == null || structured.isEmpty) return null;
+      // 优先选同步歌词（含时间戳），否则用第一个
+      final entry = (structured.firstWhere(
+        (e) => (e as Map<String, dynamic>)['synced'] == true,
+        orElse: () => structured[0],
+      )) as Map<String, dynamic>;
+      final synced = entry['synced'] as bool? ?? false;
+      final lines = (entry['line'] as List<dynamic>? ?? []).map((l) {
+        final m = l as Map<String, dynamic>;
+        return LyricsLine(
+          text: m['value'] as String? ?? '',
+          startMs: m['start'] as int?,
+        );
+      }).toList();
+      return LyricsList(lines: lines, synced: synced);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// 收藏结果
+class StarredResult {
+  final List<Song> songs;
+  final List<Album> albums;
+  final List<Artist> artists;
+
+  const StarredResult({
+    this.songs = const [],
+    this.albums = const [],
+    this.artists = const [],
+  });
 }
 
 /// 搜索结果
@@ -227,4 +387,18 @@ class SubsonicApiException implements Exception {
 
   @override
   String toString() => 'SubsonicApiException($code): $message';
+}
+
+/// 单行歌词
+class LyricsLine {
+  final String text;
+  final int? startMs;
+  const LyricsLine({required this.text, this.startMs});
+}
+
+/// 歌词列表
+class LyricsList {
+  final List<LyricsLine> lines;
+  final bool synced;
+  const LyricsList({required this.lines, required this.synced});
 }
