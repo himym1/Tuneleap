@@ -1,11 +1,31 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/screens/login/login_screen.dart';
+import 'package:navidrome_player/ui/screens/shell/app_shell.dart';
 import 'package:navidrome_player/ui/screens/home/home_screen.dart';
+import 'package:navidrome_player/ui/screens/library/library_screen.dart';
+import 'package:navidrome_player/ui/screens/library/library_songs_screen.dart';
+import 'package:navidrome_player/ui/screens/library/library_albums_screen.dart';
+import 'package:navidrome_player/ui/screens/library/library_artists_screen.dart';
+import 'package:navidrome_player/ui/screens/library/library_album_artists_screen.dart';
+import 'package:navidrome_player/ui/screens/library/library_genres_screen.dart';
+import 'package:navidrome_player/ui/screens/library/library_radio_screen.dart';
+import 'package:navidrome_player/ui/screens/search/search_screen.dart';
+import 'package:navidrome_player/ui/screens/player/player_screen.dart';
+import 'package:navidrome_player/ui/screens/settings/settings_screen.dart';
+import 'package:navidrome_player/ui/screens/favorites/favorites_screen.dart';
+import 'package:navidrome_player/ui/screens/downloads/downloads_screen.dart';
+import 'package:navidrome_player/ui/screens/scrobble/scrobble_screen.dart';
+import 'package:navidrome_player/ui/screens/multi_server/multi_server_screen.dart';
+import 'package:navidrome_player/ui/screens/album_detail/album_detail_screen.dart';
+import 'package:navidrome_player/ui/screens/artist_detail/artist_detail_screen.dart';
+import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/l10n/localization_utils.dart';
 
 class NavidromePlayerApp extends ConsumerStatefulWidget {
   const NavidromePlayerApp({super.key});
@@ -17,61 +37,302 @@ class NavidromePlayerApp extends ConsumerStatefulWidget {
 class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
   bool _initialized = false;
   bool _loggedIn = false;
+  late final GoRouter _router;
 
   @override
   void initState() {
     super.initState();
+    _router = _buildRouter();
     _initPlatform();
   }
 
   Future<void> _initPlatform() async {
-    // macOS 窗口配置
     if (Platform.isMacOS) {
+      final strings = systemLocalizations();
       await windowManager.ensureInitialized();
-      await windowManager.setMinimumSize(const Size(400, 600));
-      await windowManager.setSize(const Size(1000, 700));
-      await windowManager.setTitle('Navidrome Player');
+      await windowManager.setMinimumSize(const Size(800, 600));
+      await windowManager.setSize(const Size(1200, 800));
+      await windowManager.setTitle(strings.appName);
       await windowManager.show();
     }
 
-    // 检查是否已有保存的服务器配置
     final config = ref.read(serverConfigProvider);
     if (config.isConfigured) {
       final client = ref.read(subsonicClientProvider);
       final ok = await client.ping();
       if (ok) {
-        setState(() => _loggedIn = true);
+        _loggedIn = true;
       }
     }
 
     setState(() => _initialized = true);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Navidrome Player',
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
-      debugShowCheckedModeBanner: false,
-      home: _buildHome(),
+  GoRouter _buildRouter() {
+    return GoRouter(
+      initialLocation: '/home',
+      redirect: (context, state) {
+        if (!_initialized) return null;
+        if (!_loggedIn && state.uri.toString() != '/login') return '/login';
+        if (_loggedIn && state.uri.toString() == '/login') return '/home';
+        return null;
+      },
+      routes: [
+        GoRoute(
+          path: '/login',
+          builder: (context, state) => LoginScreen(
+            onLoginSuccess: () {
+              setState(() => _loggedIn = true);
+              _router.go('/home');
+            },
+          ),
+        ),
+        ShellRoute(
+          builder: (context, state, child) => AppShell(child: child),
+          routes: [
+            GoRoute(
+              path: '/home',
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const HomeScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                transitionDuration: const Duration(milliseconds: 200),
+              ),
+            ),
+            GoRoute(
+              path: '/library',
+              redirect: (context, state) {
+                if (state.uri.toString() == '/library') {
+                  return '/library/songs';
+                }
+                return null;
+              },
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const LibraryScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                transitionDuration: const Duration(milliseconds: 200),
+              ),
+              routes: [
+                GoRoute(
+                  path: 'songs',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibrarySongsScreen(),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                    transitionDuration: const Duration(milliseconds: 200),
+                  ),
+                ),
+                GoRoute(
+                  path: 'albums',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryAlbumsScreen(),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                    transitionDuration: const Duration(milliseconds: 200),
+                  ),
+                ),
+                GoRoute(
+                  path: 'artists',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryArtistsScreen(),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                    transitionDuration: const Duration(milliseconds: 200),
+                  ),
+                ),
+                GoRoute(
+                  path: 'album-artists',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryAlbumArtistsScreen(),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                    transitionDuration: const Duration(milliseconds: 200),
+                  ),
+                ),
+                GoRoute(
+                  path: 'genres',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryGenresScreen(),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                    transitionDuration: const Duration(milliseconds: 200),
+                  ),
+                ),
+                GoRoute(
+                  path: 'radio',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryRadioScreen(),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                    transitionDuration: const Duration(milliseconds: 200),
+                  ),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/search',
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const SearchScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                transitionDuration: const Duration(milliseconds: 200),
+              ),
+            ),
+            GoRoute(
+              path: '/player',
+              builder: (context, state) => const PlayerScreen(),
+            ),
+            GoRoute(
+              path: '/favorites',
+              builder: (context, state) => const FavoritesScreen(),
+            ),
+            GoRoute(
+              path: '/downloads',
+              builder: (context, state) => const DownloadsScreen(),
+            ),
+            GoRoute(
+              path: '/scrobble',
+              builder: (context, state) => const ScrobbleScreen(),
+            ),
+            GoRoute(
+              path: '/servers',
+              builder: (context, state) => const MultiServerScreen(),
+            ),
+            GoRoute(
+              path: '/album/:id',
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: AlbumDetailScreen(albumId: state.pathParameters['id']!),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return SlideTransition(
+                        position:
+                            Tween<Offset>(
+                              begin: const Offset(0, 0.05),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOut,
+                              ),
+                            ),
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    },
+                transitionDuration: const Duration(milliseconds: 250),
+              ),
+            ),
+            GoRoute(
+              path: '/artist/:id',
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: ArtistDetailScreen(
+                  artistId: state.pathParameters['id']!,
+                ),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return SlideTransition(
+                        position:
+                            Tween<Offset>(
+                              begin: const Offset(0, 0.05),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOut,
+                              ),
+                            ),
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    },
+                transitionDuration: const Duration(milliseconds: 250),
+              ),
+            ),
+            GoRoute(
+              path: '/settings',
+              builder: (context, state) => SettingsScreen(
+                onLogout: () {
+                  setState(() => _loggedIn = false);
+                  _router.go('/login');
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildHome() {
+  @override
+  Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+
     if (!_initialized) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return MaterialApp(
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: themeMode,
+        localizationsDelegates: S.localizationsDelegates,
+        supportedLocales: S.supportedLocales,
+        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
 
-    if (!_loggedIn) {
-      return LoginScreen(
-        onLoginSuccess: () => setState(() => _loggedIn = true),
-      );
-    }
-
-    return const HomeScreen();
+    return MaterialApp.router(
+      onGenerateTitle: (context) => S.of(context).appName,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: themeMode,
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: S.localizationsDelegates,
+      supportedLocales: S.supportedLocales,
+      routerConfig: _router,
+    );
   }
 }

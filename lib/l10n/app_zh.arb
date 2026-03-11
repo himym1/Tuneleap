@@ -1,0 +1,464 @@
+{
+    "@@locale": "zh",
+    "navHome": "首页",
+    "navLibrary": "音乐库",
+    "navSearch": "搜索",
+    "navPlaylists": "播放列表",
+    "navSettings": "设置",
+    "navFavorites": "收藏",
+    "navDownloads": "下载管理",
+    "navServers": "多服务器",
+    "navAudioQuality": "音质/均衡",
+    "navScrobble": "播放记录",
+    "sidebarNav": "导航",
+    "sidebarMore": "更多",
+    "appName": "Navidrome Player",
+    "appShortName": "NP",
+    "loginSubtitle": "连接你的私人音乐服务器",
+    "loginConnect": "连接",
+    "loginFieldsRequired": "请填写所有字段",
+    "loginFailed": "连接失败，请检查服务器地址和凭据",
+    "loginError": "连接错误: {error}",
+    "@loginError": {
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "homeGreetingMorning": "早上好 ☀️",
+    "homeGreetingAfternoon": "下午好 🌤",
+    "homeGreetingEvening": "晚上好 🌙",
+    "homePlayRandom": "随机播放",
+    "homeRecentAlbums": "最近添加",
+    "homeRandomAlbums": "随机推荐",
+    "homeAlbums": "专辑",
+    "homeSongs": "歌曲",
+    "homeArtists": "艺术家",
+    "libraryTabArtists": "艺术家",
+    "libraryTabAlbums": "专辑",
+    "libraryTabSongs": "歌曲",
+    "libraryTitle": "音乐库",
+    "libraryAlbumCount": "{count} 张专辑",
+    "@libraryAlbumCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "searchHint": "搜索歌曲、专辑、艺术家…",
+    "searchNoResults": "试试搜索你喜欢的音乐",
+    "searchResultArtists": "艺术家",
+    "searchResultAlbums": "专辑",
+    "searchResultSongs": "歌曲",
+    "playerQueueTitle": "播放队列",
+    "playerLyrics": "歌词",
+    "playerNoLyrics": "暂无歌词",
+    "playerShowQueue": "显示队列",
+    "playerHideQueue": "隐藏队列",
+    "playerSpeed": "播放速度",
+    "playerNowPlaying": "正在播放",
+    "playerQueue": "队列",
+    "albumPlayAll": "播放全部",
+    "albumShufflePlay": "随机播放",
+    "albumSongCount": "{count} 首歌曲",
+    "@albumSongCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "artistPlayAll": "播放全部",
+    "artistAlbums": "专辑",
+    "artistAlbumCount": "{count} 张专辑",
+    "@artistAlbumCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "playlistsTitle": "播放列表",
+    "playlistCreate": "新建播放列表",
+    "playlistRename": "重命名",
+    "playlistDelete": "删除",
+    "playlistEdit": "编辑",
+    "playlistSave": "保存",
+    "playlistCancel": "取消",
+    "playlistNameHint": "请输入播放列表名称",
+    "playlistSongCount": "{count} 首",
+    "@playlistSongCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "playlistEmpty": "暂无播放列表",
+    "playlistReorderHint": "长按拖拽排序，左滑可删除",
+    "favoritesTitle": "收藏",
+    "favoritesTabSongs": "歌曲",
+    "favoritesTabAlbums": "专辑",
+    "favoritesTabArtists": "艺术家",
+    "favoritesEmpty": "暂无收藏",
+    "downloadsTitle": "下载管理",
+    "downloadsTotal": "全部任务",
+    "downloadsCompleted": "已完成",
+    "downloadsOfflineSongs": "离线歌曲",
+    "downloadsEmpty": "暂无下载任务",
+    "downloadsClearCompleted": "清除已完成",
+    "settingsTitle": "设置",
+    "settingsServer": "服务器",
+    "settingsCurrentServer": "当前服务器",
+    "settingsLogout": "退出登录",
+    "settingsTheme": "主题",
+    "settingsThemeSystem": "跟随系统",
+    "settingsThemeDark": "深色",
+    "settingsThemeLight": "浅色",
+    "settingsAudioQuality": "音质设置",
+    "settingsAbout": "关于",
+    "settingsVersion": "版本",
+    "audioQualityTitle": "音质设置",
+    "audioQualityOriginal": "原始品质（无损）",
+    "audioQualityHigh": "高品质",
+    "audioQualityMedium": "中等品质",
+    "audioQualityLow": "低品质",
+    "audioQualityKbps": "{kbps} kbps",
+    "@audioQualityKbps": {
+        "placeholders": {
+            "kbps": {
+                "type": "int"
+            }
+        }
+    },
+    "audioQualityMp3Label": "MP3 {kbps}k",
+    "@audioQualityMp3Label": {
+        "placeholders": {
+            "kbps": {
+                "type": "int"
+            }
+        }
+    },
+    "scrobbleTitle": "播放记录",
+    "scrobbleEmpty": "暂无播放记录",
+    "scrobblePlayCount": "播放 {count} 次",
+    "@scrobblePlayCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "scrobbleSubtitle": "记录你的音乐喜好 · 自动 Scrobble 到服务器",
+    "scrobbleSessionPlays": "本次播放",
+    "scrobbleUniqueArtists": "不同艺术家",
+    "scrobbleUniqueAlbums": "不同专辑",
+    "scrobbleAutoDesc": "播放超过 50% 或 4 分钟自动记录",
+    "scrobbleEnabled": "已启用",
+    "scrobbleRecentTitle": "最近播放",
+    "scrobbleRecentCount": "共 {count} 首",
+    "@scrobbleRecentCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "scrobbleEmptyHint": "暂无播放记录\n开始播放音乐后将在这里记录",
+    "multiServerTitle": "多服务器管理",
+    "multiServerAdd": "添加服务器",
+    "multiServerCurrent": "当前",
+    "multiServerSwitch": "切换",
+    "multiServerDelete": "删除",
+    "multiServerEmpty": "暂无额外服务器",
+    "contextMenuPlay": "播放",
+    "contextMenuPlayNext": "播放下一首",
+    "contextMenuAddQueue": "添加到队列",
+    "contextMenuAddPlaylist": "添加到播放列表",
+    "contextMenuStar": "收藏",
+    "contextMenuDownload": "下载到本地",
+    "contextMenuImportNavidrome": "导入到 Navidrome",
+    "contextMenuAddedNext": "已添加到下一首播放",
+    "contextMenuAddedQueue": "已添加到队列",
+    "contextMenuStarred": "已收藏",
+    "contextMenuDownloading": "已加入下载队列",
+    "contextMenuImportingNavidrome": "正在导入到 Navidrome…",
+    "contextMenuImportedNavidrome": "已导入到 Navidrome 并触发扫描",
+    "contextMenuImportedNavidromePendingScan": "已导入到 Navidrome，等待自动扫描",
+    "contextMenuImportNavidromeFailed": "导入到 Navidrome 失败",
+    "contextMenuQueueingNavidrome": "正在提交到 NAS 下载队列…",
+    "contextMenuQueuedNavidrome": "已提交到 NAS 下载队列",
+    "contextMenuAddedPlaylist": "已添加到 {name}",
+    "@contextMenuAddedPlaylist": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    },
+    "contextMenuSelectPlaylist": "选择播放列表",
+    "contextMenuLoadFailed": "加载播放列表失败",
+    "commonCancel": "取消",
+    "commonSave": "保存",
+    "commonDelete": "删除",
+    "commonConfirm": "确定",
+    "commonLoading": "加载中...",
+    "commonError": "出错了",
+    "commonRetry": "重试",
+    "commonNoData": "暂无数据",
+    "commonSongs": "{count} 首",
+    "@commonSongs": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "commonSizeKb": "{value} KB",
+    "@commonSizeKb": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "commonSizeMb": "{value} MB",
+    "@commonSizeMb": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "commonSizeGb": "{value} GB",
+    "@commonSizeGb": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "commonPercent": "{value}%",
+    "@commonPercent": {
+        "placeholders": {
+            "value": {
+                "type": "int"
+            }
+        }
+    },
+    "commonAll": "全部",
+    "commonBack": "返回",
+    "commonLoadFailed": "加载失败",
+    "commonUnknownArtist": "未知艺术家",
+    "commonCreate": "创建",
+    "commonNew": "新建",
+    "playerQueueEmpty": "队列为空",
+    "playerNoContent": "暂无播放内容",
+    "playerNoContentHint": "从音乐库或搜索中选择歌曲开始播放",
+    "playerSpeedValue": "{speed}x",
+    "@playerSpeedValue": {
+        "placeholders": {
+            "speed": {
+                "type": "double"
+            }
+        }
+    },
+    "playerUnfavorite": "取消收藏",
+    "albumAddToQueue": "加入队列",
+    "albumFavorite": "收藏专辑",
+    "albumUnfavorite": "取消收藏",
+    "albumTitle": "标题",
+    "albumDuration": "时长",
+    "albumSongDuration": "{year} · {count} 首歌曲 · {duration}",
+    "@albumSongDuration": {
+        "placeholders": {
+            "year": {
+                "type": "String"
+            },
+            "count": {
+                "type": "int"
+            },
+            "duration": {
+                "type": "String"
+            }
+        }
+    },
+    "artistUnfavorited": "已取消收藏",
+    "downloadsUsedSpace": "已用空间",
+    "downloadsQueue": "下载队列",
+    "downloadsHint": "在歌曲菜单中选择\"下载\"",
+    "downloadsPending": "等待中",
+    "downloadsFailed": "失败",
+    "multiServerManage": "服务器管理",
+    "multiServerCount": "共 {count} 个服务器",
+    "@multiServerCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "multiServerDeleteTitle": "删除服务器",
+    "multiServerDeleteConfirm": "确定要删除「{name}」吗？",
+    "@multiServerDeleteConfirm": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    },
+    "multiServerEdit": "编辑服务器",
+    "multiServerName": "服务器名称",
+    "multiServerNameHint": "我的 Navidrome",
+    "multiServerUrl": "服务器地址",
+    "multiServerUsername": "用户名",
+    "multiServerPassword": "密码",
+    "serverUrlExample": "https://music.example.com",
+    "multiServerEmptyHint": "暂无服务器\n点击上方按钮添加",
+    "searchAll": "全部",
+    "searchHintInput": "搜索歌曲、艺术家、专辑...",
+    "searchPlaceholder": "输入关键词搜索音乐",
+    "searchNoResult": "无搜索结果",
+    "searchResults": "搜索结果",
+    "libraryNoArtists": "暂无艺术家",
+    "libraryNoAlbums": "暂无专辑",
+    "libraryNoSongs": "暂无歌曲",
+    "audioQualityOriginalName": "原始音质",
+    "audioQualityOriginalDesc": "无转码",
+    "audioQualityMp3128Desc": "节省流量",
+    "audioQualitySelection": "音质选择",
+    "playlistNameLabel": "播放列表名称",
+    "playlistCreated": "已创建播放列表 \"{name}\"",
+    "@playlistCreated": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    },
+    "playlistCreateFailed": "创建失败",
+    "playlistDeleteTitle": "删除播放列表",
+    "playlistDeleteConfirm": "确定要删除\"{name}\"吗？此操作不可撤销。",
+    "@playlistDeleteConfirm": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    },
+    "playlistDeleted": "已删除\"{name}\"",
+    "@playlistDeleted": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    },
+    "playlistDeleteFailed": "删除失败",
+    "playlistCount": "共 {count} 个播放列表",
+    "@playlistCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "playlistCreatedList": "已创建的列表",
+    "playlistEmptyTitle": "还没有播放列表",
+    "playlistEmptyHint": "创建一个播放列表来整理你的音乐",
+    "playlistSongCountLabel": "{count} 首歌曲",
+    "@playlistSongCountLabel": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "playlistPlay": "播放",
+    "playlistListEmpty": "播放列表为空",
+    "playlistRenameTitle": "重命名播放列表",
+    "playlistNewName": "新名称",
+    "songContextAddedToPlaylist": "已添加到 {name}",
+    "@songContextAddedToPlaylist": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    },
+    "defaultServerName": "我的服务器",
+
+    "navSongs": "歌曲",
+    "navAlbums": "专辑",
+    "navArtists": "歌手",
+    "navAlbumArtists": "专辑艺术家",
+    "navGenres": "流派",
+    "navRadio": "电台",
+    "sidebarLibrary": "音乐库",
+
+    "homeNewestAlbums": "最新专辑",
+    "homeDailyRecommend": "每日推荐",
+    "homeRecentlyPlayed": "最近播放",
+    "homeViewMore": "更多",
+
+    "libraryGenresTitle": "流派",
+    "libraryRadioTitle": "网络电台",
+    "libraryRadioEmpty": "暂无电台",
+    "libraryNoGenres": "暂无流派",
+    "libraryAlbumArtistsTitle": "专辑艺术家",
+    "genreSongCount": "{count} 首歌曲",
+    "@genreSongCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "genreAlbumCount": "{count} 张专辑",
+    "@genreAlbumCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+
+    "contextMenuDelete": "从服务器删除",
+    "contextMenuDeleteConfirm": "确定要删除「{title}」吗？这将从服务器永久移除该文件。",
+    "@contextMenuDeleteConfirm": {
+        "placeholders": {
+            "title": {
+                "type": "String"
+            }
+        }
+    },
+    "contextMenuDeleteSuccess": "删除成功",
+    "contextMenuDeleteError": "删除失败",
+
+    "settingsUnlimited": "无限制",
+    "settingsUser": "用户",
+    "settingsQuality": "音质",
+    "settingsMaxBitrate": "最大码率",
+    "settingsAboutText": "{appName} v{version}\n跨平台音乐客户端",
+    "@settingsAboutText": {
+        "placeholders": {
+            "appName": {
+                "type": "String"
+            },
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "settingsLogoutConfirm": "确定要退出登录吗？",
+    "settingsCacheCalculating": "计算中...",
+    "settingsCacheUnknown": "未知",
+    "settingsCacheCleared": "缓存已清除",
+    "settingsCacheClearFailed": "清除失败",
+    "settingsCacheStorage": "缓存与存储",
+    "settingsCacheUsed": "已使用",
+    "settingsCacheMaxCache": "最大缓存",
+    "settingsCacheClear": "清除"
+}

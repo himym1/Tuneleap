@@ -93,6 +93,11 @@ class SubsonicClient {
     }
   }
 
+  /// 触发媒体库扫描
+  Future<void> startScan({bool fullScan = false}) async {
+    await _request('startScan', params: {if (fullScan) 'fullScan': true});
+  }
+
   // === 浏览 ===
 
   /// 获取所有艺术家
@@ -252,7 +257,10 @@ class SubsonicClient {
   /// 收藏
   Future<void> star({String? id, String? albumId, String? artistId}) async {
     final params = <String, dynamic>{
-      ...?switch (id) { final value? => {'id': value}, null => null },
+      ...?switch (id) {
+        final value? => {'id': value},
+        null => null,
+      },
       ...?switch (albumId) {
         final value? => {'albumId': value},
         null => null,
@@ -265,16 +273,16 @@ class SubsonicClient {
     if (params.isEmpty) {
       throw ArgumentError('At least one target id must be provided');
     }
-    await _request(
-      'star',
-      params: params,
-    );
+    await _request('star', params: params);
   }
 
   /// 取消收藏
   Future<void> unstar({String? id, String? albumId, String? artistId}) async {
     final params = <String, dynamic>{
-      ...?switch (id) { final value? => {'id': value}, null => null },
+      ...?switch (id) {
+        final value? => {'id': value},
+        null => null,
+      },
       ...?switch (albumId) {
         final value? => {'albumId': value},
         null => null,
@@ -287,10 +295,7 @@ class SubsonicClient {
     if (params.isEmpty) {
       throw ArgumentError('At least one target id must be provided');
     }
-    await _request(
-      'unstar',
-      params: params,
-    );
+    await _request('unstar', params: params);
   }
 
   /// 获取收藏内容
@@ -319,9 +324,59 @@ class SubsonicClient {
     return songs.map((s) => Song.fromJson(s as Map<String, dynamic>)).toList();
   }
 
+  /// 获取所有流派
+  Future<List<Genre>> getGenres() async {
+    final response = await _request('getGenres');
+    final genres = response['genres']?['genre'] as List<dynamic>? ?? [];
+    return genres
+        .map((g) => Genre.fromJson(g as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// 按流派获取歌曲
+  Future<List<Song>> getSongsByGenre(
+    String genre, {
+    int size = 50,
+    int offset = 0,
+  }) async {
+    final response = await _request(
+      'getSongsByGenre',
+      params: {'genre': genre, 'count': size, 'offset': offset},
+    );
+    final songs = response['songsByGenre']?['song'] as List<dynamic>? ?? [];
+    return songs.map((s) => Song.fromJson(s as Map<String, dynamic>)).toList();
+  }
+
+  /// 获取网络电台列表
+  Future<List<RadioStation>> getInternetRadioStations() async {
+    final response = await _request('getInternetRadioStations');
+    final stations =
+        response['internetRadioStations']?['internetRadioStation']
+            as List<dynamic>? ??
+        [];
+    return stations
+        .map((s) => RadioStation.fromJson(s as Map<String, dynamic>))
+        .toList();
+  }
+
   /// 上报播放记录
   Future<void> scrobble(String id) async {
     await _request('scrobble', params: {'id': id});
+  }
+
+  // === 管理 ===
+
+  /// 删除歌曲（Navidrome REST API，非 Subsonic 标准）
+  Future<void> deleteSong(String id) async {
+    await _dio.delete(
+      '$_baseUrl/api/song/$id',
+      options: Options(
+        headers: {
+          'Authorization':
+              'Basic ${base64Encode(utf8.encode('$_username:$_password'))}',
+        },
+      ),
+    );
   }
 
   /// 获取歌词（getLyricsBySongId，Subsonic API 1.14+）
@@ -333,10 +388,12 @@ class SubsonicClient {
       final structured = lyricsList['structuredLyrics'] as List<dynamic>?;
       if (structured == null || structured.isEmpty) return null;
       // 优先选同步歌词（含时间戳），否则用第一个
-      final entry = (structured.firstWhere(
-        (e) => (e as Map<String, dynamic>)['synced'] == true,
-        orElse: () => structured[0],
-      )) as Map<String, dynamic>;
+      final entry =
+          (structured.firstWhere(
+                (e) => (e as Map<String, dynamic>)['synced'] == true,
+                orElse: () => structured[0],
+              ))
+              as Map<String, dynamic>;
       final synced = entry['synced'] as bool? ?? false;
       final lines = (entry['line'] as List<dynamic>? ?? []).map((l) {
         final m = l as Map<String, dynamic>;

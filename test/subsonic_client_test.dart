@@ -227,6 +227,59 @@ void main() {
       });
     });
 
+    group('startScan', () {
+      test('calls startScan endpoint without fullScan by default', () async {
+        late RequestOptions captured;
+        final dio = Dio()
+          ..httpClientAdapter = _CaptureAdapter((options) {
+            captured = options;
+            return ResponseBody.fromString(
+              '{"subsonic-response":{"status":"ok"}}',
+              200,
+              headers: {
+                Headers.contentTypeHeader: ['application/json; charset=utf-8'],
+              },
+            );
+          });
+        final client = SubsonicClient(dio: dio)
+          ..configure(
+            serverUrl: 'http://localhost:4533',
+            username: 'test',
+            password: 'test123',
+          );
+
+        await client.startScan();
+
+        expect(captured.path, 'http://localhost:4533/rest/startScan');
+        expect(captured.queryParameters.containsKey('fullScan'), isFalse);
+      });
+
+      test('passes fullScan when requested', () async {
+        late RequestOptions captured;
+        final dio = Dio()
+          ..httpClientAdapter = _CaptureAdapter((options) {
+            captured = options;
+            return ResponseBody.fromString(
+              '{"subsonic-response":{"status":"ok"}}',
+              200,
+              headers: {
+                Headers.contentTypeHeader: ['application/json; charset=utf-8'],
+              },
+            );
+          });
+        final client = SubsonicClient(dio: dio)
+          ..configure(
+            serverUrl: 'http://localhost:4533',
+            username: 'test',
+            password: 'test123',
+          );
+
+        await client.startScan(fullScan: true);
+
+        expect(captured.queryParameters['fullScan'], true);
+      });
+    });
+
     group('star and unstar', () {
       test('star includes only provided song id', () async {
         late RequestOptions captured;
