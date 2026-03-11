@@ -1,3 +1,13 @@
+enum SongBackend { subsonic, solara }
+
+/// Format seconds into "m:ss" string. Returns '' for null.
+String formatDuration(int? seconds) {
+  if (seconds == null) return '';
+  final m = seconds ~/ 60;
+  final s = seconds % 60;
+  return '$m:${s.toString().padLeft(2, '0')}';
+}
+
 class Song {
   final String id;
   final String title;
@@ -11,6 +21,10 @@ class Song {
   final int? bitRate;
   final String? coverArt;
   final String? suffix; // mp3, flac, etc.
+  final SongBackend backend;
+  final String? onlineSource;
+  final String? urlId;
+  final String? lyricId;
 
   const Song({
     required this.id,
@@ -25,7 +39,27 @@ class Song {
     this.bitRate,
     this.coverArt,
     this.suffix,
+    this.backend = SongBackend.subsonic,
+    this.onlineSource,
+    this.urlId,
+    this.lyricId,
   });
+
+  bool get isOnline => backend == SongBackend.solara;
+
+  /// Formatted duration string (e.g. "3:05"), empty if null.
+  String get formattedDuration => formatDuration(duration);
+
+  String get storageKey => isOnline
+      ? 'solara:${onlineSource ?? 'unknown'}:${urlId ?? id}'
+      : 'subsonic:$id';
+
+  static SongBackend _parseBackend(String? value) {
+    return switch (value) {
+      'solara' => SongBackend.solara,
+      _ => SongBackend.subsonic,
+    };
+  }
 
   factory Song.fromJson(Map<String, dynamic> json) {
     return Song(
@@ -41,6 +75,55 @@ class Song {
       bitRate: json['bitRate'] as int?,
       coverArt: json['coverArt'] as String?,
       suffix: json['suffix'] as String?,
+      backend: _parseBackend(json['backend'] as String?),
+      onlineSource: json['onlineSource'] as String?,
+      urlId: json['urlId'] as String?,
+      lyricId: json['lyricId'] as String?,
     );
   }
+
+  factory Song.fromSolaraJson(Map<String, dynamic> json) {
+    final artist = switch (json['artist']) {
+      final List<dynamic> artists => artists.join(' / '),
+      final String value => value,
+      _ => '',
+    };
+    final coverArt = json['pic_id']?.toString();
+    final source = json['source']?.toString();
+    final urlId = json['url_id']?.toString();
+    final lyricId = json['lyric_id']?.toString();
+
+    return Song(
+      id: json['id'].toString(),
+      title: json['name'] as String? ?? json['title'] as String? ?? '',
+      album: json['album'] as String? ?? '',
+      albumId: '',
+      artist: artist,
+      artistId: '',
+      coverArt: coverArt == null || coverArt.isEmpty ? null : coverArt,
+      backend: SongBackend.solara,
+      onlineSource: source == null || source.isEmpty ? null : source,
+      urlId: urlId == null || urlId.isEmpty ? null : urlId,
+      lyricId: lyricId == null || lyricId.isEmpty ? null : lyricId,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'album': album,
+    'albumId': albumId,
+    'artist': artist,
+    'artistId': artistId,
+    if (track != null) 'track': track,
+    if (year != null) 'year': year,
+    if (duration != null) 'duration': duration,
+    if (bitRate != null) 'bitRate': bitRate,
+    if (coverArt != null) 'coverArt': coverArt,
+    if (suffix != null) 'suffix': suffix,
+    if (backend != SongBackend.subsonic) 'backend': backend.name,
+    if (onlineSource != null) 'onlineSource': onlineSource,
+    if (urlId != null) 'urlId': urlId,
+    if (lyricId != null) 'lyricId': lyricId,
+  };
 }

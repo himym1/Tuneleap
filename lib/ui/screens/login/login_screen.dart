@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -36,6 +37,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _connect() async {
+    final s = S.of(context);
     setState(() {
       _loading = true;
       _error = null;
@@ -47,15 +49,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final password = _passwordController.text.trim();
 
       if (url.isEmpty || username.isEmpty || password.isEmpty) {
-        setState(() => _error = '请填写所有字段');
+        setState(() => _error = s.loginFieldsRequired);
         return;
       }
 
-      await ref.read(serverConfigProvider.notifier).save(
-            url: url,
-            username: username,
-            password: password,
-          );
+      await ref
+          .read(serverConfigProvider.notifier)
+          .save(url: url, username: username, password: password);
 
       final client = ref.read(subsonicClientProvider);
       final ok = await client.ping();
@@ -63,10 +63,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (ok) {
         widget.onLoginSuccess();
       } else {
-        setState(() => _error = '连接失败，请检查服务器地址和凭据');
+        setState(() => _error = s.loginFailed);
       }
     } catch (e) {
-      setState(() => _error = '连接错误: $e');
+      setState(() => _error = s.loginError(e.toString()));
     } finally {
       setState(() => _loading = false);
     }
@@ -74,6 +74,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       body: Center(
         child: ConstrainedBox(
@@ -91,50 +92,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Navidrome Player',
+                  s.appName,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 32),
                 TextField(
                   controller: _urlController,
-                  decoration: const InputDecoration(
-                    labelText: '服务器地址',
-                    hintText: 'https://music.example.com',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.dns),
+                  decoration: InputDecoration(
+                    labelText: s.multiServerUrl,
+                    hintText: s.serverUrlExample,
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.dns),
                   ),
                   keyboardType: TextInputType.url,
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: '用户名',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
+                  decoration: InputDecoration(
+                    labelText: s.multiServerUsername,
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.person),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: '密码',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
+                  decoration: InputDecoration(
+                    labelText: s.multiServerPassword,
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock),
                   ),
                   obscureText: true,
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 16),
-                  Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: _loading ? null : _connect,
                   child: _loading
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('连接'),
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(s.loginConnect),
                 ),
               ],
             ),

@@ -1,0 +1,325 @@
+{
+    "@@locale": "en",
+    "navHome": "Home",
+    "navLibrary": "Library",
+    "navSearch": "Search",
+    "navPlaylists": "Playlists",
+    "navSettings": "Settings",
+    "navFavorites": "Favorites",
+    "navDownloads": "Downloads",
+    "navServers": "Servers",
+    "navAudioQuality": "Audio Quality",
+    "navScrobble": "History",
+    "sidebarNav": "NAV",
+    "sidebarMore": "MORE",
+    "appName": "Navidrome Player",
+    "appShortName": "NP",
+    "loginSubtitle": "Connect to your private music server",
+    "loginConnect": "Connect",
+    "loginFieldsRequired": "Please fill in all fields",
+    "loginFailed": "Connection failed, please check server URL and credentials",
+    "loginError": "Connection error: {error}",
+    "homeGreetingMorning": "Good Morning ☀️",
+    "homeGreetingAfternoon": "Good Afternoon 🌤",
+    "homeGreetingEvening": "Good Evening 🌙",
+    "homePlayRandom": "Shuffle Play",
+    "homeRecentAlbums": "Recently Added",
+    "homeRandomAlbums": "Discover",
+    "homeAlbums": "Albums",
+    "homeSongs": "Songs",
+    "homeArtists": "Artists",
+    "libraryTabArtists": "Artists",
+    "libraryTabAlbums": "Albums",
+    "libraryTabSongs": "Songs",
+    "libraryTitle": "Library",
+    "libraryAlbumCount": "{count} albums",
+    "searchHint": "Search songs, albums, artists…",
+    "searchNoResults": "Try searching for your favorite music",
+    "searchResultArtists": "Artists",
+    "searchResultAlbums": "Albums",
+    "searchResultSongs": "Songs",
+    "playerQueueTitle": "Play Queue",
+    "playerLyrics": "Lyrics",
+    "playerNoLyrics": "No lyrics available",
+    "playerShowQueue": "Show Queue",
+    "playerHideQueue": "Hide Queue",
+    "playerSpeed": "Playback Speed",
+    "playerNowPlaying": "Now Playing",
+    "playerQueue": "Queue",
+    "albumPlayAll": "Play All",
+    "albumShufflePlay": "Shuffle",
+    "albumSongCount": "{count} songs",
+    "artistPlayAll": "Play All",
+    "artistAlbums": "Albums",
+    "artistAlbumCount": "{count} albums",
+    "playlistsTitle": "Playlists",
+    "playlistCreate": "New Playlist",
+    "playlistRename": "Rename",
+    "playlistDelete": "Delete",
+    "playlistEdit": "Edit",
+    "playlistSave": "Save",
+    "playlistCancel": "Cancel",
+    "playlistNameHint": "Enter playlist name",
+    "playlistSongCount": "{count} songs",
+    "playlistEmpty": "No playlists yet",
+    "playlistReorderHint": "Long press to reorder, swipe to delete",
+    "favoritesTitle": "Favorites",
+    "favoritesTabSongs": "Songs",
+    "favoritesTabAlbums": "Albums",
+    "favoritesTabArtists": "Artists",
+    "favoritesEmpty": "No favorites yet",
+    "downloadsTitle": "Downloads",
+    "downloadsTotal": "Total Tasks",
+    "downloadsCompleted": "Completed",
+    "downloadsOfflineSongs": "Offline Songs",
+    "downloadsEmpty": "No downloads yet",
+    "downloadsClearCompleted": "Clear Completed",
+    "settingsTitle": "Settings",
+    "settingsServer": "Server",
+    "settingsCurrentServer": "Current Server",
+    "settingsLogout": "Log Out",
+    "settingsTheme": "Theme",
+    "settingsThemeSystem": "System",
+    "settingsThemeDark": "Dark",
+    "settingsThemeLight": "Light",
+    "settingsAudioQuality": "Audio Quality",
+    "settingsAbout": "About",
+    "settingsVersion": "Version",
+    "audioQualityTitle": "Audio Quality",
+    "audioQualityOriginal": "Original (Lossless)",
+    "audioQualityHigh": "High Quality",
+    "audioQualityMedium": "Medium Quality",
+    "audioQualityLow": "Low Quality",
+    "audioQualityKbps": "{kbps} kbps",
+    "audioQualityMp3Label": "MP3 {kbps}k",
+    "@audioQualityMp3Label": {
+        "placeholders": {
+            "kbps": {
+                "type": "int"
+            }
+        }
+    },
+    "scrobbleTitle": "Play History",
+    "scrobbleEmpty": "No play history yet",
+    "scrobblePlayCount": "Played {count} times",
+    "scrobbleSubtitle": "Track your music taste · Auto scrobble to server",
+    "scrobbleSessionPlays": "Session Plays",
+    "scrobbleUniqueArtists": "Unique Artists",
+    "scrobbleUniqueAlbums": "Unique Albums",
+    "scrobbleAutoDesc": "Auto-scrobble after 50% or 4 min playback",
+    "scrobbleEnabled": "Enabled",
+    "scrobbleRecentTitle": "Recent Plays",
+    "scrobbleRecentCount": "{count} tracks total",
+    "scrobbleEmptyHint": "No play history yet\nStart playing music to see it here",
+    "multiServerTitle": "Server Management",
+    "multiServerAdd": "Add Server",
+    "multiServerCurrent": "Current",
+    "multiServerSwitch": "Switch",
+    "multiServerDelete": "Delete",
+    "multiServerEmpty": "No additional servers",
+    "contextMenuPlay": "Play",
+    "contextMenuPlayNext": "Play Next",
+    "contextMenuAddQueue": "Add to Queue",
+    "contextMenuAddPlaylist": "Add to Playlist",
+    "contextMenuStar": "Favorite",
+    "contextMenuDownload": "Download",
+    "contextMenuImportNavidrome": "Import to Navidrome",
+    "contextMenuAddedNext": "Added to play next",
+    "contextMenuAddedQueue": "Added to queue",
+    "contextMenuStarred": "Added to favorites",
+    "contextMenuDownloading": "Added to download queue",
+    "contextMenuImportingNavidrome": "Importing to Navidrome...",
+    "contextMenuImportedNavidrome": "Imported to Navidrome and scan triggered",
+    "contextMenuImportedNavidromePendingScan": "Imported to Navidrome, waiting for auto scan",
+    "contextMenuImportNavidromeFailed": "Failed to import to Navidrome",
+    "contextMenuQueueingNavidrome": "Submitting to NAS download queue...",
+    "contextMenuQueuedNavidrome": "Submitted to NAS download queue",
+    "contextMenuAddedPlaylist": "Added to {name}",
+    "contextMenuSelectPlaylist": "Select Playlist",
+    "contextMenuLoadFailed": "Failed to load playlists",
+    "commonCancel": "Cancel",
+    "commonSave": "Save",
+    "commonDelete": "Delete",
+    "commonConfirm": "OK",
+    "commonLoading": "Loading...",
+    "commonError": "Error",
+    "commonRetry": "Retry",
+    "commonNoData": "No data",
+    "commonSongs": "{count} songs",
+    "commonSizeKb": "{value} KB",
+    "@commonSizeKb": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "commonSizeMb": "{value} MB",
+    "@commonSizeMb": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "commonSizeGb": "{value} GB",
+    "@commonSizeGb": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "commonPercent": "{value}%",
+    "@commonPercent": {
+        "placeholders": {
+            "value": {
+                "type": "int"
+            }
+        }
+    },
+    "commonAll": "All",
+    "commonBack": "Back",
+    "commonLoadFailed": "Failed to load",
+    "commonUnknownArtist": "Unknown Artist",
+    "commonCreate": "Create",
+    "commonNew": "New",
+    "playerQueueEmpty": "Queue is empty",
+    "playerNoContent": "Nothing playing",
+    "playerNoContentHint": "Select a song from library or search to start playing",
+    "playerSpeedValue": "{speed}x",
+    "@playerSpeedValue": {
+        "placeholders": {
+            "speed": {
+                "type": "double"
+            }
+        }
+    },
+    "playerUnfavorite": "Remove from favorites",
+    "albumAddToQueue": "Add to Queue",
+    "albumFavorite": "Favorite Album",
+    "albumUnfavorite": "Unfavorite",
+    "albumTitle": "Title",
+    "albumDuration": "Duration",
+    "albumSongDuration": "{year} · {count} songs · {duration}",
+    "artistUnfavorited": "Removed from favorites",
+    "downloadsUsedSpace": "Used Space",
+    "downloadsQueue": "Download Queue",
+    "downloadsHint": "Select \"Download\" from song menu",
+    "downloadsPending": "Pending",
+    "downloadsFailed": "Failed",
+    "multiServerManage": "Server Management",
+    "multiServerCount": "{count} servers",
+    "multiServerDeleteTitle": "Delete Server",
+    "multiServerDeleteConfirm": "Are you sure you want to delete \"{name}\"?",
+    "multiServerEdit": "Edit Server",
+    "multiServerName": "Server Name",
+    "multiServerNameHint": "My Navidrome",
+    "multiServerUrl": "Server URL",
+    "multiServerUsername": "Username",
+    "multiServerPassword": "Password",
+    "serverUrlExample": "https://music.example.com",
+    "multiServerEmptyHint": "No servers yet\nTap the button above to add one",
+    "searchAll": "All",
+    "searchHintInput": "Search songs, artists, albums...",
+    "searchPlaceholder": "Enter keywords to search music",
+    "searchNoResult": "No results found",
+    "searchResults": "Search Results",
+    "libraryNoArtists": "No artists",
+    "libraryNoAlbums": "No albums",
+    "libraryNoSongs": "No songs",
+    "audioQualityOriginalName": "Original",
+    "audioQualityOriginalDesc": "No transcoding",
+    "audioQualityMp3128Desc": "Save bandwidth",
+    "audioQualitySelection": "Quality Selection",
+    "playlistNameLabel": "Playlist Name",
+    "playlistCreated": "Created playlist \"{name}\"",
+    "playlistCreateFailed": "Failed to create",
+    "playlistDeleteTitle": "Delete Playlist",
+    "playlistDeleteConfirm": "Are you sure you want to delete \"{name}\"? This cannot be undone.",
+    "playlistDeleted": "Deleted \"{name}\"",
+    "playlistDeleteFailed": "Failed to delete",
+    "playlistCount": "{count} playlists",
+    "playlistCreatedList": "Created Lists",
+    "playlistEmptyTitle": "No playlists yet",
+    "playlistEmptyHint": "Create a playlist to organize your music",
+    "playlistSongCountLabel": "{count} songs",
+    "playlistPlay": "Play",
+    "playlistListEmpty": "Playlist is empty",
+    "playlistRenameTitle": "Rename Playlist",
+    "playlistNewName": "New Name",
+    "songContextAddedToPlaylist": "Added to {name}",
+    "defaultServerName": "My Server",
+
+    "navSongs": "Songs",
+    "navAlbums": "Albums",
+    "navArtists": "Artists",
+    "navAlbumArtists": "Album Artists",
+    "navGenres": "Genres",
+    "navRadio": "Radio",
+    "sidebarLibrary": "LIBRARY",
+
+    "homeNewestAlbums": "Latest Albums",
+    "homeDailyRecommend": "Daily Mix",
+    "homeRecentlyPlayed": "Recently Played",
+    "homeViewMore": "More",
+
+    "libraryGenresTitle": "Genres",
+    "libraryRadioTitle": "Radio Stations",
+    "libraryRadioEmpty": "No radio stations",
+    "libraryNoGenres": "No genres",
+    "libraryAlbumArtistsTitle": "Album Artists",
+    "genreSongCount": "{count} songs",
+    "@genreSongCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "genreAlbumCount": "{count} albums",
+    "@genreAlbumCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+
+    "contextMenuDelete": "Delete from Server",
+    "contextMenuDeleteConfirm": "Are you sure you want to delete \"{title}\"? This will remove it from the server permanently.",
+    "@contextMenuDeleteConfirm": {
+        "placeholders": {
+            "title": {
+                "type": "String"
+            }
+        }
+    },
+    "contextMenuDeleteSuccess": "Deleted successfully",
+    "contextMenuDeleteError": "Failed to delete",
+
+    "settingsUnlimited": "Unlimited",
+    "settingsUser": "User",
+    "settingsQuality": "Quality",
+    "settingsMaxBitrate": "Max bitrate",
+    "settingsAboutText": "{appName} v{version}\nCross-platform music client",
+    "@settingsAboutText": {
+        "placeholders": {
+            "appName": {
+                "type": "String"
+            },
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "settingsLogoutConfirm": "Are you sure you want to log out?",
+    "settingsCacheCalculating": "Calculating...",
+    "settingsCacheUnknown": "Unknown",
+    "settingsCacheCleared": "Cache cleared",
+    "settingsCacheClearFailed": "Clear failed",
+    "settingsCacheStorage": "Cache & Storage",
+    "settingsCacheUsed": "Used",
+    "settingsCacheMaxCache": "Max cache",
+    "settingsCacheClear": "Clear"
+}

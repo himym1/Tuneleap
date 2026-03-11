@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
-import 'package:navidrome_player/ui/widgets/song_tile.dart';
-import 'package:navidrome_player/ui/widgets/mini_player.dart';
+import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/empty_state.dart';
+import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
+import 'package:navidrome_player/l10n/app_localizations.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -13,174 +17,262 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  List<Album> _recentAlbums = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
+  Future<void> _refresh() async {
+    ref.invalidate(newestAlbumsProvider);
+    ref.invalidate(dailySongsProvider);
+    ref.invalidate(recentAlbumsProvider);
+    await Future.wait([
+      ref.read(newestAlbumsProvider.future),
+      ref.read(dailySongsProvider.future),
+      ref.read(recentAlbumsProvider.future),
+    ]);
   }
 
-  Future<void> _loadData() async {
-    try {
-      final client = ref.read(subsonicClientProvider);
-      final albums = await client.getAlbumList2(type: 'newest', size: 20);
-      setState(() {
-        _recentAlbums = albums;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() => _loading = false);
-    }
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    final s = S.of(context);
+    if (hour < 12) return s.homeGreetingMorning;
+    if (hour < 18) return s.homeGreetingAfternoon;
+    return s.homeGreetingEvening;
   }
 
   @override
   Widget build(BuildContext context) {
+    final newestAlbums = ref.watch(newestAlbumsProvider);
+    final dailySongs = ref.watch(dailySongsProvider);
+    final recentAlbums = ref.watch(recentAlbumsProvider);
+
     return Scaffold(
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              child: CustomScrollView(
-                slivers: [
-                  SliverAppBar.large(
-                    title: const Text('Navidrome Player'),
-                    actions: [
-                      IconButton(
-                        icon: const Icon(Icons.search),
-                        onPressed: () {
-                          // TODO: navigate to search
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.settings),
-                        onPressed: () {
-                          // TODO: navigate to settings
-                        },
-                      ),
-                    ],
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.all(16),
-                    sliver: SliverToBoxAdapter(
-                      child: Text('最近添加', style: Theme.of(context).textTheme.titleLarge),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 200,
-                        childAspectRatio: 0.8,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                      ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => _AlbumCard(
-                          album: _recentAlbums[index],
-                          client: ref.read(subsonicClientProvider),
-                          onTap: () => _openAlbum(_recentAlbums[index]),
-                        ),
-                        childCount: _recentAlbums.length,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-      bottomNavigationBar: const MiniPlayer(),
-    );
-  }
-
-  void _openAlbum(Album album) async {
-    final client = ref.read(subsonicClientProvider);
-    final detail = await client.getAlbum(album.id);
-    if (!mounted) return;
-
-    final playerService = ref.read(audioPlayerServiceProvider);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.95,
-        minChildSize: 0.5,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          ),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: newestAlbums.when(
+        loading: () =>
+            Center(child: CircularProgressIndicator()),
+        error: (_, _) => ErrorState(
+          message: S.of(context).commonError,
+          onRetry: _refresh,
+          retryLabel: S.of(context).commonRetry,
+        ),
+        data: (newest) => RefreshIndicator(
+          onRefresh: _refresh,
           child: ListView(
-            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(detail.name, style: Theme.of(context).textTheme.headlineSmall),
-                    if (detail.artist != null) Text(detail.artist!, style: Theme.of(context).textTheme.bodyLarge),
-                    const SizedBox(height: 8),
-                    FilledButton.icon(
-                      onPressed: () {
-                        playerService.playAll(detail.songs);
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('播放全部'),
-                    ),
-                  ],
+              // Greeting
+              Text(
+                _greeting(),
+                style: Theme.of(context).textTheme.pageTitle.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
-              ...detail.songs.asMap().entries.map((entry) => SongTile(
-                    song: entry.value,
-                    onTap: () {
-                      playerService.playAll(detail.songs, startIndex: entry.key);
-                      Navigator.pop(context);
-                    },
-                  )),
+              const SizedBox(height: 28),
+
+              // ── 最新专辑 ──
+              _buildSectionHeader(
+                S.of(context).homeNewestAlbums,
+                onMore: () => context.go('/library/albums'),
+              ),
+              const SizedBox(height: 12),
+              _buildAlbumRow(newest),
+              const SizedBox(height: 28),
+
+              // ── 每日推荐 ──
+              _buildSectionHeader(S.of(context).homeDailyRecommend),
+              const SizedBox(height: 12),
+              dailySongs.when(
+                data: (songs) => _buildDailyGrid(songs),
+                loading: () => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 28),
+
+              // ── 最近播放 ──
+              recentAlbums.when(
+                data: (recent) => recent.isNotEmpty
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionHeader(
+                            S.of(context).homeRecentlyPlayed,
+                            onMore: () => context.go('/scrobble'),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildAlbumRow(recent),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
+                loading: () => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
+              ),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class _AlbumCard extends StatelessWidget {
-  final Album album;
-  final dynamic client;
-  final VoidCallback onTap;
-
-  const _AlbumCard({required this.album, required this.client, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final coverUrl = client.coverArtUrl(album.coverArt, size: 300) as String;
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: coverUrl.isNotEmpty
-                  ? Image.network(coverUrl, fit: BoxFit.cover, width: double.infinity)
-                  : Container(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      child: const Center(child: Icon(Icons.album, size: 48)),
-                    ),
+  Widget _buildSectionHeader(String title, {VoidCallback? onMore}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.sectionTitle.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        if (onMore != null)
+          TextButton(
+            onPressed: onMore,
+            child: Text(
+              S.of(context).homeViewMore,
+              style: TextStyle(fontSize: 13, color: AppColors.primary),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium),
-          if (album.artist != null)
-            Text(album.artist!, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
-        ],
+      ],
+    );
+  }
+
+  Widget _buildAlbumRow(List<Album> albums) {
+    final client = ref.read(subsonicClientProvider);
+    return SizedBox(
+      height: 180,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: albums.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 14),
+        itemBuilder: (context, index) {
+          final album = albums[index];
+          return Material(
+            color: AppColors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => context.go('/album/${album.id}'),
+              child: SizedBox(
+                width: 130,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CoverArt(
+                      url: client.coverArtUrl(album.coverArt, size: 300),
+                      size: 130,
+                      borderRadius: 10,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      album.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.songSubtitle,
+                    ),
+                    if (album.artist != null)
+                      Text(
+                        album.artist!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildDailyGrid(List<Song> songs) {
+    if (songs.isEmpty) return const SizedBox.shrink();
+    final client = ref.read(subsonicClientProvider);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = (constraints.maxWidth / 300).floor().clamp(1, 3);
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 4.0,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: songs.length,
+          itemBuilder: (context, index) {
+            final song = songs[index];
+            return SongContextMenu(
+              song: song,
+              onPlay: () {
+                ref
+                    .read(audioPlayerServiceProvider)
+                    .playAll(songs, startIndex: index);
+              },
+              child: Material(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () {
+                    ref
+                        .read(audioPlayerServiceProvider)
+                        .playAll(songs, startIndex: index);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Row(
+                      children: [
+                        CoverArt(
+                          url: client.coverArtUrl(song.coverArt, size: 80),
+                          size: 44,
+                          borderRadius: 6,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                song.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.chipLabel.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                song.artist,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.play_circle_outline,
+                          size: 24,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

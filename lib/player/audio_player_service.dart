@@ -1,116 +1,82 @@
 import 'package:just_audio/just_audio.dart';
-import '../api/subsonic_client.dart';
 import '../api/models/models.dart';
+import '../api/solara_client.dart';
+import '../api/subsonic_client.dart';
+import 'audio_handler.dart';
 
 enum RepeatMode { off, all, one }
 
-/// 音频播放服务 — 封装 just_audio
+/// 音频播放服务 — UI 层使用的轻量封装，内部委托 NavidromeAudioHandler
+///
+/// NavidromeAudioHandler 负责真正的 just_audio 播放 + audio_service 系统集成。
+/// 本类在其之上提供 shuffle / repeat / queue 编辑等高层逻辑。
 class AudioPlayerService {
-  final AudioPlayer _player = AudioPlayer();
-  final SubsonicClient _client;
+  final NavidromeAudioHandler _handler;
 
-  final List<Song> _queue = [];
-  int _currentIndex = -1;
   bool _shuffle = false;
   RepeatMode _repeatMode = RepeatMode.off;
 
-  AudioPlayerService(this._client);
+  AudioPlayerService(this._handler);
 
   // === Getters ===
 
-  AudioPlayer get player => _player;
-  List<Song> get queue => List.unmodifiable(_queue);
-  int get currentIndex => _currentIndex;
-  Song? get currentSong => _currentIndex >= 0 && _currentIndex < _queue.length ? _queue[_currentIndex] : null;
+  AudioPlayer get player => _handler.player;
+  List<Song> get queue => _handler.songQueue;
+  List<Song> get playHistory => _handler.playHistory;
+  int get currentIndex => _handler.currentIndex;
+  Song? get currentSong => _handler.currentSong;
   bool get shuffle => _shuffle;
   RepeatMode get repeatMode => _repeatMode;
 
-  // === Streams ===
+  // === Streams (从 handler 的 AudioPlayer 透传) ===
 
-  Stream<Duration> get positionStream => _player.positionStream;
-  Stream<Duration?> get durationStream => _player.durationStream;
-  Stream<bool> get playingStream => _player.playingStream;
-  Stream<PlayerState> get playerStateStream => _player.playerStateStream;
+  Stream<Duration> get positionStream => _handler.player.positionStream;
+  Stream<Duration?> get durationStream => _handler.player.durationStream;
+  Stream<bool> get playingStream => _handler.player.playingStream;
+  Stream<PlayerState> get playerStateStream =>
+      _handler.player.playerStateStream;
+
+  /// 当前歌曲变化流 — mediaItem 变化时发射当前 Song
+  Stream<Song?> get currentSongStream => _handler.mediaItem
+      .map((_) => _handler.currentSong)
+      .distinct((a, b) => a?.storageKey == b?.storageKey);
 
   // === 播放控制 ===
 
   /// 播放单首歌曲
   Future<void> playSong(Song song) async {
-    _queue
-      ..clear()
-      ..add(song);
-    _currentIndex = 0;
-    await _loadAndPlay();
+    _shuffle = false;
+    await _handler.setQueue([song], startIndex: 0);
   }
 
   /// 播放歌曲列表
   Future<void> playAll(List<Song> songs, {int startIndex = 0}) async {
     if (songs.isEmpty) return;
-    _queue
-      ..clear()
-      ..addAll(songs);
-    _currentIndex = startIndex.clamp(0, songs.length - 1);
-    await _loadAndPlay();
+    await _handler.setQueue(songs, startIndex: startIndex);
   }
 
   /// 添加到队列末尾
   void addToQueue(Song song) {
-    _queue.add(song);
+    _handler.addToQueue(song);
   }
 
   /// 播放下一首后插入
   void playNext(Song song) {
-    if (_currentIndex < _queue.length - 1) {
-      _queue.insert(_currentIndex + 1, song);
-    } else {
-      _queue.add(song);
-    }
+    _handler.insertNext(song);
   }
 
-  Future<void> play() => _player.play();
-  Future<void> pause() => _player.pause();
+  Future<void> play() => _handler.play();
+  Future<void> pause() => _handler.pause();
 
-  Future<void> seekTo(Duration position) => _player.seek(position);
+  Future<void> seekTo(Duration position) => _handler.seek(position);
 
-  Future<void> next() async {
-    if (_queue.isEmpty) return;
-    if (_currentIndex < _queue.length - 1) {
-      _currentIndex++;
-    } else if (_repeatMode == RepeatMode.all) {
-      _currentIndex = 0;
-    } else {
-      return;
-    }
-    await _loadAndPlay();
-  }
-
-  Future<void> previous() async {
-    if (_queue.isEmpty) return;
-    // 播放超过 3 秒则回到开头
-    if (_player.position.inSeconds > 3) {
-      await _player.seek(Duration.zero);
-      return;
-    }
-    if (_currentIndex > 0) {
-      _currentIndex--;
-    } else if (_repeatMode == RepeatMode.all) {
-      _currentIndex = _queue.length - 1;
-    } else {
-      return;
-    }
-    await _loadAndPlay();
-  }
+  Future<void> next() => _handler.skipToNext();
+  Future<void> previous() => _handler.skipToPrevious();
 
   void toggleShuffle() {
     _shuffle = !_shuffle;
     if (_shuffle) {
-      final current = currentSong;
-      _queue.shuffle();
-      if (current != null) {
-        _queue.remove(current);
-        _queue.insert(0, current);
-        _currentIndex = 0;
-      }
+      _handler.shuffleQueue();
     }
   }
 
@@ -123,46 +89,55 @@ class AudioPlayerService {
       case RepeatMode.one:
         _repeatMode = RepeatMode.off;
     }
-    _player.setLoopMode(
-      _repeatMode == RepeatMode.one ? LoopMode.one : LoopMode.off,
-    );
+    _handler.setRepeat(_repeatMode);
   }
 
   /// 从队列中移除
   void removeFromQueue(int index) {
-    if (index < 0 || index >= _queue.length) return;
-    _queue.removeAt(index);
-    if (index < _currentIndex) {
-      _currentIndex--;
-    } else if (index == _currentIndex) {
-      _currentIndex = _currentIndex.clamp(0, _queue.length - 1);
-    }
+    _handler.removeFromQueue(index);
   }
 
-  /// 加载并播放当前歌曲
-  Future<void> _loadAndPlay() async {
-    final song = currentSong;
-    if (song == null) return;
-    final url = _client.streamUrl(song.id);
-    await _player.setUrl(url);
-    await _player.play();
+  /// 移动队列中的歌曲（拖拽排序）
+  void reorderQueue(int oldIndex, int newIndex) {
+    _handler.reorderQueue(oldIndex, newIndex);
   }
 
-  /// 初始化播放完成监听
+  /// 跳转到队列中的指定位置播放
+  Future<void> skipToIndex(int index) async {
+    await _handler.skipToQueueItem(index);
+  }
+
+  /// 设置最大码率
+  void setMaxBitRate(int value) {
+    _handler.setMaxBitRate(value);
+  }
+
+  /// 更新底层 SubsonicClient（服务器切换时调用）
+  void updateClients(SubsonicClient newClient, SolaraClient newSolaraClient) {
+    _handler.updateClients(newClient, newSolaraClient);
+  }
+
+  /// 设置音量
+  void setVolume(double value) {
+    _handler.setVolume(value);
+  }
+
+  /// 设置播放速度
+  Future<void> setSpeed(double value) async {
+    await _handler.setSpeed(value);
+  }
+
+  /// 设置离线文件查找回调
+  void setLocalPathLookup(String? Function(Song song)? lookup) {
+    _handler.setLocalPathLookup(lookup);
+  }
+
+  /// 初始化（空实现，handler 自身已在构造函数中初始化）
   void init() {
-    _player.playerStateStream.listen((state) {
-      if (state.processingState == ProcessingState.completed) {
-        if (_repeatMode == RepeatMode.one) {
-          _player.seek(Duration.zero);
-          _player.play();
-        } else {
-          next();
-        }
-      }
-    });
+    // handler 内部已处理播放完成监听
   }
 
   Future<void> dispose() async {
-    await _player.dispose();
+    await _handler.stop();
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:navidrome_player/api/media_request_headers.dart';
 
 /// 封面图组件，带缓存和 placeholder
 class CoverArt extends StatelessWidget {
@@ -23,6 +25,7 @@ class CoverArt extends StatelessWidget {
       borderRadius: BorderRadius.circular(borderRadius),
       child: CachedNetworkImage(
         imageUrl: url,
+        httpHeaders: mediaRequestHeaders(url),
         width: size,
         height: size,
         fit: BoxFit.cover,
@@ -33,17 +36,17 @@ class CoverArt extends StatelessWidget {
   }
 
   Widget _placeholder(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      child: Icon(
-        Icons.album,
-        size: size != null ? size! * 0.5 : 32,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+    final colorScheme = Theme.of(context).colorScheme;
+    return Shimmer.fromColors(
+      baseColor: colorScheme.surfaceContainerHighest,
+      highlightColor: colorScheme.surfaceContainerHigh,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
       ),
     );
   }
