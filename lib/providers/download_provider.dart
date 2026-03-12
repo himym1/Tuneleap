@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:navidrome_player/api/models/models.dart';
@@ -106,7 +106,6 @@ final downloadManagerProvider =
 
 class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   static const _persistKey = 'download_tasks';
-  final _dio = Dio();
 
   @override
   List<DownloadTask> build() {
@@ -124,7 +123,9 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
           if (t.localPath == null) return false;
           return File(t.localPath!).existsSync();
         }).toList();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('Failed to load download tasks: $e');
+      }
     }
     return [];
   }
@@ -182,7 +183,8 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       );
       final savePath = '${downloadsDir.path}/$safeName.$ext';
 
-      await _dio.download(
+      final client = ref.read(subsonicClientProvider);
+      await client.downloadFile(
         url,
         savePath,
         onReceiveProgress: (received, total) {

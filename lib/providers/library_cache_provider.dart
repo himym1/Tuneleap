@@ -54,3 +54,17 @@ final genreSongsProvider = FutureProvider.autoDispose.family<List<Song>, String>
   final client = ref.watch(subsonicClientProvider);
   return await client.getSongsByGenre(genreName, size: 100);
 });
+
+/// 艺术家详情（艺术家详情页）— family provider 按艺术家 ID 缓存
+final artistDetailProvider = FutureProvider.autoDispose.family<ArtistDetail, String>((ref, artistId) async {
+  ref.keepAlive();
+  final client = ref.watch(subsonicClientProvider);
+  return await client.getArtist(artistId);
+});
+
+/// 播放列表列表（播放列表页）
+final playlistsProvider = FutureProvider.autoDispose<List<Playlist>>((ref) async {
+  ref.keepAlive();
+  final client = ref.watch(subsonicClientProvider);
+  return await client.getPlaylists();
+});

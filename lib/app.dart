@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/utils/platform_utils.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/screens/login/login_screen.dart';
 import 'package:navidrome_player/ui/screens/shell/app_shell.dart';
@@ -17,8 +17,8 @@ import 'package:navidrome_player/ui/screens/library/library_genres_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_radio_screen.dart';
 import 'package:navidrome_player/ui/screens/search/search_screen.dart';
 import 'package:navidrome_player/ui/screens/player/player_screen.dart';
+import 'package:navidrome_player/ui/screens/playlists/playlists_screen.dart';
 import 'package:navidrome_player/ui/screens/settings/settings_screen.dart';
-import 'package:navidrome_player/ui/screens/favorites/favorites_screen.dart';
 import 'package:navidrome_player/ui/screens/downloads/downloads_screen.dart';
 import 'package:navidrome_player/ui/screens/scrobble/scrobble_screen.dart';
 import 'package:navidrome_player/ui/screens/multi_server/multi_server_screen.dart';
@@ -47,7 +47,7 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
   }
 
   Future<void> _initPlatform() async {
-    if (Platform.isMacOS) {
+    if (isDesktop) {
       final strings = systemLocalizations();
       await windowManager.ensureInitialized();
       await windowManager.setMinimumSize(const Size(800, 600));
@@ -225,12 +225,36 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
               ),
             ),
             GoRoute(
-              path: '/player',
-              builder: (context, state) => const PlayerScreen(),
+              path: '/playlists',
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const PlaylistsScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                transitionDuration: const Duration(milliseconds: 200),
+              ),
             ),
             GoRoute(
-              path: '/favorites',
-              builder: (context, state) => const FavoritesScreen(),
+              path: '/player',
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const PlayerScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 1),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                      reverseCurve: Curves.easeInCubic,
+                    )),
+                    child: child,
+                  );
+                },
+              ),
             ),
             GoRoute(
               path: '/downloads',

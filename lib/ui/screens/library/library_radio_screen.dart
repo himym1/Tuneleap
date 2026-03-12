@@ -20,7 +20,7 @@ class _LibraryRadioScreenState extends ConsumerState<LibraryRadioScreen> {
     final stationsAsync = ref.watch(radioStationsProvider);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -51,7 +51,7 @@ class _LibraryRadioScreenState extends ConsumerState<LibraryRadioScreen> {
           Expanded(
             child: stationsAsync.when(
               loading: () => Center(
-                child: CircularProgressIndicator(),
+                child: const CircularProgressIndicator(),
               ),
               error: (_, _) => Center(
                 child: Text(
@@ -110,10 +110,10 @@ class _LibraryRadioScreenState extends ConsumerState<LibraryRadioScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.primarySoft,
+              color: context.colors.primarySoft,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(Icons.radio, color: AppColors.primary),
+            child: Icon(Icons.radio, color: context.colors.primary),
           ),
           title: Text(
             station.name,
@@ -133,7 +133,8 @@ class _LibraryRadioScreenState extends ConsumerState<LibraryRadioScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.play_circle_outline, size: 24),
-                color: AppColors.primary,
+                color: context.colors.primary,
+                tooltip: S.of(context).tooltipPlay,
                 onPressed: () {
                   // TODO: Implement radio stream playback
                 },

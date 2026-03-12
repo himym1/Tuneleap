@@ -6,129 +6,15 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
-class PlaylistsScreen extends ConsumerStatefulWidget {
+class PlaylistsScreen extends ConsumerWidget {
   const PlaylistsScreen({super.key});
 
   @override
-  ConsumerState<PlaylistsScreen> createState() => _PlaylistsScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncPlaylists = ref.watch(playlistsProvider);
 
-class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
-  List<Playlist> _playlists = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPlaylists();
-  }
-
-  Future<void> _loadPlaylists() async {
-    try {
-      final client = ref.read(subsonicClientProvider);
-      final playlists = await client.getPlaylists();
-      if (!mounted) return;
-      setState(() {
-        _playlists = playlists;
-        _loading = false;
-      });
-    } catch (e) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  void _createPlaylist() {
-    final nameController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(S.of(context).playlistCreate),
-        content: TextField(
-          controller: nameController,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: S.of(context).playlistNameLabel,
-            border: OutlineInputBorder(),
-          ),
-          onSubmitted: (_) => _submitCreate(ctx, nameController.text),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(S.of(context).commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => _submitCreate(ctx, nameController.text),
-            child: Text(S.of(context).commonCreate),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _submitCreate(BuildContext ctx, String name) async {
-    if (name.trim().isEmpty) return;
-    Navigator.pop(ctx);
-    try {
-      final client = ref.read(subsonicClientProvider);
-      await client.createPlaylist(name.trim());
-      await _loadPlaylists();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).playlistCreated(name))),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).playlistCreateFailed)),
-        );
-      }
-    }
-  }
-
-  Future<void> _deletePlaylist(Playlist playlist) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(S.of(context).playlistDeleteTitle),
-        content: Text(S.of(context).playlistDeleteConfirm(playlist.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(S.of(context).commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: Text(S.of(context).commonDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      final client = ref.read(subsonicClientProvider);
-      await client.deletePlaylist(playlist.id);
-      setState(() => _playlists.removeWhere((p) => p.id == playlist.id));
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).playlistDeleted(playlist.name))),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).playlistDeleteFailed)),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -149,7 +35,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                 Row(
                   children: [
                     Text(
-                      S.of(context).playlistCount(_playlists.length),
+                      S.of(context).playlistCount(asyncPlaylists.value?.length ?? 0),
                       style: TextStyle(
                         fontSize: 13,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -157,7 +43,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                     ),
                     const SizedBox(width: 12),
                     FilledButton.tonalIcon(
-                      onPressed: _createPlaylist,
+                      onPressed: () => _createPlaylist(context, ref),
                       icon: const Icon(Icons.add, size: 18),
                       label: Text(S.of(context).commonNew),
                       style: FilledButton.styleFrom(
@@ -186,20 +72,126 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
           const SizedBox(height: 20),
           // 列表网格
           Expanded(
-            child: _loading
-                ? Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : _playlists.isEmpty
-                ? _buildEmptyState()
-                : _buildPlaylistGrid(),
+            child: asyncPlaylists.when(
+              loading: () => Center(
+                child: CircularProgressIndicator(color: context.colors.primary),
+              ),
+              error: (_, _) => Center(
+                child: Text(
+                  S.of(context).commonLoadFailed,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              data: (playlists) => playlists.isEmpty
+                  ? _buildEmptyState(context)
+                  : _buildPlaylistGrid(context, ref, playlists),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  void _createPlaylist(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(S.of(context).playlistCreate),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: S.of(context).playlistNameLabel,
+            border: const OutlineInputBorder(),
+          ),
+          onSubmitted: (_) => _submitCreate(ctx, context, ref, nameController.text),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(S.of(context).commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => _submitCreate(ctx, context, ref, nameController.text),
+            child: Text(S.of(context).commonCreate),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitCreate(
+    BuildContext ctx,
+    BuildContext screenContext,
+    WidgetRef ref,
+    String name,
+  ) async {
+    if (name.trim().isEmpty) return;
+    Navigator.pop(ctx);
+    try {
+      final client = ref.read(subsonicClientProvider);
+      await client.createPlaylist(name.trim());
+      ref.invalidate(playlistsProvider);
+      if (screenContext.mounted) {
+        ScaffoldMessenger.of(screenContext).showSnackBar(
+          SnackBar(content: Text(S.of(screenContext).playlistCreated(name))),
+        );
+      }
+    } catch (e) {
+      if (screenContext.mounted) {
+        ScaffoldMessenger.of(screenContext).showSnackBar(
+          SnackBar(content: Text(S.of(screenContext).playlistCreateFailed)),
+        );
+      }
+    }
+  }
+
+  Future<void> _deletePlaylist(
+    BuildContext context,
+    WidgetRef ref,
+    Playlist playlist,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(S.of(context).playlistDeleteTitle),
+        content: Text(S.of(context).playlistDeleteConfirm(playlist.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(S.of(context).commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: context.colors.error),
+            child: Text(S.of(context).commonDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final client = ref.read(subsonicClientProvider);
+      await client.deletePlaylist(playlist.id);
+      ref.invalidate(playlistsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(S.of(context).playlistDeleted(playlist.name))),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(S.of(context).playlistDeleteFailed)),
+        );
+      }
+    }
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -232,7 +224,11 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
     );
   }
 
-  Widget _buildPlaylistGrid() {
+  Widget _buildPlaylistGrid(
+    BuildContext context,
+    WidgetRef ref,
+    List<Playlist> playlists,
+  ) {
     final client = ref.read(subsonicClientProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -245,15 +241,15 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
           ),
-          itemCount: _playlists.length,
+          itemCount: playlists.length,
           itemBuilder: (context, index) {
-            final pl = _playlists[index];
+            final pl = playlists[index];
             return _PlaylistCard(
               playlist: pl,
               coverUrl: client.coverArtUrl(pl.coverArt, size: 300),
-              onTap: () => _openPlaylist(pl),
-              onDelete: () => _deletePlaylist(pl),
-              onRename: () => _renamePlaylist(pl),
+              onTap: () => _openPlaylist(context, ref, pl),
+              onDelete: () => _deletePlaylist(context, ref, pl),
+              onRename: () => _renamePlaylist(context, ref, pl),
             );
           },
         );
@@ -261,11 +257,11 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
     );
   }
 
-  void _openPlaylist(Playlist playlist) async {
+  void _openPlaylist(BuildContext context, WidgetRef ref, Playlist playlist) async {
     try {
       final client = ref.read(subsonicClientProvider);
       final detail = await client.getPlaylist(playlist.id);
-      if (!mounted) return;
+      if (!context.mounted) return;
       final playerService = ref.read(audioPlayerServiceProvider);
       final songs = List<Song>.from(detail.songs);
       var playlistName = detail.name;
@@ -310,18 +306,20 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                                   InkWell(
                                     onTap: () => _renamePlaylistInDialog(
                                       ctx,
+                                      context,
+                                      ref,
                                       playlist.id,
                                       playlistName,
                                       (newName) {
                                         setDialogState(
                                           () => playlistName = newName,
                                         );
-                                        _loadPlaylists();
+                                        ref.invalidate(playlistsProvider);
                                       },
                                     ),
                                     borderRadius: BorderRadius.circular(12),
                                     child: Padding(
-                                      padding: EdgeInsets.all(4),
+                                      padding: const EdgeInsets.all(4),
                                       child: Icon(
                                         Icons.edit,
                                         size: 16,
@@ -362,7 +360,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                       ],
                     ),
                   ),
-                  const Divider(height: 1),
+                  const SizedBox(height: 8),
                   Flexible(
                     child: songs.isEmpty
                         ? Center(
@@ -386,15 +384,15 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                               final song = songs.removeAt(oldIndex);
                               songs.insert(newIndex, song);
                               setDialogState(() {});
-                              // \u91cd\u6392\u5e8f\uff1a\u79fb\u9664\u65e7\u4f4d\u7f6e\uff0c\u63d2\u5165\u65b0\u4f4d\u7f6e
+                              // 重排序：移除旧位置，插入新位置
                               try {
                                 await client.updatePlaylist(
                                   playlist.id,
                                   songIndexesToRemove: [oldIndex],
                                 );
-                                // \u91cd\u65b0\u6dfb\u52a0\u5230\u65b0\u4f4d\u7f6e\u524d\u7684\u6b4c\u66f2\u540e\u9762
-                                // Subsonic API \u7684 updatePlaylist \u4f1a\u628a\u6b4c\u66f2\u52a0\u5230\u672b\u5c3e
-                                // \u56e0\u6b64\u6211\u4eec\u9700\u8981\u91cd\u5efa\u6574\u4e2a\u5217\u8868
+                                // 重新添加到新位置前的歌曲后面
+                                // Subsonic API 的 updatePlaylist 会把歌曲加到末尾
+                                // 因此我们需要重建整个列表
                                 final songIds = songs.map((s) => s.id).toList();
                                 // 简化：删除并重建
                                 await client.updatePlaylist(
@@ -408,7 +406,9 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                                   playlist.id,
                                   songIdsToAdd: songIds,
                                 );
-                              } catch (_) {}
+                              } catch (e) {
+                                debugPrint('Failed to add songs to playlist: $e');
+                              }
                             },
                             itemBuilder: (ctx, i) {
                               final song = songs[i];
@@ -464,12 +464,14 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                                           setDialogState(
                                             () => songs.removeAt(i),
                                           );
-                                          _loadPlaylists();
-                                        } catch (_) {}
+                                          ref.invalidate(playlistsProvider);
+                                        } catch (e) {
+                                          debugPrint('Failed to remove song from playlist: $e');
+                                        }
                                       },
                                       borderRadius: BorderRadius.circular(12),
                                       child: Padding(
-                                        padding: EdgeInsets.all(4),
+                                        padding: const EdgeInsets.all(4),
                                         child: Icon(
                                           Icons.remove_circle_outline,
                                           size: 16,
@@ -495,11 +497,15 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
           ),
         ),
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Failed to open playlist: $e');
+    }
   }
 
   void _renamePlaylistInDialog(
     BuildContext ctx,
+    BuildContext screenContext,
+    WidgetRef ref,
     String playlistId,
     String currentName,
     void Function(String) onRenamed,
@@ -508,13 +514,13 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
     showDialog(
       context: ctx,
       builder: (innerCtx) => AlertDialog(
-        title: Text(S.of(context).playlistRenameTitle),
+        title: Text(S.of(screenContext).playlistRenameTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
           decoration: InputDecoration(
-            labelText: S.of(context).playlistNewName,
-            border: OutlineInputBorder(),
+            labelText: S.of(screenContext).playlistNewName,
+            border: const OutlineInputBorder(),
           ),
           onSubmitted: (_) async {
             final newName = controller.text.trim();
@@ -525,13 +531,15 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                   .read(subsonicClientProvider)
                   .updatePlaylist(playlistId, name: newName);
               onRenamed(newName);
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('Failed to rename playlist: $e');
+            }
           },
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(innerCtx),
-            child: Text(S.of(context).commonCancel),
+            child: Text(S.of(screenContext).commonCancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -543,21 +551,25 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                     .read(subsonicClientProvider)
                     .updatePlaylist(playlistId, name: newName);
                 onRenamed(newName);
-              } catch (_) {}
+              } catch (e) {
+                debugPrint('Failed to rename playlist: $e');
+              }
             },
-            child: Text(S.of(context).commonConfirm),
+            child: Text(S.of(screenContext).commonConfirm),
           ),
         ],
       ),
     );
   }
 
-  void _renamePlaylist(Playlist playlist) {
+  void _renamePlaylist(BuildContext context, WidgetRef ref, Playlist playlist) {
     _renamePlaylistInDialog(
       context,
+      context,
+      ref,
       playlist.id,
       playlist.name,
-      (_) => _loadPlaylists(),
+      (_) => ref.invalidate(playlistsProvider),
     );
   }
 }
@@ -670,11 +682,11 @@ class _FilterChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: selected ? AppColors.primarySoft : AppColors.transparent,
+        color: selected ? context.colors.primarySoft : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: selected
-              ? AppColors.primary
+              ? context.colors.primary
               : Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
@@ -684,7 +696,7 @@ class _FilterChip extends StatelessWidget {
           fontSize: 12,
           fontWeight: FontWeight.w500,
           color: selected
-              ? AppColors.primary
+              ? context.colors.primary
               : Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),

@@ -31,7 +31,7 @@ class AudioQualityScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -80,7 +80,7 @@ class AudioQualityScreen extends ConsumerWidget {
                     Icon(
                       Icons.high_quality,
                       size: 18,
-                      color: AppColors.primary,
+                      color: context.colors.primary,
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -109,7 +109,7 @@ class AudioQualityScreen extends ConsumerWidget {
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: selected
-                                ? AppColors.primary
+                                ? context.colors.primary
                                 : Theme.of(
                                     context,
                                   ).colorScheme.surfaceContainerHigh,
@@ -131,7 +131,7 @@ class AudioQualityScreen extends ConsumerWidget {
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: selected
-                                      ? AppColors.onEmphasis
+                                      ? context.colors.onEmphasis
                                       : Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
@@ -141,7 +141,7 @@ class AudioQualityScreen extends ConsumerWidget {
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: selected
-                                      ? AppColors.onEmphasisMuted
+                                      ? context.colors.onEmphasisMuted
                                       : Theme.of(
                                           context,
                                         ).colorScheme.onSurfaceVariant,

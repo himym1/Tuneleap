@@ -22,7 +22,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -33,6 +33,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
                 if (_selectedGenre != null) ...[
                   IconButton(
                     icon: const Icon(Icons.arrow_back, size: 20),
+                    tooltip: S.of(context).tooltipBack,
                     onPressed: () => setState(() => _selectedGenre = null),
                   ),
                   const SizedBox(width: 8),
@@ -76,7 +77,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
 
     return genresAsync.when(
       loading: () =>
-          Center(child: CircularProgressIndicator()),
+          Center(child: const CircularProgressIndicator()),
       error: (_, _) => Center(
         child: Text(
           S.of(context).libraryNoGenres,
@@ -119,10 +120,10 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
+                  color: context.colors.primarySoft,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.music_note, color: AppColors.primary),
+                child: Icon(Icons.music_note, color: context.colors.primary),
               ),
               title: Text(
                 genre.name,
@@ -158,7 +159,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
 
     return songsAsync.when(
       loading: () =>
-          Center(child: CircularProgressIndicator()),
+          Center(child: const CircularProgressIndicator()),
       error: (_, _) => Center(
         child: Text(
           S.of(context).libraryNoSongs,

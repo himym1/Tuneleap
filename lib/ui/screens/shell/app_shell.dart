@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/song.dart';
@@ -19,12 +21,14 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
+  StreamSubscription<Song?>? _songSub;
+
   @override
   void initState() {
     super.initState();
     // 监听当前歌曲变化，更新全局主题色
     final playerService = ref.read(audioPlayerServiceProvider);
-    playerService.currentSongStream.listen((song) {
+    _songSub = playerService.currentSongStream.listen((song) {
       if (song != null && mounted) {
         final resolver = ref.read(songMediaResolverProvider);
         resolver
@@ -40,6 +44,12 @@ class _AppShellState extends ConsumerState<AppShell> {
             .catchError((_) {});
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _songSub?.cancel();
+    super.dispose();
   }
 
   // 移动端底部导航（3 个 Tab）
@@ -83,12 +93,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       activeIcon: Icons.search,
       labelKey: 'search',
       path: '/search',
-    ),
-    _NavItem(
-      icon: Icons.favorite_border,
-      activeIcon: Icons.favorite,
-      labelKey: 'favorites',
-      path: '/favorites',
     ),
   ];
 
@@ -152,12 +156,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       labelKey: 'scrobble',
       path: '/scrobble',
     ),
-    _NavItem(
-      icon: Icons.settings_outlined,
-      activeIcon: Icons.settings,
-      labelKey: 'settings',
-      path: '/settings',
-    ),
   ];
 
   bool _isMobile(BuildContext context) =>
@@ -198,7 +196,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             end: Alignment.bottomCenter,
             colors: [
               ref.watch(globalAccentColorProvider).withValues(alpha: 0.15),
-              AppColors.background,
+              context.colors.background,
             ],
           ),
         ),
@@ -229,19 +227,14 @@ class _AppShellState extends ConsumerState<AppShell> {
           ClipRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 800),
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.8),
-                  border: Border(
-                    top: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                      width: 1,
-                    ),
-                  ),
+                  color: Color.lerp(
+                    Theme.of(context).colorScheme.surfaceContainerHigh,
+                    ref.watch(globalAccentColorProvider),
+                    0.06,
+                  )!.withValues(alpha: 0.88),
                 ),
                 child: SafeArea(
                   top: false,
@@ -276,7 +269,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.transparent,
+          color: selected ? context.colors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(26),
         ),
         child: Column(
@@ -286,8 +279,8 @@ class _AppShellState extends ConsumerState<AppShell> {
               selected ? item.activeIcon : item.icon,
               size: 20,
               color: selected
-                  ? AppColors.onEmphasis
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ? context.colors.onEmphasis
+                  : context.colors.onSurfaceVariant,
             ),
             const SizedBox(height: 2),
             Text(
@@ -296,8 +289,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                 fontSize: 10,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                 color: selected
-                    ? AppColors.onEmphasis
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ? context.colors.onEmphasis
+                    : context.colors.onSurfaceVariant,
               ),
             ),
           ],
@@ -309,143 +302,177 @@ class _AppShellState extends ConsumerState<AppShell> {
   // ─── 桌面端布局 ───────────────────────────────────────────────
 
   Widget _buildDesktopLayout() {
-    final playerService = ref.watch(audioPlayerServiceProvider);
-    return Scaffold(
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 800),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              ref.watch(globalAccentColorProvider).withValues(alpha: 0.15),
-              AppColors.background,
-            ],
-          ),
-        ),
-        child: Row(
-          children: [
-            _buildSidebar(context),
-            const VerticalDivider(width: 1, thickness: 1),
-            Expanded(child: widget.child),
-          ],
-        ),
-      ),
-      bottomNavigationBar: StreamBuilder<Song?>(
-        stream: playerService.currentSongStream,
-        builder: (context, snapshot) {
-          final currentSong = snapshot.data ?? playerService.currentSong;
-          return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            transitionBuilder: (child, animation) => SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 1),
-                end: Offset.zero,
-              ).animate(animation),
-              child: FadeTransition(opacity: animation, child: child),
-            ),
-            child: currentSong != null
-                ? const MiniPlayer(key: ValueKey('mini'))
-                : const SizedBox.shrink(key: ValueKey('empty')),
-          );
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.space): () {
+          // 如果焦点在文本输入框中，不拦截空格键
+          final focus = FocusManager.instance.primaryFocus;
+          if (focus != null) {
+            final ctx = focus.context;
+            if (ctx != null && ctx.findAncestorWidgetOfExactType<EditableText>() != null) {
+              return;
+            }
+          }
+          final ps = ref.read(audioPlayerServiceProvider);
+          if (ps.currentSong != null) {
+            ps.player.playing ? ps.pause() : ps.play();
+          }
         },
+        const SingleActivator(LogicalKeyboardKey.arrowRight, alt: true): () {
+          ref.read(audioPlayerServiceProvider).next();
+        },
+        const SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): () {
+          ref.read(audioPlayerServiceProvider).previous();
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          body: AnimatedContainer(
+            duration: const Duration(milliseconds: 800),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  ref.watch(globalAccentColorProvider).withValues(alpha: 0.15),
+                  context.colors.background,
+                ],
+              ),
+            ),
+            child: Row(
+              children: [
+                _buildSidebar(context),
+                Expanded(child: widget.child),
+              ],
+            ),
+          ),
+          bottomNavigationBar: const MiniPlayer(
+                  key: ValueKey('desktop-mini'),
+                  alwaysVisible: true,
+                ),
+        ),
       ),
     );
   }
 
   Widget _buildSidebar(BuildContext context) {
     final location = _currentPath(context);
+    final accentColor = ref.watch(globalAccentColorProvider);
+    final baseColor = context.colors.surfaceContainer;
+    // 将 accent color 以 8% 的比例混入侧边栏背景
+    final sidebarColor = Color.lerp(baseColor, accentColor, 0.08)!.withValues(alpha: 0.92);
 
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 800),
           width: 200,
           decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.85),
+            color: sidebarColor,
             border: Border(
               right: BorderSide(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                width: 1,
+                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                width: 0.5,
               ),
             ),
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Logo
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(8),
+          child: Column(
+            children: [
+              // 可滚动的导航区域
+              Expanded(
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Logo
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: context.colors.primarySoft,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.music_note,
+                                  color: context.colors.primary,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                S.of(context).appShortName,
+                                style: Theme.of(context).textTheme.sectionTitle
+                                    .copyWith(
+                                      fontSize: 16,
+                                      color: context.colors.onSurface,
+                                      letterSpacing: -0.5,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Icon(
-                          Icons.music_note,
-                          color: AppColors.primary,
-                          size: 18,
+
+                        // ── NAV section ──
+                        _buildSectionHeader(S.of(context).sidebarNav),
+                        ..._navItems.map(
+                          (item) => _buildDesktopNavItem(
+                            item,
+                            _isPathSelected(item.path, location),
+                            () => context.go(item.path),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        S.of(context).appShortName,
-                        style: Theme.of(context).textTheme.sectionTitle.copyWith(
-                          fontSize: 16,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          letterSpacing: -0.5,
+
+                        const SizedBox(height: 12),
+
+                        // ── LIBRARY section ──
+                        _buildSectionHeader(S.of(context).sidebarLibrary),
+                        ..._libraryItems.map(
+                          (item) => _buildDesktopNavItem(
+                            item,
+                            _isPathSelected(item.path, location),
+                            () => context.go(item.path),
+                          ),
                         ),
-                      ),
-                    ],
+
+                        const SizedBox(height: 12),
+
+                        // ── MORE section ──
+                        _buildSectionHeader(S.of(context).sidebarMore),
+                        ..._moreNavItems.map(
+                          (item) => _buildDesktopNavItem(
+                            item,
+                            _isPathSelected(item.path, location),
+                            () => context.go(item.path),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
-
-                // ── NAV section ──
-                _buildSectionHeader(S.of(context).sidebarNav),
-                ..._navItems.map(
-                  (item) => _buildDesktopNavItem(
-                    item,
-                    _isPathSelected(item.path, location),
-                    () => context.go(item.path),
-                  ),
+              ),
+              // 底部固定的设置按钮
+              _buildDesktopNavItem(
+                const _NavItem(
+                  icon: Icons.settings_outlined,
+                  activeIcon: Icons.settings,
+                  labelKey: 'settings',
+                  path: '/settings',
                 ),
-
-                const SizedBox(height: 12),
-
-                // ── LIBRARY section ──
-                _buildSectionHeader(S.of(context).sidebarLibrary),
-                ..._libraryItems.map(
-                  (item) => _buildDesktopNavItem(
-                    item,
-                    _isPathSelected(item.path, location),
-                    () => context.go(item.path),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // ── MORE section ──
-                _buildSectionHeader(S.of(context).sidebarMore),
-                ..._moreNavItems.map(
-                  (item) => _buildDesktopNavItem(
-                    item,
-                    _isPathSelected(item.path, location),
-                    () => context.go(item.path),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-              ],
-            ),
+                _isPathSelected('/settings', location),
+                () => context.go('/settings'),
+              ),
+              const SizedBox(height: 12),
+            ],
           ),
         ),
       ),
@@ -456,11 +483,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Padding(
       padding: const EdgeInsets.only(left: 24, bottom: 6, top: 4),
       child: Text(
-        label,
+        label.toUpperCase(),
         style: Theme.of(context).textTheme.sectionSubheader.copyWith(
-          fontSize: 10,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          letterSpacing: 1,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: context.colors.onSurfaceVariant,
+          letterSpacing: 0.8,
         ),
       ),
     );
@@ -473,34 +501,38 @@ class _AppShellState extends ConsumerState<AppShell> {
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
-      child: Material(
-        color: selected ? AppColors.primarySoftAlt : AppColors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: onTap,
+      child: Tooltip(
+        message: item.labelOf(context),
+        waitDuration: const Duration(milliseconds: 500),
+        child: Material(
+          color: selected ? context.colors.primarySoftAlt : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              children: [
-                Icon(
-                  selected ? item.activeIcon : item.icon,
-                  size: 18,
-                  color: selected
-                      ? AppColors.primary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  item.labelOf(context),
-                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    selected ? item.activeIcon : item.icon,
+                    size: 18,
                     color: selected
-                        ? AppColors.primary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ? context.colors.primary
+                        : context.colors.onSurfaceVariant,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Text(
+                    item.labelOf(context),
+                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      color: selected
+                          ? context.colors.primary
+                          : context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -25,7 +25,7 @@ class SettingsScreen extends ConsumerWidget {
     };
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isDesktop = constraints.maxWidth > 600;
@@ -75,21 +75,21 @@ class SettingsScreen extends ConsumerWidget {
                                   value: 'system',
                                   label: Text(
                                     S.of(context).settingsThemeSystem,
-                                    style: const TextStyle(fontSize: 12),
+                                    style: Theme.of(context).textTheme.segmentLabel,
                                   ),
                                 ),
                                 ButtonSegment(
                                   value: 'light',
                                   label: Text(
                                     S.of(context).settingsThemeLight,
-                                    style: const TextStyle(fontSize: 12),
+                                    style: Theme.of(context).textTheme.segmentLabel,
                                   ),
                                 ),
                                 ButtonSegment(
                                   value: 'dark',
                                   label: Text(
                                     S.of(context).settingsThemeDark,
-                                    style: const TextStyle(fontSize: 12),
+                                    style: Theme.of(context).textTheme.segmentLabel,
                                   ),
                                 ),
                               ],
@@ -104,12 +104,6 @@ class SettingsScreen extends ConsumerWidget {
                                     .read(themeModeProvider.notifier)
                                     .setMode(mode);
                               },
-                              style: const ButtonStyle(
-                                visualDensity: VisualDensity.compact,
-                                textStyle: WidgetStatePropertyAll(
-                                  TextStyle(fontSize: 12),
-                                ),
-                              ),
                             ),
                           ),
                         ],
@@ -152,21 +146,21 @@ class SettingsScreen extends ConsumerWidget {
                         value: 'system',
                         label: Text(
                           S.of(context).settingsThemeSystem,
-                          style: const TextStyle(fontSize: 12),
+                          style: Theme.of(context).textTheme.segmentLabel,
                         ),
                       ),
                       ButtonSegment(
                         value: 'light',
                         label: Text(
                           S.of(context).settingsThemeLight,
-                          style: const TextStyle(fontSize: 12),
+                          style: Theme.of(context).textTheme.segmentLabel,
                         ),
                       ),
                       ButtonSegment(
                         value: 'dark',
                         label: Text(
                           S.of(context).settingsThemeDark,
-                          style: const TextStyle(fontSize: 12),
+                          style: Theme.of(context).textTheme.segmentLabel,
                         ),
                       ),
                     ],
@@ -179,12 +173,6 @@ class SettingsScreen extends ConsumerWidget {
                       };
                       ref.read(themeModeProvider.notifier).setMode(mode);
                     },
-                    style: const ButtonStyle(
-                      visualDensity: VisualDensity.compact,
-                      textStyle: WidgetStatePropertyAll(
-                        TextStyle(fontSize: 12),
-                      ),
-                    ),
                   ),
                 ),
                 SizedBox(height: spacing),
@@ -230,14 +218,14 @@ class SettingsScreen extends ConsumerWidget {
                         onLogout();
                       }
                     },
-                    icon: Icon(Icons.logout, size: 18, color: AppColors.error),
+                    icon: Icon(Icons.logout, size: 18, color: context.colors.error),
                     label: Text(
                       S.of(context).settingsLogout,
-                      style: TextStyle(color: AppColors.error),
+                      style: TextStyle(color: context.colors.error),
                     ),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 48),
-                      side: BorderSide(color: AppColors.error),
+                      side: BorderSide(color: context.colors.error),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -311,7 +299,9 @@ class _CacheSectionState extends State<_CacheSection> {
           total += await entity.length();
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Failed to calculate cache size: $e');
+    }
     return total;
   }
 
@@ -327,7 +317,9 @@ class _CacheSectionState extends State<_CacheSection> {
             } else if (entity is Directory) {
               await entity.delete(recursive: true);
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('Failed to delete cache entry: $e');
+          }
         }
       }
       await _calculateCacheSize();
@@ -335,7 +327,7 @@ class _CacheSectionState extends State<_CacheSection> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(S.of(context).settingsCacheCleared),
-            duration: Duration(seconds: 1),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -344,7 +336,7 @@ class _CacheSectionState extends State<_CacheSection> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(S.of(context).settingsCacheClearFailed),
-            duration: Duration(seconds: 1),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -387,7 +379,7 @@ class _CacheSectionState extends State<_CacheSection> {
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.primary,
+                    color: context.colors.primary,
                   ),
                 )
               : Tooltip(

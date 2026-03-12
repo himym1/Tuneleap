@@ -23,7 +23,7 @@ class _LibraryAlbumArtistsScreenState
     final artistsAsync = ref.watch(artistsProvider);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -54,7 +54,7 @@ class _LibraryAlbumArtistsScreenState
           Expanded(
             child: artistsAsync.when(
               loading: () => Center(
-                child: CircularProgressIndicator(),
+                child: const CircularProgressIndicator(),
               ),
               error: (_, _) => Center(
                 child: Text(

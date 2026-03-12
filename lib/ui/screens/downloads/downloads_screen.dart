@@ -16,9 +16,9 @@ class DownloadsScreen extends ConsumerWidget {
     final totalMb = manager.totalSizeMb;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
         children: [
           Text(
             S.of(context).navDownloads,
@@ -184,7 +184,7 @@ class _DownloadTaskTile extends StatelessWidget {
                       context,
                     ).colorScheme.outlineVariant,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
+                      context.colors.primary,
                     ),
                     borderRadius: BorderRadius.circular(4),
                   ),
@@ -195,7 +195,7 @@ class _DownloadTaskTile extends StatelessWidget {
                     task.errorMessage!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: AppColors.error),
+                    style: TextStyle(fontSize: 11, color: context.colors.error),
                   ),
                 ],
               ],
@@ -208,6 +208,7 @@ class _DownloadTaskTile extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.close, size: 16),
               color: Theme.of(context).colorScheme.onSurfaceVariant,
+              tooltip: S.of(context).tooltipRemove,
               onPressed: onRemove,
             ),
           ],
@@ -225,9 +226,9 @@ class _DownloadTaskTile extends StatelessWidget {
 
   Color _statusColor(BuildContext context) => switch (task.status) {
     DownloadStatus.pending => Theme.of(context).colorScheme.onSurfaceVariant,
-    DownloadStatus.downloading => AppColors.primary,
-    DownloadStatus.completed => AppColors.success,
-    DownloadStatus.failed => AppColors.error,
+    DownloadStatus.downloading => context.colors.primary,
+    DownloadStatus.completed => context.colors.success,
+    DownloadStatus.failed => context.colors.error,
   };
 }
 
@@ -246,13 +247,13 @@ class _StatusChip extends StatelessWidget {
       ),
       DownloadStatus.downloading => (
         S.of(context).commonPercent((progress * 100).toInt()),
-        AppColors.primary,
+        context.colors.primary,
       ),
       DownloadStatus.completed => (
         S.of(context).downloadsCompleted,
-        AppColors.success,
+        context.colors.success,
       ),
-      DownloadStatus.failed => (S.of(context).downloadsFailed, AppColors.error),
+      DownloadStatus.failed => (S.of(context).downloadsFailed, context.colors.error),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -302,10 +303,10 @@ class _StatCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.primarySoftAlt,
+                color: context.colors.primarySoftAlt,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 20),
+              child: Icon(icon, color: context.colors.primary, size: 20),
             ),
             const SizedBox(width: 14),
             Column(

@@ -19,7 +19,7 @@ class ScrobbleScreen extends ConsumerWidget {
     final client = ref.read(subsonicClientProvider);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -88,10 +88,10 @@ class ScrobbleScreen extends ConsumerWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppColors.primarySoft,
+                    color: context.colors.primarySoft,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.radar, size: 18, color: AppColors.primary),
+                  child: Icon(Icons.radar, size: 18, color: context.colors.primary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -121,7 +121,7 @@ class ScrobbleScreen extends ConsumerWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primarySoft,
+                    color: context.colors.primarySoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -129,7 +129,7 @@ class ScrobbleScreen extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.primary,
+                      color: context.colors.primary,
                     ),
                   ),
                 ),
@@ -282,10 +282,10 @@ class _StatCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.primarySoftAlt,
+                color: context.colors.primarySoftAlt,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 20),
+              child: Icon(icon, color: context.colors.primary, size: 20),
             ),
             const SizedBox(width: 14),
             Column(

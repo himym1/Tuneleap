@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -57,7 +58,9 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       _playHistory.addAll(
         list.map((e) => Song.fromJson(e as Map<String, dynamic>)),
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Failed to load play history: $e');
+    }
   }
 
   /// 持久化播放历史到 SharedPreferences

@@ -2,21 +2,27 @@
   "project_name": "navidrome_player",
   "initialized_at": "2026-02-27T08:07:56.000Z",
   "overview": {
-    "description": "跨平台音乐播放器，对接 Navidrome 服务端（Subsonic API），支持 Android + macOS",
+    "description": "Cross-platform music player client for Navidrome server via Subsonic API, built with Flutter targeting Android and macOS",
     "technology_stack": {
       "languages": [
-        {"name": "Dart", "file_count": 19, "primary": true}
+        {"name": "Dart", "file_count": 58, "primary": true},
+        {"name": "Kotlin", "file_count": 1, "primary": false},
+        {"name": "Swift", "file_count": 4, "primary": false},
+        {"name": "Java", "file_count": 1, "primary": false}
       ],
       "frameworks": [
         "Flutter 3.38",
-        "Riverpod 3.x",
-        "just_audio",
-        "audio_service",
-        "dio",
-        "go_router",
-        "window_manager"
+        "flutter_riverpod 3.2.1",
+        "just_audio 0.10.5",
+        "audio_service 0.18.18",
+        "dio 5.9.1",
+        "go_router 17.1.0",
+        "cached_network_image 3.4.1",
+        "window_manager 0.5.1",
+        "palette_generator 0.3.3",
+        "shimmer 3.0.0"
       ],
-      "build_tools": ["flutter", "gradle"],
+      "build_tools": ["flutter", "gradle", "cocoapods"],
       "test_frameworks": ["flutter_test"]
     },
     "architecture": {
@@ -27,69 +33,72 @@
         "Service (audio player, API client)",
         "Data (models, local storage)"
       ],
-      "patterns": ["provider", "repository", "service-layer"]
+      "patterns": ["provider", "repository", "service-layer", "notifier"]
     },
     "key_components": [
       {
         "name": "SubsonicClient",
         "path": "lib/api/subsonic_client.dart",
-        "description": "Subsonic API HTTP 客户端，处理认证、浏览、搜索、流媒体、收藏等接口",
-        "importance": "critical"
+        "description": "HTTP client for Subsonic API handling auth, browsing, search, streaming, and starring endpoints",
+        "importance": "high"
       },
       {
         "name": "AudioPlayerService",
         "path": "lib/player/audio_player_service.dart",
-        "description": "音频播放引擎，封装 just_audio，管理播放队列、随机/循环模式",
-        "importance": "critical"
+        "description": "Audio playback engine wrapping just_audio with queue management, shuffle/repeat modes, and play history",
+        "importance": "high"
+      },
+      {
+        "name": "NavidromeAudioHandler",
+        "path": "lib/player/audio_handler.dart",
+        "description": "audio_service handler integrating system media controls with the audio player",
+        "importance": "high"
       },
       {
         "name": "Providers",
-        "path": "lib/providers/providers.dart",
-        "description": "Riverpod 状态管理层，服务器配置、客户端实例、播放服务的全局 Provider",
-        "importance": "critical"
+        "path": "lib/providers/",
+        "description": "Riverpod state management layer with 9 provider modules for server config, audio, downloads, theme, library cache, and starred songs",
+        "importance": "high"
       },
       {
         "name": "Data Models",
         "path": "lib/api/models/",
-        "description": "Song, Album, Artist, Playlist 数据模型，对应 Subsonic API 响应",
+        "description": "Song, Album, Artist, Playlist, Genre, RadioStation domain models mapping Subsonic API responses",
         "importance": "high"
       },
       {
-        "name": "HomeScreen",
-        "path": "lib/ui/screens/home/home_screen.dart",
-        "description": "首页界面，展示最近添加专辑网格，支持专辑详情弹窗播放",
+        "name": "AppShell",
+        "path": "lib/ui/screens/shell/app_shell.dart",
+        "description": "Root layout with NavigationRail sidebar and MiniPlayer bottom bar, managing screen routing",
         "importance": "high"
       },
       {
-        "name": "LoginScreen",
-        "path": "lib/ui/screens/login/login_screen.dart",
-        "description": "登录页面，配置 Navidrome 服务器地址和凭据",
-        "importance": "high"
+        "name": "PlayerScreen",
+        "path": "lib/ui/screens/player/player_screen.dart",
+        "description": "Full-screen player with animated cover art, playback controls, and dynamic gradient background",
+        "importance": "medium"
+      },
+      {
+        "name": "Library Screens",
+        "path": "lib/ui/screens/library/",
+        "description": "7 screens for browsing albums, artists, album-artists, songs, genres, and radio stations",
+        "importance": "medium"
       },
       {
         "name": "MiniPlayer",
         "path": "lib/ui/widgets/mini_player.dart",
-        "description": "底部迷你播放条，显示当前歌曲信息和播放控制",
+        "description": "Bottom mini playback bar with animated play/pause, cover art hero transitions, and song info",
         "importance": "medium"
       },
       {
         "name": "AppTheme",
         "path": "lib/ui/theme/app_theme.dart",
-        "description": "Material 3 主题配置，支持深色/浅色模式",
-        "importance": "medium"
+        "description": "Material 3 theme configuration supporting dark/light modes with external color JSON asset",
+        "importance": "low"
       }
     ]
   },
-  "features": [
-    "Subsonic API 认证与连接",
-    "专辑浏览（最近添加）",
-    "音频流播放（just_audio）",
-    "播放队列管理（随机/循环/单曲）",
-    "迷你播放条",
-    "服务器配置持久化",
-    "macOS 窗口管理",
-    "Material 3 深色/浅色主题"
-  ],
+  "features": [],
   "development_index": {
     "feature": [],
     "enhancement": [],
@@ -100,11 +109,11 @@
   "statistics": {
     "total_features": 0,
     "total_sessions": 0,
-    "last_updated": "2026-02-27T08:07:56.000Z"
+    "last_updated": "2026-03-11T00:00:00.000Z"
   },
   "_metadata": {
-    "initialized_by": "workflow-init",
-    "analysis_timestamp": "2026-02-27T08:07:56.000Z",
+    "initialized_by": "cli-explore-agent",
+    "analysis_timestamp": "2026-03-11T00:00:00.000Z",
     "analysis_mode": "deep-scan"
   }
 }

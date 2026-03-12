@@ -22,7 +22,7 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
     final albumsAsync = ref.watch(newestAlbumsProvider);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -53,7 +53,7 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
           Expanded(
             child: albumsAsync.when(
               loading: () => Center(
-                child: CircularProgressIndicator(),
+                child: const CircularProgressIndicator(),
               ),
               error: (_, _) => Center(
                 child: Text(

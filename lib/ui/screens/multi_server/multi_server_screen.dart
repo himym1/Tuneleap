@@ -13,7 +13,7 @@ class MultiServerScreen extends ConsumerWidget {
     final servers = ref.watch(serversListProvider);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -22,16 +22,13 @@ class MultiServerScreen extends ConsumerWidget {
             children: [
               Text(
                 S.of(context).multiServerManage,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
+                style: Theme.of(context).textTheme.pageTitle.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               Text(
                 S.of(context).multiServerCount(servers.length),
-                style: TextStyle(
-                  fontSize: 13,
+                style: Theme.of(context).textTheme.chipLabel.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -138,7 +135,7 @@ class MultiServerScreen extends ConsumerWidget {
               Navigator.pop(ctx);
               ref.read(serversListProvider.notifier).removeServer(server.id);
             },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: context.colors.error),
             child: Text(S.of(context).commonDelete),
           ),
         ],
@@ -250,7 +247,7 @@ class _ServerDialogState extends State<_ServerDialog> {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.onEmphasis,
+                    color: context.colors.onEmphasis,
                   ),
                 )
               : Text(S.of(context).commonSave),
@@ -299,7 +296,7 @@ class _ServerCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: server.isActive
-              ? AppColors.primary
+              ? context.colors.primary
               : Theme.of(context).colorScheme.outlineVariant,
           width: server.isActive ? 1.5 : 1,
         ),
@@ -312,7 +309,7 @@ class _ServerCard extends StatelessWidget {
             decoration: BoxDecoration(
               color:
                   (server.isActive
-                          ? AppColors.primary
+                          ? context.colors.primary
                           : Theme.of(context).colorScheme.onSurfaceVariant)
                       .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
@@ -320,7 +317,7 @@ class _ServerCard extends StatelessWidget {
             child: Icon(
               Icons.dns_outlined,
               color: server.isActive
-                  ? AppColors.primary
+                  ? context.colors.primary
                   : Theme.of(context).colorScheme.onSurfaceVariant,
               size: 20,
             ),
@@ -342,8 +339,7 @@ class _ServerCard extends StatelessWidget {
                   '${server.url} · ${server.username}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -354,7 +350,7 @@ class _ServerCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: context.colors.primary,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -362,7 +358,7 @@ class _ServerCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.onEmphasis,
+                  color: context.colors.onEmphasis,
                 ),
               ),
             )
@@ -371,18 +367,20 @@ class _ServerCard extends StatelessWidget {
               onPressed: onSwitch,
               child: Text(
                 S.of(context).multiServerSwitch,
-                style: const TextStyle(fontSize: 12),
+                style: Theme.of(context).textTheme.segmentLabel,
               ),
             ),
           const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 18),
             color: Theme.of(context).colorScheme.onSurfaceVariant,
+            tooltip: S.of(context).tooltipEdit,
             onPressed: onEdit,
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline, size: 18),
             color: Theme.of(context).colorScheme.onSurfaceVariant,
+            tooltip: S.of(context).tooltipDelete,
             onPressed: onDelete,
           ),
         ],

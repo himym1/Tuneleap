@@ -152,6 +152,22 @@ class SEn extends S {
   String get playerQueue => 'Queue';
 
   @override
+  String get playerNext => 'Next';
+
+  @override
+  String get playerPrevious => 'Previous';
+
+  @override
+  String get playerPlayPause => 'Play / Pause';
+
+  @override
+  String get playerIdleTitle => 'Nothing playing';
+
+  @override
+  String get playerIdleSubtitle =>
+      'Start playback from Home, Library, or Playlists';
+
+  @override
   String get albumPlayAll => 'Play All';
 
   @override
@@ -806,4 +822,49 @@ class SEn extends S {
 
   @override
   String get settingsCacheClear => 'Clear';
+
+  @override
+  String get searchBackendNavidrome => 'Navidrome';
+
+  @override
+  String get searchBackendNetease => 'Netease';
+
+  @override
+  String get searchBackendKuwo => 'Kuwo';
+
+  @override
+  String get searchBackendJoox => 'JOOX';
+
+  @override
+  String get playerShuffle => 'Shuffle';
+
+  @override
+  String get playerRepeat => 'Repeat';
+
+  @override
+  String get tooltipUnfavorite => 'Remove from favorites';
+
+  @override
+  String get tooltipPlay => 'Play';
+
+  @override
+  String get tooltipFavorite => 'Favorite';
+
+  @override
+  String get tooltipRemove => 'Remove';
+
+  @override
+  String get tooltipEdit => 'Edit';
+
+  @override
+  String get tooltipDelete => 'Delete';
+
+  @override
+  String get tooltipClear => 'Clear';
+
+  @override
+  String get tooltipBack => 'Back';
+
+  @override
+  String get tooltipMore => 'More';
 }
