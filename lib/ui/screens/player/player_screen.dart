@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
@@ -27,9 +28,34 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   // PC 端页面切换
   final _desktopPageController = PageController();
   int _desktopCurrentPage = 0;
+  StreamSubscription<Song?>? _songChangeSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // 监听歌曲变化，在生命周期方法中触发歌词加载，避免在 build 中调用 setState
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final playerService = ref.read(audioPlayerServiceProvider);
+      _songChangeSub = playerService.currentSongStream.listen((song) {
+        if (song != null) {
+          // 移动端：歌词面板可见时才加载
+          // 桌面端：停留在歌词页（page 1）时才加载
+          final shouldLoad = _showLyrics || _desktopCurrentPage == 1;
+          if (shouldLoad) _loadLyrics(song);
+        }
+      });
+      // 初始歌曲：若已有当前歌曲且相应面板可见则立即加载
+      final currentSong = playerService.currentSong;
+      if (currentSong != null) {
+        final shouldLoad = _showLyrics || _desktopCurrentPage == 1;
+        if (shouldLoad) _loadLyrics(currentSong);
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _songChangeSub?.cancel();
     _lyricsScrollController.dispose();
     _desktopPageController.dispose();
     super.dispose();
@@ -63,7 +89,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.transparent,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
@@ -77,7 +103,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadowStrong,
+                  color: context.colors.shadowStrong,
                   blurRadius: 20,
                   offset: const Offset(0, -5),
                 ),
@@ -110,16 +136,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         children: [
                           Text(
                             S.of(context).playerQueueTitle,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                            style: Theme.of(context).textTheme.playerSongName.copyWith(
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           Text(
                             S.of(context).commonSongs(queue.length),
-                            style: TextStyle(
-                              fontSize: 13,
+                            style: Theme.of(context).textTheme.chipLabel.copyWith(
                               color: Theme.of(
                                 context,
                               ).colorScheme.onSurfaceVariant,
@@ -128,7 +151,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         ],
                       ),
                     ),
-                    const Divider(height: 1),
+                    const SizedBox(height: 8),
                     Expanded(
                       child: queue.isEmpty
                           ? Center(
@@ -153,13 +176,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                   leading: isCurrent
                                       ? Icon(
                                           Icons.equalizer,
-                                          color: AppColors.primary,
+                                          color: context.colors.primary,
                                           size: 18,
                                         )
                                       : Text(
                                           '${index + 1}',
-                                          style: TextStyle(
-                                            fontSize: 12,
+                                          style: Theme.of(context).textTheme.playerTimestamp.copyWith(
                                             color: Theme.of(
                                               context,
                                             ).colorScheme.onSurfaceVariant,
@@ -169,13 +191,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                     song.title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 14,
+                                    style: Theme.of(context).textTheme.songTitle.copyWith(
                                       fontWeight: isCurrent
                                           ? FontWeight.w600
                                           : FontWeight.w400,
                                       color: isCurrent
-                                          ? AppColors.primary
+                                          ? context.colors.primary
                                           : Theme.of(
                                               context,
                                             ).colorScheme.onSurface,
@@ -185,8 +206,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                     song.artist,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12,
+                                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.onSurfaceVariant,
@@ -213,7 +233,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Widget _buildLyricsPanel(Song currentSong, AudioPlayerService playerService) {
     final lyrics = _lyrics;
     if (lyrics == null || _lyricsForSongId != currentSong.storageKey) {
-      _loadLyrics(currentSong);
+      // 歌词尚未加载：不在 build 中直接调用 _loadLyrics（会触发 setState during build）。
+      // 加载由 initState 中的 stream 监听 / onPageChanged / lyrics 按钮回调统一触发。
       return Center(child: CircularProgressIndicator());
     }
     if (lyrics.isEmpty) {
@@ -269,13 +290,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               );
             }
           });
-          return Container(
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(16),
-            ),
+          return ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
             child: ListView.builder(
               controller: _lyricsScrollController,
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -290,7 +306,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       fontSize: isActive ? 18 : 14,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                       color: isActive
-                          ? AppColors.primary
+                          ? context.colors.primary
                           : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     child: Text(
@@ -307,13 +323,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }
 
     // Unsynced lyrics — simple scrollable list
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         itemCount: lyrics.length,
@@ -346,7 +357,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
         if (currentSong == null) {
           return Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.surface,
+            backgroundColor: Colors.transparent,
             body: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -361,16 +372,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   const SizedBox(height: 20),
                   Text(
                     S.of(context).playerNoContent,
-                    style: TextStyle(
-                      fontSize: 18,
+                    style: Theme.of(context).textTheme.playerSongName.copyWith(
+                      fontWeight: FontWeight.normal,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     S.of(context).playerNoContentHint,
-                    style: TextStyle(
-                      fontSize: 14,
+                    style: Theme.of(context).textTheme.playerSubtitle.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -385,13 +395,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           builder: (context, coverSnapshot) {
             final coverUrl = coverSnapshot.data ?? '';
             final accentColor = coverUrl.isEmpty
-                ? AppColors.primary
+                ? context.colors.primary
                 : (ref.watch(coverColorProvider(coverUrl)).value ??
-                      AppColors.primary);
+                      context.colors.primary);
             final isMobile = MediaQuery.of(context).size.width < 600;
 
             return Scaffold(
-              backgroundColor: AppColors.transparent,
+              backgroundColor: Colors.transparent,
               body: AnimatedContainer(
                 duration: const Duration(milliseconds: 800),
                 curve: Curves.easeInOut,
@@ -439,9 +449,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.of(context).maybePop(),
-                  child: Icon(
+                IconButton(
+                  onPressed: () => GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
+                  tooltip: S.of(context).commonBack,
+                  icon: Icon(
                     Icons.keyboard_arrow_down,
                     size: 28,
                     color: Theme.of(context).colorScheme.onSurface,
@@ -449,8 +460,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ),
                 Text(
                   S.of(context).playerNowPlaying,
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: Theme.of(context).textTheme.chipLabel.copyWith(
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -458,25 +468,27 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    GestureDetector(
-                      onTap: () {
+                    IconButton(
+                      onPressed: () {
                         setState(() => _showLyrics = !_showLyrics);
                         if (_showLyrics) {
                           _loadLyrics(currentSong);
                         }
                       },
-                      child: Icon(
+                      tooltip: S.of(context).playerLyrics,
+                      icon: Icon(
                         Icons.lyrics_outlined,
                         size: 22,
                         color: _showLyrics
-                            ? AppColors.primary
+                            ? context.colors.primary
                             : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    GestureDetector(
-                      onTap: () => _showMobileQueue(context, playerService),
-                      child: Icon(
+                    const SizedBox(width: 4),
+                    IconButton(
+                      onPressed: () => _showMobileQueue(context, playerService),
+                      tooltip: S.of(context).playerQueue,
+                      icon: Icon(
                         Icons.queue_music,
                         size: 24,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -494,7 +506,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   ? _buildLyricsPanel(currentSong, playerService)
                   : AspectRatio(
                       aspectRatio: 1,
-                      child: CoverArt(url: coverUrl, borderRadius: 20),
+                      child: Hero(
+                        tag: 'player-cover',
+                        child: CoverArt(url: coverUrl, borderRadius: 20),
+                      ),
                     ),
             ),
             const SizedBox(height: 28),
@@ -504,9 +519,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
+              style: Theme.of(context).textTheme.playerMediumTitle.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
                 letterSpacing: -0.3,
               ),
@@ -517,8 +530,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
+              style: Theme.of(context).textTheme.playerSubtitle.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -528,12 +540,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             const SizedBox(height: 16),
             // 播放控制
             _PlaybackControls(playerService: playerService),
-            const SizedBox(height: 12),
-            // 底部操作
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [_BottomActions(song: currentSong)],
-            ),
             const Spacer(flex: 1),
           ],
         ),
@@ -541,24 +547,98 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  /// PC 端播放器 — PageView 双页布局（信息页 ←→ 歌词页）+ 右侧队列面板
+  /// PC 端播放器 — 参考音流设计：播放控制由底部 MiniPlayer 承载，
+  /// PlayerScreen 只展示封面/歌词 + 辅助操作（收藏/速度/队列）
   Widget _buildDesktopPlayer(
     Song currentSong,
     AudioPlayerService playerService,
     String coverUrl,
   ) {
-    // 滑到歌词页时自动加载
-    if (_desktopCurrentPage == 1) {
-      _loadLyrics(currentSong);
-    }
-
     return Row(
       children: [
         Expanded(
           flex: 3,
           child: Column(
             children: [
-              // 主内容区 — 鼠标滚轮/触控板滑动切换
+              // 顶部栏：关闭按钮 + 辅助操作
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: () => GoRouter.of(context).canPop()
+                          ? context.pop()
+                          : context.go('/home'),
+                      tooltip: S.of(context).commonBack,
+                      icon: Icon(
+                        Icons.keyboard_arrow_down,
+                        size: 28,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 播放速度
+                        StreamBuilder<double>(
+                          stream: playerService.player.speedStream,
+                          builder: (context, snap) {
+                            final speed = snap.data ?? 1.0;
+                            return PopupMenuButton<double>(
+                              tooltip: S.of(context).playerSpeed,
+                              onSelected: (v) => playerService.setSpeed(v),
+                              itemBuilder: (_) => [
+                                for (final s in [0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
+                                  PopupMenuItem(
+                                    value: s,
+                                    child: Text(
+                                      S.of(context).playerSpeedValue(s),
+                                      style: TextStyle(
+                                        fontWeight: s == speed ? FontWeight.w700 : FontWeight.w400,
+                                        color: s == speed ? context.colors.primary : null,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.outlineVariant,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  S.of(context).playerSpeedValue(speed),
+                                  style: Theme.of(context).textTheme.playerTimestamp.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: Icon(
+                            Icons.queue_music,
+                            size: 22,
+                            color: _showQueue
+                                ? context.colors.primary
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          onPressed: () => setState(() => _showQueue = !_showQueue),
+                          tooltip: _showQueue
+                              ? S.of(context).playerHideQueue
+                              : S.of(context).playerShowQueue,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // 主内容区 — PageView 切换封面/歌词
               Expanded(
                 child: ScrollConfiguration(
                   behavior: ScrollConfiguration.of(context).copyWith(
@@ -571,8 +651,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   child: PageView(
                     controller: _desktopPageController,
                     scrollDirection: Axis.horizontal,
-                    onPageChanged: (page) =>
-                        setState(() => _desktopCurrentPage = page),
+                    onPageChanged: (page) {
+                        setState(() => _desktopCurrentPage = page);
+                        // 切换到歌词页（page 1）时触发加载，在 onPageChanged 回调中
+                        // 调用是安全的（非 build 阶段）
+                        if (page == 1) _loadLyrics(currentSong);
+                      },
                     children: [
                       _buildDesktopInfoPage(coverUrl),
                       _buildDesktopLyricsPage(currentSong, playerService),
@@ -580,41 +664,39 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   ),
                 ),
               ),
-              // 页面指示器（小圆点）
-              Padding(
-                padding: const EdgeInsets.only(top: 6, bottom: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(2, (i) {
-                    final isActive = _desktopCurrentPage == i;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: isActive ? 20 : 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? AppColors.primary
-                            : Theme.of(context).colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-              // 底部固定：歌曲信息 + 进度条 + 播放控制 + 操作栏
+              // 底部：歌曲信息 + 辅助操作（无进度条/播放控制/音量）
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
                   children: [
+                    // 页面指示器（小圆点）
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(2, (i) {
+                          final isActive = _desktopCurrentPage == i;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: isActive ? 20 : 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? context.colors.primary
+                                  : Theme.of(context).colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
                     Text(
                       currentSong.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
+                      style: Theme.of(context).textTheme.playerLargeSongName.copyWith(
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
@@ -623,135 +705,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       '${currentSong.artist} · ${currentSong.album}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: Theme.of(context).textTheme.playerSubtitle.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    _ProgressBar(playerService: playerService),
-                    const SizedBox(height: 16),
-                    _PlaybackControls(playerService: playerService),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _BottomActions(song: currentSong),
-                        const SizedBox(width: 8),
-                        // 音量控制
-                        StreamBuilder<double>(
-                          stream: playerService.player.volumeStream,
-                          builder: (context, snap) {
-                            final vol = snap.data ?? 1.0;
-                            return Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  vol == 0
-                                      ? Icons.volume_off
-                                      : vol < 0.5
-                                      ? Icons.volume_down
-                                      : Icons.volume_up,
-                                  size: 18,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                                SizedBox(
-                                  width: 100,
-                                  child: Slider(
-                                    value: vol,
-                                    min: 0.0,
-                                    max: 1.0,
-                                    onChanged: (v) =>
-                                        playerService.setVolume(v),
-                                    activeColor: AppColors.primary,
-                                    inactiveColor: Theme.of(
-                                      context,
-                                    ).colorScheme.outlineVariant,
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        // 播放速度
-                        StreamBuilder<double>(
-                          stream: playerService.player.speedStream,
-                          builder: (context, snap) {
-                            final speed = snap.data ?? 1.0;
-                            return PopupMenuButton<double>(
-                              tooltip: S.of(context).playerSpeed,
-                              onSelected: (v) => playerService.setSpeed(v),
-                              itemBuilder: (_) => [
-                                for (final s in [
-                                  0.5,
-                                  0.75,
-                                  1.0,
-                                  1.25,
-                                  1.5,
-                                  2.0,
-                                ])
-                                  PopupMenuItem(
-                                    value: s,
-                                    child: Text(
-                                      S.of(context).playerSpeedValue(s),
-                                      style: TextStyle(
-                                        fontWeight: s == speed
-                                            ? FontWeight.w700
-                                            : FontWeight.w400,
-                                        color: s == speed
-                                            ? AppColors.primary
-                                            : null,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.outlineVariant,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  S.of(context).playerSpeedValue(speed),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: Icon(
-                            Icons.queue_music,
-                            size: 22,
-                            color: _showQueue
-                                ? AppColors.primary
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                          ),
-                          onPressed: () =>
-                              setState(() => _showQueue = !_showQueue),
-                          tooltip: _showQueue
-                              ? S.of(context).playerHideQueue
-                              : S.of(context).playerShowQueue,
-                        ),
-                      ],
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -774,7 +730,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           constraints: const BoxConstraints(maxWidth: 360, maxHeight: 360),
           child: AspectRatio(
             aspectRatio: 1,
-            child: CoverArt(url: coverUrl, borderRadius: 16),
+            child: Hero(
+              tag: 'player-cover',
+              child: CoverArt(url: coverUrl, borderRadius: 16),
+            ),
           ),
         ),
       ),
@@ -793,78 +752,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 }
 
-/// 底部操作栏 — 收藏按钮（全局 provider + 弹跳动画）
-class _BottomActions extends ConsumerStatefulWidget {
-  final Song song;
-  const _BottomActions({required this.song});
-
-  @override
-  ConsumerState<_BottomActions> createState() => _BottomActionsState();
-}
-
-class _BottomActionsState extends ConsumerState<_BottomActions>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _bounceController;
-  late Animation<double> _bounceAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _bounceController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-    _bounceAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.3), weight: 50),
-      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 50),
-    ]).animate(_bounceController);
-  }
-
-  @override
-  void dispose() {
-    _bounceController.dispose();
-    super.dispose();
-  }
-
-  void _toggleStar() {
-    if (widget.song.isOnline) return;
-    final isStarred =
-        ref.read(starredSongsProvider).value?.contains(widget.song.id) ?? false;
-    if (isStarred) {
-      ref.read(starredSongsProvider.notifier).unstar(widget.song.id);
-    } else {
-      ref.read(starredSongsProvider.notifier).star(widget.song.id);
-      _bounceController.forward(from: 0);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.song.isOnline) {
-      return const SizedBox.shrink();
-    }
-    final isStarred =
-        ref.watch(starredSongsProvider).value?.contains(widget.song.id) ??
-        false;
-    return ScaleTransition(
-      scale: _bounceAnimation,
-      child: IconButton(
-        icon: Icon(
-          isStarred ? Icons.favorite : Icons.favorite_border,
-          size: 22,
-          color: isStarred
-              ? AppColors.error
-              : Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        onPressed: _toggleStar,
-        tooltip: isStarred
-            ? S.of(context).playerUnfavorite
-            : S.of(context).navFavorites,
-      ),
-    );
-  }
-}
-
 /// 右侧队列面板 — ReorderableListView + Dismissible
 class _QueuePanel extends StatefulWidget {
   final AudioPlayerService playerService;
@@ -878,16 +765,14 @@ class _QueuePanelState extends State<_QueuePanel> {
   @override
   Widget build(BuildContext context) {
     final ps = widget.playerService;
-    return Container(
+    // 监听当前歌曲变化以刷新高亮
+    return StreamBuilder<Song?>(
+      stream: ps.currentSongStream,
+      builder: (context, _) {
+        return Container(
       width: 320,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHigh,
-        border: Border(
-          left: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
-            width: 1,
-          ),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -899,19 +784,18 @@ class _QueuePanelState extends State<_QueuePanel> {
               children: [
                 Text(
                   S.of(context).playerQueueTitle,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.playerQueueHeader,
                 ),
                 Text(
                   S.of(context).commonSongs(ps.queue.length),
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.playerTimestamp.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const SizedBox(height: 8),
           Expanded(
             child: ps.queue.isEmpty
                 ? Center(
@@ -932,7 +816,7 @@ class _QueuePanelState extends State<_QueuePanel> {
                     buildDefaultDragHandles: false,
                     proxyDecorator: (child, index, animation) {
                       return Material(
-                        color: AppColors.primarySoft,
+                        color: context.colors.primarySoft,
                         elevation: 2,
                         borderRadius: BorderRadius.circular(8),
                         child: child,
@@ -947,10 +831,10 @@ class _QueuePanelState extends State<_QueuePanel> {
                         background: Container(
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.only(right: 16),
-                          color: AppColors.errorSoft,
+                          color: context.colors.errorSoft,
                           child: Icon(
                             Icons.delete_outline,
-                            color: AppColors.error,
+                            color: context.colors.error,
                             size: 20,
                           ),
                         ),
@@ -960,19 +844,18 @@ class _QueuePanelState extends State<_QueuePanel> {
                           });
                         },
                         child: Container(
-                          color: isCurrent ? AppColors.primarySoftSubtle : null,
+                          color: isCurrent ? context.colors.primarySoftSubtle : null,
                           child: ListTile(
                             dense: true,
                             leading: isCurrent
                                 ? Icon(
                                     Icons.equalizer,
-                                    color: AppColors.primary,
+                                    color: context.colors.primary,
                                     size: 18,
                                   )
                                 : Text(
                                     '${index + 1}',
-                                    style: TextStyle(
-                                      fontSize: 12,
+                                    style: Theme.of(context).textTheme.playerTimestamp.copyWith(
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.onSurfaceVariant,
@@ -982,13 +865,12 @@ class _QueuePanelState extends State<_QueuePanel> {
                               song.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
+                              style: Theme.of(context).textTheme.chipLabel.copyWith(
                                 fontWeight: isCurrent
                                     ? FontWeight.w600
                                     : FontWeight.w400,
                                 color: isCurrent
-                                    ? AppColors.primary
+                                    ? context.colors.primary
                                     : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
@@ -1037,13 +919,15 @@ class _QueuePanelState extends State<_QueuePanel> {
                   ),
           ),
         ],
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
 class _ProgressBar extends StatelessWidget {
-  final dynamic playerService;
+  final AudioPlayerService playerService;
   const _ProgressBar({required this.playerService});
 
   @override
@@ -1086,15 +970,13 @@ class _ProgressBar extends StatelessWidget {
                     children: [
                       Text(
                         _fmt(position),
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: Theme.of(context).textTheme.playerTimestamp.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       Text(
                         _fmt(duration),
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: Theme.of(context).textTheme.playerTimestamp.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -1118,7 +1000,7 @@ class _ProgressBar extends StatelessWidget {
 
 /// 播放控制按钮 — AnimatedIcon play/pause + 响应式 Repeat 状态
 class _PlaybackControls extends StatefulWidget {
-  final dynamic playerService;
+  final AudioPlayerService playerService;
   const _PlaybackControls({required this.playerService});
 
   @override
@@ -1135,12 +1017,12 @@ class _PlaybackControlsState extends State<_PlaybackControls>
   @override
   void initState() {
     super.initState();
-    _repeatMode = widget.playerService.repeatMode as RepeatMode;
+    _repeatMode = widget.playerService.repeatMode;
     _playPauseController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _playingSub = (widget.playerService.playingStream as Stream<bool>).listen((
+    _playingSub = widget.playerService.playingStream.listen((
       playing,
     ) {
       if (!mounted) return;
@@ -1170,9 +1052,10 @@ class _PlaybackControlsState extends State<_PlaybackControls>
             Icons.shuffle,
             size: 22,
             color: widget.playerService.shuffle
-                ? AppColors.primary
+                ? context.colors.primary
                 : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
+          tooltip: S.of(context).playerShuffle,
           onPressed: () => widget.playerService.toggleShuffle(),
         ),
         const SizedBox(width: 12),
@@ -1180,13 +1063,14 @@ class _PlaybackControlsState extends State<_PlaybackControls>
           icon: const Icon(Icons.skip_previous_rounded, size: 32),
           color: Theme.of(context).colorScheme.onSurface,
           onPressed: () => widget.playerService.previous(),
+          tooltip: S.of(context).playerPrevious,
         ),
         const SizedBox(width: 8),
         Container(
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: context.colors.primary,
             shape: BoxShape.circle,
           ),
           child: IconButton(
@@ -1194,11 +1078,12 @@ class _PlaybackControlsState extends State<_PlaybackControls>
               icon: AnimatedIcons.play_pause,
               progress: _playPauseController,
               size: 32,
-              color: AppColors.onEmphasis,
+              color: context.colors.onEmphasis,
             ),
             onPressed: () => _playing
                 ? widget.playerService.pause()
                 : widget.playerService.play(),
+            tooltip: S.of(context).playerPlayPause,
           ),
         ),
         const SizedBox(width: 8),
@@ -1206,6 +1091,7 @@ class _PlaybackControlsState extends State<_PlaybackControls>
           icon: const Icon(Icons.skip_next_rounded, size: 32),
           color: Theme.of(context).colorScheme.onSurface,
           onPressed: () => widget.playerService.next(),
+          tooltip: S.of(context).playerNext,
         ),
         const SizedBox(width: 12),
         IconButton(
@@ -1213,13 +1099,14 @@ class _PlaybackControlsState extends State<_PlaybackControls>
             _repeatMode == RepeatMode.one ? Icons.repeat_one : Icons.repeat,
             size: 22,
             color: _repeatMode != RepeatMode.off
-                ? AppColors.primary
+                ? context.colors.primary
                 : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
+          tooltip: S.of(context).playerRepeat,
           onPressed: () {
             widget.playerService.cycleRepeatMode();
             setState(
-              () => _repeatMode = widget.playerService.repeatMode as RepeatMode,
+              () => _repeatMode = widget.playerService.repeatMode,
             );
           },
         ),

@@ -151,6 +151,21 @@ class SZh extends S {
   String get playerQueue => '队列';
 
   @override
+  String get playerNext => '下一首';
+
+  @override
+  String get playerPrevious => '上一首';
+
+  @override
+  String get playerPlayPause => '播放 / 暂停';
+
+  @override
+  String get playerIdleTitle => '未在播放';
+
+  @override
+  String get playerIdleSubtitle => '从首页、音乐库或播放列表开始播放';
+
+  @override
   String get albumPlayAll => '播放全部';
 
   @override
@@ -797,4 +812,49 @@ class SZh extends S {
 
   @override
   String get settingsCacheClear => '清除';
+
+  @override
+  String get searchBackendNavidrome => 'Navidrome';
+
+  @override
+  String get searchBackendNetease => '网易云';
+
+  @override
+  String get searchBackendKuwo => '酷我';
+
+  @override
+  String get searchBackendJoox => 'JOOX';
+
+  @override
+  String get playerShuffle => '随机播放';
+
+  @override
+  String get playerRepeat => '循环播放';
+
+  @override
+  String get tooltipUnfavorite => '取消收藏';
+
+  @override
+  String get tooltipPlay => '播放';
+
+  @override
+  String get tooltipFavorite => '收藏';
+
+  @override
+  String get tooltipRemove => '移除';
+
+  @override
+  String get tooltipEdit => '编辑';
+
+  @override
+  String get tooltipDelete => '删除';
+
+  @override
+  String get tooltipClear => '清除';
+
+  @override
+  String get tooltipBack => '返回';
+
+  @override
+  String get tooltipMore => '更多';
 }

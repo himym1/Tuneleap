@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:navidrome_player/api/models/models.dart';
+import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// 歌曲列表项组件
 class SongTile extends StatelessWidget {
@@ -32,16 +33,14 @@ class SongTile extends StatelessWidget {
           if (song.duration != null)
             Text(song.formattedDuration, style: Theme.of(context).textTheme.bodySmall),
           if (onMore != null)
-            IconButton(icon: const Icon(Icons.more_vert, size: 20), onPressed: onMore),
+            IconButton(
+              icon: const Icon(Icons.more_vert, size: 20),
+              tooltip: S.of(context).tooltipMore,
+              onPressed: onMore,
+            ),
         ],
       ),
       onTap: onTap,
     );
-  }
-
-  String _formatDuration(int seconds) {
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
   }
 }

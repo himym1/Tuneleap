@@ -26,7 +26,9 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
           ref.read(audioPlayerServiceProvider).playAll(album.songs);
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Failed to play artist: $e');
+    }
   }
 
   @override
@@ -34,7 +36,7 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
     final artistsAsync = ref.watch(artistsProvider);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -65,7 +67,7 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
           Expanded(
             child: artistsAsync.when(
               loading: () => Center(
-                child: CircularProgressIndicator(),
+                child: const CircularProgressIndicator(),
               ),
               error: (_, _) => Center(
                 child: Text(
@@ -150,6 +152,7 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
             trailing: IconButton(
               icon: const Icon(Icons.play_circle_outline, size: 22),
               color: Theme.of(context).colorScheme.onSurfaceVariant,
+              tooltip: S.of(context).tooltipPlay,
               onPressed: () => _playArtist(artist),
             ),
             shape: RoundedRectangleBorder(

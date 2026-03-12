@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -97,7 +98,9 @@ Future<void> migratePasswordsToSecureStorage(SharedPreferences prefs) async {
       if (dirty) {
         await prefs.setString('servers_list', jsonEncode(list));
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Failed to save servers list: $e');
+    }
   }
 }
 
@@ -267,7 +270,9 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
         return list
             .map((e) => ServerEntry.fromJson(e as Map<String, dynamic>))
             .toList();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('Failed to parse servers list: $e');
+      }
     }
     // 从当前激活服务器构建默认列表（向后兼容）
     final url = prefs.getString('server_url') ?? '';

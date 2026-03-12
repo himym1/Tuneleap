@@ -11,23 +11,12 @@ import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
-enum _SearchBackend { local, netease, kuwo, joox }
-
-extension on _SearchBackend {
-  bool get isOnline => this != _SearchBackend.local;
-
-  String get label => switch (this) {
-    _SearchBackend.local => 'Navidrome',
-    _SearchBackend.netease => 'Netease',
-    _SearchBackend.kuwo => 'Kuwo',
-    _SearchBackend.joox => 'JOOX',
-  };
-
-  String? get source => switch (this) {
-    _SearchBackend.local => null,
-    _SearchBackend.netease => 'netease',
-    _SearchBackend.kuwo => 'kuwo',
-    _SearchBackend.joox => 'joox',
+extension on SearchBackend {
+  String label(BuildContext context) => switch (this) {
+    SearchBackend.local => S.of(context).searchBackendNavidrome,
+    SearchBackend.netease => S.of(context).searchBackendNetease,
+    SearchBackend.kuwo => S.of(context).searchBackendKuwo,
+    SearchBackend.joox => S.of(context).searchBackendJoox,
   };
 }
 
@@ -42,14 +31,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   Timer? _debounce;
-  SearchResult? _result;
-  bool _searching = false;
-  int _selectedFilter = 0; // 0=全部, 1=歌曲, 2=专辑, 3=艺术家
-  _SearchBackend _selectedBackend = _SearchBackend.local;
 
-  List<String> _getFilters(BuildContext context) {
+  List<String> _getFilters(BuildContext context, SearchBackend backend) {
     final filters = [S.of(context).searchAll, S.of(context).homeSongs];
-    if (!_selectedBackend.isOnline) {
+    if (!backend.isOnline) {
       filters.addAll([S.of(context).homeAlbums, S.of(context).homeArtists]);
     }
     return filters;
@@ -66,63 +51,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _onSearchChanged(String query) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (query.trim().isNotEmpty) {
-        _performSearch(query.trim());
-      } else {
-        setState(() => _result = null);
-      }
+      ref.read(searchProvider.notifier).search(query.trim());
     });
   }
 
-  Future<void> _performSearch(String query) async {
-    setState(() => _searching = true);
-    try {
-      final result = switch (_selectedBackend) {
-        _SearchBackend.local =>
-          await ref
-              .read(subsonicClientProvider)
-              .search3(query, artistCount: 20, albumCount: 20, songCount: 30),
-        _ => SearchResult(
-          songs: await ref
-              .read(solaraClientProvider)
-              .searchSongs(
-                query,
-                source: _selectedBackend.source!,
-                count: 30,
-                page: 1,
-              ),
-        ),
-      };
-      if (!mounted) return;
-      setState(() {
-        _result = result;
-        _searching = false;
-      });
-    } catch (e) {
-      if (mounted) setState(() => _searching = false);
-    }
-  }
-
-  void _setBackend(_SearchBackend backend) {
-    if (_selectedBackend == backend) return;
-    setState(() {
-      _selectedBackend = backend;
-      if (_selectedBackend.isOnline && _selectedFilter > 1) {
-        _selectedFilter = 0;
-      }
-    });
-
+  void _setBackend(SearchBackend backend) {
+    ref.read(searchProvider.notifier).setBackend(backend);
     final query = _searchController.text.trim();
     if (query.isNotEmpty) {
-      _performSearch(query);
+      ref.read(searchProvider.notifier).search(query);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final filters = _getFilters(context);
+    final searchState = ref.watch(searchProvider);
+    final filters = _getFilters(context, searchState.selectedBackend);
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -158,9 +105,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
+                        tooltip: S.of(context).tooltipClear,
                         onPressed: () {
                           _searchController.clear();
-                          setState(() => _result = null);
+                          ref.read(searchProvider.notifier).clearResult();
                         },
                       )
                     : null,
@@ -173,11 +121,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _SearchBackend.values.map((backend) {
-                final selected = _selectedBackend == backend;
+              children: SearchBackend.values.map((backend) {
+                final selected = searchState.selectedBackend == backend;
                 return Material(
                   color: selected
-                      ? AppColors.primary
+                      ? context.colors.primary
                       : Theme.of(context).colorScheme.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(20),
                   child: InkWell(
@@ -199,13 +147,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               ),
                       ),
                       child: Text(
-                        backend.label,
+                        backend.label(context),
                         style: Theme.of(context).textTheme.chipLabel.copyWith(
                           fontWeight: selected
                               ? FontWeight.w600
                               : FontWeight.w400,
                           color: selected
-                              ? AppColors.onEmphasis
+                              ? context.colors.onEmphasis
                               : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -221,17 +169,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Row(
               children: List.generate(filters.length, (index) {
-                final selected = _selectedFilter == index;
+                final selected = searchState.selectedFilter == index;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: Material(
                     color: selected
-                        ? AppColors.primary
+                        ? context.colors.primary
                         : Theme.of(context).colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(20),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(20),
-                      onTap: () => setState(() => _selectedFilter = index),
+                      onTap: () => ref.read(searchProvider.notifier).setFilter(index),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -254,7 +202,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 ? FontWeight.w600
                                 : FontWeight.w400,
                             color: selected
-                                ? AppColors.onEmphasis
+                                ? context.colors.onEmphasis
                                 : Theme.of(
                                     context,
                                   ).colorScheme.onSurfaceVariant,
@@ -269,18 +217,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
           const SizedBox(height: 8),
           // 结果
-          Expanded(child: _buildResults()),
+          Expanded(child: _buildResults(searchState)),
         ],
       ),
     );
   }
 
-  Widget _buildResults() {
-    if (_searching) {
-      return Center(child: CircularProgressIndicator());
+  Widget _buildResults(SearchState searchState) {
+    if (searchState.searching) {
+      return Center(child: const CircularProgressIndicator());
     }
 
-    if (_result == null) {
+    if (searchState.result == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -305,18 +253,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
     }
 
-    final songs = (_selectedFilter == 0 || _selectedFilter == 1)
-        ? _result!.songs
-        : <Song>[];
-    final albums =
-        (!_selectedBackend.isOnline &&
-            (_selectedFilter == 0 || _selectedFilter == 2))
-        ? _result!.albums
+    final result = searchState.result!;
+    final filter = searchState.selectedFilter;
+    final isOnline = searchState.selectedBackend.isOnline;
+
+    final songs = (filter == 0 || filter == 1) ? result.songs : <Song>[];
+    final albums = (!isOnline && (filter == 0 || filter == 2))
+        ? result.albums
         : <Album>[];
-    final artists =
-        (!_selectedBackend.isOnline &&
-            (_selectedFilter == 0 || _selectedFilter == 3))
-        ? _result!.artists
+    final artists = (!isOnline && (filter == 0 || filter == 3))
+        ? result.artists
         : <Artist>[];
 
     if (songs.isEmpty && albums.isEmpty && artists.isEmpty) {
@@ -340,7 +286,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ),
           ...songs.map(
-            (song) => _SongResultTile(song: song, onTap: () => _playSong(song)),
+            (song) => _SongResultTile(
+              song: song,
+              onTap: () {
+                ref.read(audioPlayerServiceProvider).playSong(song);
+                context.push('/player');
+              },
+            ),
           ),
         ],
         if (albums.isNotEmpty) ...[
@@ -381,10 +333,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ],
       ],
     );
-  }
-
-  void _playSong(Song song) {
-    ref.read(audioPlayerServiceProvider).playSong(song);
   }
 }
 
@@ -433,9 +381,9 @@ class _SongResultTile extends ConsumerWidget {
                 ),
                 child: Text(
                   switch (song.onlineSource) {
-                    'kuwo' => 'Kuwo',
-                    'joox' => 'JOOX',
-                    _ => 'Netease',
+                    'kuwo' => S.of(context).searchBackendKuwo,
+                    'joox' => S.of(context).searchBackendJoox,
+                    _ => S.of(context).searchBackendNetease,
                   },
                   style: TextStyle(
                     fontSize: 11,
@@ -474,20 +422,10 @@ class _AlbumResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Image.network(
-            client.coverArtUrl(album.coverArt, size: 100),
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              child: const Icon(Icons.album, size: 18),
-            ),
-          ),
-        ),
+      leading: CoverArt(
+        url: client.coverArtUrl(album.coverArt, size: 100),
+        size: 40,
+        borderRadius: 6,
       ),
       title: Text(
         album.name,

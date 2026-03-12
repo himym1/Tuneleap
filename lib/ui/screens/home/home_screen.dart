@@ -43,10 +43,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final recentAlbums = ref.watch(recentAlbumsProvider);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       body: newestAlbums.when(
         loading: () =>
-            Center(child: CircularProgressIndicator()),
+            Center(child: const CircularProgressIndicator()),
         error: (_, _) => ErrorState(
           message: S.of(context).commonError,
           onRetry: _refresh,
@@ -125,7 +125,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onPressed: onMore,
             child: Text(
               S.of(context).homeViewMore,
-              style: TextStyle(fontSize: 13, color: AppColors.primary),
+              style: TextStyle(fontSize: 13, color: context.colors.primary),
             ),
           ),
       ],
@@ -143,7 +143,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         itemBuilder: (context, index) {
           final album = albums[index];
           return Material(
-            color: AppColors.transparent,
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
@@ -170,8 +170,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         album.artist!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
+                        style: Theme.of(context).textTheme.songSubtitle.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -209,70 +208,106 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ref
                     .read(audioPlayerServiceProvider)
                     .playAll(songs, startIndex: index);
+                context.push('/player');
               },
-              child: Material(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(8),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () {
-                    ref
-                        .read(audioPlayerServiceProvider)
-                        .playAll(songs, startIndex: index);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Row(
-                      children: [
-                        CoverArt(
-                          url: client.coverArtUrl(song.coverArt, size: 80),
-                          size: 44,
-                          borderRadius: 6,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                song.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.chipLabel.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                song.artist,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.play_circle_outline,
-                          size: 24,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              child: _DailyRecommendTile(
+                song: song,
+                coverUrl: client.coverArtUrl(song.coverArt, size: 80),
+                onTap: () {
+                  ref
+                      .read(audioPlayerServiceProvider)
+                      .playAll(songs, startIndex: index);
+                  context.push('/player');
+                },
               ),
             );
           },
         );
       },
+    );
+  }
+}
+
+class _DailyRecommendTile extends StatefulWidget {
+  final Song song;
+  final String coverUrl;
+  final VoidCallback onTap;
+
+  const _DailyRecommendTile({
+    required this.song,
+    required this.coverUrl,
+    required this.onTap,
+  });
+
+  @override
+  State<_DailyRecommendTile> createState() => _DailyRecommendTileState();
+}
+
+class _DailyRecommendTileState extends State<_DailyRecommendTile> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Material(
+        color: _hovered
+            ? Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.8)
+            : Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: widget.onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                CoverArt(
+                  url: widget.coverUrl,
+                  size: 44,
+                  borderRadius: 6,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.song.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.chipLabel.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        widget.song.artist,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                AnimatedOpacity(
+                  opacity: _hovered ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Icon(
+                    Icons.play_circle_outline,
+                    size: 24,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

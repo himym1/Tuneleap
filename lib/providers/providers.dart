@@ -10,11 +10,13 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 export 'server_config_provider.dart';
 export 'audio_providers.dart';
 export 'theme_provider.dart';
-export 'starred_provider.dart';
 export 'download_provider.dart';
 export 'navidrome_import_provider.dart';
 export 'cover_color_provider.dart';
 export 'library_cache_provider.dart';
+export 'search_provider.dart';
+export 'library_provider.dart';
+export 'album_detail_provider.dart';
 
 final appVersionProvider = Provider<String>(
   (ref) => throw UnimplementedError('Must be overridden in ProviderScope'),

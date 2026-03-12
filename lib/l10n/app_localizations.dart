@@ -373,6 +373,36 @@ abstract class S {
   /// **'队列'**
   String get playerQueue;
 
+  /// No description provided for @playerNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一首'**
+  String get playerNext;
+
+  /// No description provided for @playerPrevious.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一首'**
+  String get playerPrevious;
+
+  /// No description provided for @playerPlayPause.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放 / 暂停'**
+  String get playerPlayPause;
+
+  /// No description provided for @playerIdleTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'未在播放'**
+  String get playerIdleTitle;
+
+  /// No description provided for @playerIdleSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'从首页、音乐库或播放列表开始播放'**
+  String get playerIdleSubtitle;
+
   /// No description provided for @albumPlayAll.
   ///
   /// In zh, this message translates to:
@@ -1560,6 +1590,96 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'清除'**
   String get settingsCacheClear;
+
+  /// No description provided for @searchBackendNavidrome.
+  ///
+  /// In zh, this message translates to:
+  /// **'Navidrome'**
+  String get searchBackendNavidrome;
+
+  /// No description provided for @searchBackendNetease.
+  ///
+  /// In zh, this message translates to:
+  /// **'网易云'**
+  String get searchBackendNetease;
+
+  /// No description provided for @searchBackendKuwo.
+  ///
+  /// In zh, this message translates to:
+  /// **'酷我'**
+  String get searchBackendKuwo;
+
+  /// No description provided for @searchBackendJoox.
+  ///
+  /// In zh, this message translates to:
+  /// **'JOOX'**
+  String get searchBackendJoox;
+
+  /// No description provided for @playerShuffle.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机播放'**
+  String get playerShuffle;
+
+  /// No description provided for @playerRepeat.
+  ///
+  /// In zh, this message translates to:
+  /// **'循环播放'**
+  String get playerRepeat;
+
+  /// No description provided for @tooltipUnfavorite.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消收藏'**
+  String get tooltipUnfavorite;
+
+  /// No description provided for @tooltipPlay.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放'**
+  String get tooltipPlay;
+
+  /// No description provided for @tooltipFavorite.
+  ///
+  /// In zh, this message translates to:
+  /// **'收藏'**
+  String get tooltipFavorite;
+
+  /// No description provided for @tooltipRemove.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除'**
+  String get tooltipRemove;
+
+  /// No description provided for @tooltipEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑'**
+  String get tooltipEdit;
+
+  /// No description provided for @tooltipDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除'**
+  String get tooltipDelete;
+
+  /// No description provided for @tooltipClear.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除'**
+  String get tooltipClear;
+
+  /// No description provided for @tooltipBack.
+  ///
+  /// In zh, this message translates to:
+  /// **'返回'**
+  String get tooltipBack;
+
+  /// No description provided for @tooltipMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'更多'**
+  String get tooltipMore;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

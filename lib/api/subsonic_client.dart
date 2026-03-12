@@ -153,6 +153,9 @@ class SubsonicClient {
     int artistCount = 10,
     int albumCount = 10,
     int songCount = 20,
+    int artistOffset = 0,
+    int albumOffset = 0,
+    int songOffset = 0,
   }) async {
     final response = await _request(
       'search3',
@@ -161,6 +164,9 @@ class SubsonicClient {
         'artistCount': artistCount,
         'albumCount': albumCount,
         'songCount': songCount,
+        'artistOffset': artistOffset,
+        'albumOffset': albumOffset,
+        'songOffset': songOffset,
       },
     );
     final result = response['searchResult3'] as Map<String, dynamic>? ?? {};
@@ -406,6 +412,15 @@ class SubsonicClient {
     } catch (_) {
       return null;
     }
+  }
+
+  /// 下载文件到指定路径，带进度回调
+  Future<void> downloadFile(
+    String url,
+    String savePath, {
+    void Function(int received, int total)? onReceiveProgress,
+  }) async {
+    await _dio.download(url, savePath, onReceiveProgress: onReceiveProgress);
   }
 }
 

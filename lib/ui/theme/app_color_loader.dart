@@ -7,16 +7,9 @@ class AppColorPalette {
   final Color secondary;
   final Color accent;
   final Color success;
-  final Color background;
-  final Color surface;
-  final Color surfaceContainer;
-  final Color onBackground;
-  final Color onSurface;
-  final Color onSurfaceVariant;
   final Color error;
   final Color onEmphasis;
   final Color onEmphasisMuted;
-  final Color transparent;
   final Color shadowSoft;
   final Color shadowStrong;
   final Color primarySoft;
@@ -34,16 +27,9 @@ class AppColorPalette {
     required this.secondary,
     required this.accent,
     required this.success,
-    required this.background,
-    required this.surface,
-    required this.surfaceContainer,
-    required this.onBackground,
-    required this.onSurface,
-    required this.onSurfaceVariant,
     required this.error,
     required this.onEmphasis,
     required this.onEmphasisMuted,
-    required this.transparent,
     required this.shadowSoft,
     required this.shadowStrong,
     required this.primarySoft,
@@ -63,16 +49,9 @@ class AppColorPalette {
       secondary: _parseColor(json['secondary'] as String),
       accent: _parseColor(json['accent'] as String),
       success: _parseColor(json['success'] as String),
-      background: _parseColor(json['background'] as String),
-      surface: _parseColor(json['surface'] as String),
-      surfaceContainer: _parseColor(json['surfaceContainer'] as String),
-      onBackground: _parseColor(json['onBackground'] as String),
-      onSurface: _parseColor(json['onSurface'] as String),
-      onSurfaceVariant: _parseColor(json['onSurfaceVariant'] as String),
       error: _parseColor(json['error'] as String),
       onEmphasis: _parseColor(json['onEmphasis'] as String),
       onEmphasisMuted: _parseColor(json['onEmphasisMuted'] as String),
-      transparent: _parseColor(json['transparent'] as String),
       shadowSoft: _parseColor(json['shadowSoft'] as String),
       shadowStrong: _parseColor(json['shadowStrong'] as String),
       primarySoft: _parseColor(json['primarySoft'] as String),

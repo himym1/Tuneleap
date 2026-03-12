@@ -1,13 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(test:*)",
-      "WebSearch",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:music.aqzscn.cn)",
-      "Bash(flutter analyze:*)",
-      "Bash(ls:*)",
-      "Bash(echo:*)"
+      "Bash(flutter gen-l10n:*)",
+      "Bash(cp /Users/wangjianguo/.claude/skills/flutter-impeccable-skill/SKILL.md /Users/wangjianguo/.codex/skills/flutter-impeccable-skill/SKILL.md && cp /Users/wangjianguo/.claude/skills/flutter-impeccable-skill/references/flutter-pc-app-review-playbook.md /Users/wangjianguo/.codex/skills/flutter-impeccable-skill/references/flutter-pc-app-review-playbook.md)"
     ]
   }
 }
