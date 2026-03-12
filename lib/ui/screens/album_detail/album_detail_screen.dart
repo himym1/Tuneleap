@@ -55,7 +55,12 @@ class AlbumDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: CustomScrollView(
+      body: StreamBuilder<Song?>(
+        stream: playerService.currentSongStream,
+        initialData: playerService.currentSong,
+        builder: (context, songSnapshot) {
+          final currentSong = songSnapshot.data ?? playerService.currentSong;
+          return CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: LayoutBuilder(
@@ -264,17 +269,24 @@ class AlbumDetailScreen extends ConsumerWidget {
           SliverList(
             delegate: SliverChildBuilderDelegate((context, index) {
               final song = album.songs[index];
+              final isPlaying = currentSong?.id == song.id;
               return SongContextMenu(
                 song: song,
                 onPlay: () {
                   playerService.playAll(album.songs, startIndex: index);
                   context.push('/player');
                 },
-                child: InkWell(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isPlaying ? context.colors.primarySoft : null,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: InkWell(
                   onTap: () {
                     playerService.playAll(album.songs, startIndex: index);
                     context.push('/player');
                   },
+                  borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
@@ -288,9 +300,12 @@ class AlbumDetailScreen extends ConsumerWidget {
                             '${index + 1}',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                              fontWeight: isPlaying ? FontWeight.w600 : null,
+                              color: isPlaying
+                                  ? context.colors.primary
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -303,7 +318,10 @@ class AlbumDetailScreen extends ConsumerWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style:
-                                    Theme.of(context).textTheme.songTitle,
+                                    Theme.of(context).textTheme.songTitle.copyWith(
+                                      fontWeight: isPlaying ? FontWeight.w600 : null,
+                                      color: isPlaying ? context.colors.primary : null,
+                                    ),
                               ),
                               Text(
                                 song.artist,
@@ -311,9 +329,11 @@ class AlbumDetailScreen extends ConsumerWidget {
                                     .textTheme
                                     .songSubtitle
                                     .copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      color: isPlaying
+                                          ? context.colors.primary.withValues(alpha: 0.7)
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
                                     ),
                               ),
                             ],
@@ -338,11 +358,14 @@ class AlbumDetailScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+                ),
               );
             }, childCount: album.songs.length),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
+      );
+        },
       ),
     );
   }

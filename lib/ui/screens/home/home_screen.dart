@@ -54,15 +54,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         data: (newest) => RefreshIndicator(
           onRefresh: _refresh,
-          child: ListView(
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+            child: ListView(
             padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
             children: [
-              // Greeting
-              Text(
-                _greeting(),
-                style: Theme.of(context).textTheme.pageTitle.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+              // Greeting + Weather
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    _greeting(),
+                    style: Theme.of(context).textTheme.pageTitle.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const Spacer(),
+                  _buildWeather(),
+                ],
               ),
               const SizedBox(height: 28),
 
@@ -105,8 +115,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ],
           ),
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildWeather() {
+    final weather = ref.watch(weatherProvider);
+    return weather.when(
+      data: (info) {
+        if (info == null) return const SizedBox.shrink();
+        return Text(
+          '${info.icon} ${info.temp}  ${info.location}',
+          style: Theme.of(context).textTheme.chipLabel.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 

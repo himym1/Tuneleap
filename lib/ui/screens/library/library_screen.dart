@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
@@ -263,7 +264,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       );
     }
     final client = ref.read(subsonicClientProvider);
-    return ListView.builder(
+    final playerService = ref.read(audioPlayerServiceProvider);
+    return StreamBuilder<Song?>(
+      stream: playerService.currentSongStream,
+      initialData: playerService.currentSong,
+      builder: (context, snapshot) {
+        final currentSong = snapshot.data ?? playerService.currentSong;
+        return ListView.builder(
       controller: _songScrollController,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       itemCount: songs.length + (lib.hasMoreSongs ? 1 : 0),
@@ -283,6 +290,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           );
         }
         final song = songs[index];
+        final isPlaying = currentSong?.id == song.id;
         return SongContextMenu(
           song: song,
           onPlay: () {
@@ -290,48 +298,61 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 .read(audioPlayerServiceProvider)
                 .playAll(songs, startIndex: index);
           },
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 4,
-            ),
-            leading: CoverArt(
-              url: client.coverArtUrl(song.coverArt, size: 80),
-              size: 44,
-              borderRadius: 6,
-            ),
-            title: Text(
-              song.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.songTitle,
-            ),
-            subtitle: Text(
-              '${song.artist} · ${song.album}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            trailing: song.duration != null
-                ? Text(
-                    song.formattedDuration,
-                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  )
-                : null,
-            shape: RoundedRectangleBorder(
+          child: Container(
+            decoration: BoxDecoration(
+              color: isPlaying ? context.colors.primarySoft : null,
               borderRadius: BorderRadius.circular(8),
             ),
-            onTap: () {
-              ref
-                  .read(audioPlayerServiceProvider)
-                  .playAll(songs, startIndex: index);
-            },
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 4,
+              ),
+              leading: CoverArt(
+                url: client.coverArtUrl(song.coverArt, size: 80),
+                size: 44,
+                borderRadius: 6,
+              ),
+              title: Text(
+                song.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.songTitle.copyWith(
+                  fontWeight: isPlaying ? FontWeight.w600 : null,
+                  color: isPlaying ? context.colors.primary : null,
+                ),
+              ),
+              subtitle: Text(
+                '${song.artist} · ${song.album}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                  color: isPlaying
+                      ? context.colors.primary.withValues(alpha: 0.7)
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              trailing: song.duration != null
+                  ? Text(
+                      song.formattedDuration,
+                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    )
+                  : null,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              onTap: () {
+                ref
+                    .read(audioPlayerServiceProvider)
+                    .playAll(songs, startIndex: index);
+              },
+            ),
           ),
         );
+      },
+    );
       },
     );
   }

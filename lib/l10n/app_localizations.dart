@@ -172,13 +172,13 @@ abstract class S {
   /// No description provided for @appName.
   ///
   /// In zh, this message translates to:
-  /// **'Navidrome Player'**
+  /// **'音跃'**
   String get appName;
 
   /// No description provided for @appShortName.
   ///
   /// In zh, this message translates to:
-  /// **'NP'**
+  /// **'音跃'**
   String get appShortName;
 
   /// No description provided for @loginSubtitle.
