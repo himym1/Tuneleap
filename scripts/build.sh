@@ -57,8 +57,9 @@ build_macos() {
   [[ "$(uname)" == "Darwin" ]] || err "macOS builds require macOS"
   cd "$PROJECT_ROOT"
   flutter build macos --release --build-name="$ver" --build-number="$build"
-  local app_path="$PROJECT_ROOT/build/macos/Build/Products/Release/${APP_NAME}.app"
-  [ -d "$app_path" ] || err "macOS app not found at $app_path"
+  local app_path
+  app_path="$(find "$PROJECT_ROOT/build/macos/Build/Products/Release" -maxdepth 1 -name '*.app' -print -quit)"
+  [ -n "$app_path" ] && [ -d "$app_path" ] || err "macOS app not found in build/macos/Build/Products/Release/"
   # Create DMG for distribution
   local dmg_name="${APP_NAME}-${ver}+${build}-macos.dmg"
   local tmp_dmg="$DIST_DIR/${dmg_name}.tmp"
@@ -67,7 +68,7 @@ build_macos() {
   mkdir -p "$staging"
   cp -R "$app_path" "$staging/"
   ln -s /Applications "$staging/Applications"
-  hdiutil create -volname "$APP_NAME" -srcfolder "$staging" -ov -format UDZO "$DIST_DIR/$dmg_name"
+  hdiutil create -volname "音跃" -srcfolder "$staging" -ov -format UDZO "$DIST_DIR/$dmg_name"
   rm -rf "$staging"
   log "macOS DMG -> dist/$dmg_name"
 }
