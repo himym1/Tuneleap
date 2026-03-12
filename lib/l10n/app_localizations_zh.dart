@@ -45,10 +45,10 @@ class SZh extends S {
   String get sidebarMore => '更多';
 
   @override
-  String get appName => 'Navidrome Player';
+  String get appName => '音跃';
 
   @override
-  String get appShortName => 'NP';
+  String get appShortName => '音跃';
 
   @override
   String get loginSubtitle => '连接你的私人音乐服务器';

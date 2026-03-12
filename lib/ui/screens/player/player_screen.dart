@@ -25,6 +25,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   List<LyricsLine>? _lyrics;
   String? _lyricsForSongId;
   final _lyricsScrollController = ScrollController();
+  bool _userScrolling = false;
+  Timer? _userScrollTimer;
+  int _seekLineIndex = 0;
   // PC 端页面切换
   final _desktopPageController = PageController();
   int _desktopCurrentPage = 0;
@@ -56,6 +59,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   void dispose() {
     _songChangeSub?.cancel();
+    _userScrollTimer?.cancel();
     _lyricsScrollController.dispose();
     _desktopPageController.dispose();
     super.dispose();
@@ -274,49 +278,158 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               activeIndex = i;
             }
           }
-          // Auto-scroll to active line
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_lyricsScrollController.hasClients) {
-              final target =
-                  (activeIndex * 44.0) -
-                  (_lyricsScrollController.position.viewportDimension / 2);
-              _lyricsScrollController.animateTo(
-                target.clamp(
-                  0.0,
-                  _lyricsScrollController.position.maxScrollExtent,
-                ),
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-              );
-            }
-          });
-          return ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-            child: ListView.builder(
-              controller: _lyricsScrollController,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              itemCount: lyrics.length,
-              itemBuilder: (context, index) {
-                final isActive = index == activeIndex;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 200),
-                    style: TextStyle(
-                      fontSize: isActive ? 18 : 14,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                      color: isActive
-                          ? context.colors.primary
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    child: Text(
-                      lyrics[index].text,
-                      textAlign: TextAlign.center,
+          // Auto-scroll to active line (skip when user is scrolling)
+          if (!_userScrolling) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_lyricsScrollController.hasClients) {
+                final target =
+                    (activeIndex * 44.0) -
+                    (_lyricsScrollController.position.viewportDimension / 2);
+                _lyricsScrollController.animateTo(
+                  target.clamp(
+                    0.0,
+                    _lyricsScrollController.position.maxScrollExtent,
+                  ),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                );
+              }
+            });
+          }
+
+          // Calculate the lyric line at the center of the viewport for seek indicator
+          int seekLineIndex = _seekLineIndex.clamp(0, lyrics.length - 1);
+          final seekMs = lyrics[seekLineIndex].startMs;
+          final seekTimeStr = seekMs != null
+              ? '${(seekMs ~/ 60000).toString().padLeft(2, '0')}:${((seekMs ~/ 1000) % 60).toString().padLeft(2, '0')}'
+              : '--:--';
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return Stack(
+                children: [
+                  ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (notification is UserScrollNotification) {
+                          if (!_userScrolling && _lyricsScrollController.hasClients) {
+                            // First scroll event: immediately calculate seek line
+                            final offset = _lyricsScrollController.offset;
+                            final viewportH = _lyricsScrollController.position.viewportDimension;
+                            final centerOffset = offset + viewportH / 2 - 24;
+                            final idx = (centerOffset / 44.0).round().clamp(0, lyrics.length - 1);
+                            _seekLineIndex = idx;
+                          }
+                          setState(() => _userScrolling = true);
+                          _userScrollTimer?.cancel();
+                          _userScrollTimer = Timer(
+                            const Duration(seconds: 3),
+                            () {
+                              if (mounted) setState(() => _userScrolling = false);
+                            },
+                          );
+                        }
+                        if (notification is ScrollUpdateNotification &&
+                            _userScrolling &&
+                            _lyricsScrollController.hasClients) {
+                          final offset = _lyricsScrollController.offset;
+                          final viewportH = _lyricsScrollController.position.viewportDimension;
+                          final centerOffset = offset + viewportH / 2 - 24; // subtract top padding
+                          final idx = (centerOffset / 44.0).round().clamp(0, lyrics.length - 1);
+                          if (idx != _seekLineIndex) {
+                            setState(() => _seekLineIndex = idx);
+                          }
+                        }
+                        return false;
+                      },
+                      child: ListView.builder(
+                        controller: _lyricsScrollController,
+                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                        itemCount: lyrics.length,
+                        itemBuilder: (context, index) {
+                          final isActive = index == activeIndex;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: TextStyle(
+                                fontSize: isActive ? 18 : 14,
+                                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                                color: isActive
+                                    ? context.colors.primary
+                                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              child: Text(
+                                lyrics[index].text,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                );
-              },
-            ),
+                  // Seek timeline indicator (shown during user scroll)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: constraints.maxHeight / 2 - 16,
+                    child: IgnorePointer(
+                      ignoring: !_userScrolling,
+                      child: AnimatedOpacity(
+                        opacity: _userScrolling ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              Text(
+                                seekTimeStr,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: context.colors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Container(
+                                  height: 1,
+                                  color: context.colors.primary.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  iconSize: 20,
+                                  icon: Icon(
+                                    Icons.play_arrow_rounded,
+                                    color: context.colors.primary,
+                                  ),
+                                  onPressed: () {
+                                    if (seekMs != null) {
+                                      playerService.seekTo(
+                                        Duration(milliseconds: seekMs),
+                                      );
+                                    }
+                                    _userScrollTimer?.cancel();
+                                    setState(() => _userScrolling = false);
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           );
         },
       );

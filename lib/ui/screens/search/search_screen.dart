@@ -344,66 +344,85 @@ class _SongResultTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resolver = ref.read(songMediaResolverProvider);
-    return SongContextMenu(
-      song: song,
-      onPlay: onTap,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-        leading: FutureBuilder<String>(
-          future: resolver.coverArtUrl(song, size: 100),
-          builder: (context, snapshot) =>
-              CoverArt(url: snapshot.data ?? '', size: 40, borderRadius: 6),
-        ),
-        title: Text(
-          song.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.songTitle,
-        ),
-        subtitle: Text(
-          '${song.artist} · ${song.album}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.songSubtitle.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (song.isOnline)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(999),
+    final playerService = ref.read(audioPlayerServiceProvider);
+    return StreamBuilder<Song?>(
+      stream: playerService.currentSongStream,
+      initialData: playerService.currentSong,
+      builder: (context, snapshot) {
+        final isPlaying = (snapshot.data ?? playerService.currentSong)?.id == song.id;
+        return SongContextMenu(
+          song: song,
+          onPlay: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              color: isPlaying ? context.colors.primarySoft : null,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              leading: FutureBuilder<String>(
+                future: resolver.coverArtUrl(song, size: 100),
+                builder: (context, snapshot) =>
+                    CoverArt(url: snapshot.data ?? '', size: 40, borderRadius: 6),
+              ),
+              title: Text(
+                song.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.songTitle.copyWith(
+                  fontWeight: isPlaying ? FontWeight.w600 : null,
+                  color: isPlaying ? context.colors.primary : null,
                 ),
-                child: Text(
-                  switch (song.onlineSource) {
-                    'kuwo' => S.of(context).searchBackendKuwo,
-                    'joox' => S.of(context).searchBackendJoox,
-                    _ => S.of(context).searchBackendNetease,
-                  },
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              subtitle: Text(
+                '${song.artist} · ${song.album}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                  color: isPlaying
+                      ? context.colors.primary.withValues(alpha: 0.7)
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (song.isOnline)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      switch (song.onlineSource) {
+                        'kuwo' => S.of(context).searchBackendKuwo,
+                        'joox' => S.of(context).searchBackendJoox,
+                        _ => S.of(context).searchBackendNetease,
+                      },
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            if (song.duration != null)
-              Text(
-                song.formattedDuration,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-          ],
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        onTap: onTap,
-      ),
+                if (song.duration != null)
+                  Text(
+                    song.formattedDuration,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            onTap: onTap,
+          ),
+          ),
+        );
+      },
     );
   }
 }
