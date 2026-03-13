@@ -22,7 +22,11 @@ final coverColorProvider = FutureProvider.family<Color, String>((
       size: const Size(100, 100),
       timeout: const Duration(seconds: 5),
     );
+    // 优先选择鲜艳色，其次亮鲜艳色/暗鲜艳色，最后主色调
     return generator.vibrantColor?.color ??
+        generator.lightVibrantColor?.color ??
+        generator.darkVibrantColor?.color ??
+        generator.mutedColor?.color ??
         generator.dominantColor?.color ??
         AppColors.primary;
   } catch (_) {

@@ -463,6 +463,9 @@ class SEn extends S {
   String get commonRetry => 'Retry';
 
   @override
+  String get commonRefresh => 'Refresh data';
+
+  @override
   String get commonNoData => 'No data';
 
   @override

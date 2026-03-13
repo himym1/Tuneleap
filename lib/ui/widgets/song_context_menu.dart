@@ -104,29 +104,6 @@ class SongContextMenu extends ConsumerWidget {
             S.of(context).contextMenuImportNavidrome,
             'import_navidrome',
           ),
-        if (supportsLibraryMutations) const PopupMenuDivider(),
-        if (supportsLibraryMutations)
-          PopupMenuItem<String>(
-            value: 'delete',
-            height: 40,
-            child: Row(
-              children: [
-                Icon(
-                  Icons.delete_outline,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  S.of(context).contextMenuDelete,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
 
@@ -179,9 +156,6 @@ class SongContextMenu extends ConsumerWidget {
           );
         }
         break;
-      case 'delete':
-        if (context.mounted) _confirmDelete(context, ref);
-        break;
     }
   }
 
@@ -225,43 +199,6 @@ class SongContextMenu extends ConsumerWidget {
               fontSize: 13,
               color: Theme.of(context).colorScheme.onSurface,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmDelete(BuildContext context, WidgetRef ref) {
-    final client = ref.read(subsonicClientProvider);
-    final l10n = S.of(context);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.commonDelete),
-        content: Text(l10n.contextMenuDeleteConfirm(song.title)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.commonCancel),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await client.deleteSong(song.id);
-                if (context.mounted) {
-                  _showSnackBar(context, l10n.contextMenuDeleteSuccess);
-                }
-              } catch (_) {
-                if (context.mounted) {
-                  _showSnackBar(context, l10n.contextMenuDeleteError);
-                }
-              }
-            },
-            child: Text(l10n.commonDelete),
           ),
         ],
       ),

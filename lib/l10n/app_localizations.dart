@@ -949,6 +949,12 @@ abstract class S {
   /// **'重试'**
   String get commonRetry;
 
+  /// No description provided for @commonRefresh.
+  ///
+  /// In zh, this message translates to:
+  /// **'刷新数据'**
+  String get commonRefresh;
+
   /// No description provided for @commonNoData.
   ///
   /// In zh, this message translates to:
