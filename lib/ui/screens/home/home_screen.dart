@@ -126,14 +126,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return weather.when(
       data: (info) {
         if (info == null) return const SizedBox.shrink();
-        return Text(
-          '${info.icon} ${info.temp}  ${info.location}',
-          style: Theme.of(context).textTheme.chipLabel.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+        return Tooltip(
+          message: S.of(context).commonRefresh,
+          child: InkWell(
+            onTap: () => ref.invalidate(weatherProvider),
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Text(
+                '${info.icon} ${info.temp}  ${info.location}',
+                style: Theme.of(context).textTheme.chipLabel.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
           ),
         );
       },
-      loading: () => const SizedBox.shrink(),
+      loading: () => const SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
       error: (_, _) => const SizedBox.shrink(),
     );
   }

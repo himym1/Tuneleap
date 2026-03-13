@@ -343,7 +343,14 @@ class _AppShellState extends ConsumerState<AppShell> {
             child: Row(
               children: [
                 _buildSidebar(context),
-                Expanded(child: widget.child),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top,
+                    ),
+                    child: widget.child,
+                  ),
+                ),
               ],
             ),
           ),
@@ -388,9 +395,14 @@ class _AppShellState extends ConsumerState<AppShell> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Logo
+                        // Logo + Refresh（顶部留出 macOS 标题栏空间）
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                          padding: EdgeInsets.fromLTRB(
+                            20,
+                            MediaQuery.of(context).padding.top + 24,
+                            12,
+                            24,
+                          ),
                           child: Row(
                             children: [
                               Container(
@@ -416,6 +428,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                                       letterSpacing: -0.5,
                                     ),
                               ),
+                              const Spacer(),
+                              _RefreshButton(),
                             ],
                           ),
                         ),
@@ -591,5 +605,87 @@ class _NavItem {
       default:
         return labelKey;
     }
+  }
+}
+
+/// 侧边栏刷新按钮 — 刷新所有缓存数据
+class _RefreshButton extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_RefreshButton> createState() => _RefreshButtonState();
+}
+
+class _RefreshButtonState extends ConsumerState<_RefreshButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  bool _refreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onRefresh() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+    _controller.repeat();
+
+    // 刷新所有缓存 provider
+    ref.invalidate(newestAlbumsProvider);
+    ref.invalidate(dailySongsProvider);
+    ref.invalidate(recentAlbumsProvider);
+    ref.invalidate(artistsProvider);
+    ref.invalidate(genresProvider);
+    ref.invalidate(radioStationsProvider);
+    ref.invalidate(playlistsProvider);
+    ref.invalidate(weatherProvider);
+    ref.read(libraryProvider.notifier).refresh();
+
+    // 等待核心数据加载完成
+    try {
+      await Future.wait([
+        ref.read(newestAlbumsProvider.future),
+        ref.read(artistsProvider.future),
+      ]);
+    } catch (_) {
+      // 刷新失败时静默处理
+    }
+
+    _controller.stop();
+    _controller.reset();
+    if (mounted) setState(() => _refreshing = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: S.of(context).commonRefresh,
+      child: InkWell(
+        onTap: _onRefresh,
+        borderRadius: BorderRadius.circular(6),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: RotationTransition(
+            turns: _controller,
+            child: Icon(
+              Icons.refresh,
+              size: 18,
+              color: _refreshing
+                  ? context.colors.primary
+                  : context.colors.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

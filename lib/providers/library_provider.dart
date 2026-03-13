@@ -133,6 +133,12 @@ class LibraryNotifier extends Notifier<LibraryState> {
     }
   }
 
+  /// 刷新所有库数据
+  Future<void> refresh() async {
+    state = state.copyWith(loading: true, hasMoreAlbums: true, hasMoreSongs: true);
+    await _loadInitialData();
+  }
+
   Future<void> playArtist(Artist artist) async {
     try {
       final client = ref.read(subsonicClientProvider);

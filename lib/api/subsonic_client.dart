@@ -372,16 +372,13 @@ class SubsonicClient {
 
   // === 管理 ===
 
-  /// 删除歌曲（Navidrome REST API，非 Subsonic 标准）
+  /// 删除歌曲 — Navidrome 不支持通过 API 删除歌曲文件，
+  /// 需要在服务器文件系统上手动删除后触发扫描。
+  /// 此方法仅触发媒体库扫描。
   Future<void> deleteSong(String id) async {
-    await _dio.delete(
-      '$_baseUrl/api/song/$id',
-      options: Options(
-        headers: {
-          'Authorization':
-              'Basic ${base64Encode(utf8.encode('$_username:$_password'))}',
-        },
-      ),
+    throw UnsupportedError(
+      'Navidrome does not support deleting songs via API. '
+      'Please delete the file on the server and rescan.',
     );
   }
 

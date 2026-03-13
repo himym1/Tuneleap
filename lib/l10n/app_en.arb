@@ -149,6 +149,7 @@
     "commonLoading": "Loading...",
     "commonError": "Error",
     "commonRetry": "Retry",
+    "commonRefresh": "Refresh data",
     "commonNoData": "No data",
     "commonSongs": "{count} songs",
     "commonSizeKb": "{value} KB",

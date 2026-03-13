@@ -455,6 +455,9 @@ class SZh extends S {
   String get commonRetry => '重试';
 
   @override
+  String get commonRefresh => '刷新数据';
+
+  @override
   String get commonNoData => '暂无数据';
 
   @override

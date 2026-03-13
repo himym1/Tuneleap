@@ -212,6 +212,7 @@
     "commonLoading": "加载中...",
     "commonError": "出错了",
     "commonRetry": "重试",
+    "commonRefresh": "刷新数据",
     "commonNoData": "暂无数据",
     "commonSongs": "{count} 首",
     "@commonSongs": {
