@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
@@ -21,13 +22,15 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 16),
+            padding: EdgeInsets.fromLTRB(h, h, h, 16),
             child: Row(
               children: [
                 if (_selectedGenre != null) ...[
@@ -40,9 +43,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
                 ],
                 Text(
                   _selectedGenre?.name ?? S.of(context).libraryGenresTitle,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
+                  style: Theme.of(context).textTheme.pageTitle.copyWith(
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
@@ -50,7 +51,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 0, 32, 16),
+            padding: EdgeInsets.fromLTRB(h, 0, h, 16),
             child: TextField(
               onChanged: (value) => setState(() => _searchQuery = value),
               decoration: InputDecoration(
@@ -81,7 +82,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
       error: (_, _) => Center(
         child: Text(
           S.of(context).libraryNoGenres,
-          style: TextStyle(
+          style: Theme.of(context).textTheme.songSubtitle.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
@@ -100,7 +101,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
           return Center(
             child: Text(
               S.of(context).libraryNoGenres,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.songSubtitle.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -127,15 +128,11 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
               ),
               title: Text(
                 genre.name,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: Theme.of(context).textTheme.songTitle,
               ),
               subtitle: Text(
                 '${S.of(context).genreSongCount(genre.songCount)} · ${S.of(context).genreAlbumCount(genre.albumCount)}',
-                style: TextStyle(
-                  fontSize: 12,
+                style: Theme.of(context).textTheme.songSubtitle.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -163,7 +160,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
       error: (_, _) => Center(
         child: Text(
           S.of(context).libraryNoSongs,
-          style: TextStyle(
+          style: Theme.of(context).textTheme.songSubtitle.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
@@ -189,7 +186,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
           return Center(
             child: Text(
               S.of(context).libraryNoSongs,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.songSubtitle.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -221,17 +218,13 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
                   song.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(context).textTheme.songTitle,
                 ),
                 subtitle: Text(
                   '${song.artist} · ${song.album}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),

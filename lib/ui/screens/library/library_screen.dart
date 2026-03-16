@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
@@ -59,15 +60,77 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   Widget build(BuildContext context) {
     final lib = ref.watch(libraryProvider);
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
+
+    final tabBar = AppSegmentedTabBar(
+      controller: _tabController,
+      tabs: [
+        Tab(text: S.of(context).libraryTabArtists),
+        Tab(text: S.of(context).libraryTabAlbums),
+        Tab(text: S.of(context).libraryTabSongs),
+      ],
+    );
+
+    final tabContent = lib.loading
+        ? Center(child: const CircularProgressIndicator())
+        : TabBarView(
+            controller: _tabController,
+            children: [
+              _buildArtistList(lib),
+              _buildAlbumGrid(lib),
+              _buildSongList(lib),
+            ],
+          );
+
+    if (isMobile) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverAppBar(
+              pinned: true,
+              floating: true,
+              snap: true,
+              expandedHeight: 100,
+              toolbarHeight: 0,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: Text(
+                    S.of(context).navLibrary,
+                    style: Theme.of(context).textTheme.pageTitle.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(48),
+                child: Container(
+                  color: Theme.of(context).colorScheme.surface,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: tabBar,
+                ),
+              ),
+            ),
+          ],
+          body: tabContent,
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 标题栏
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 0),
+            padding: EdgeInsets.fromLTRB(h, h, h, 0),
             child: Text(
               S.of(context).navLibrary,
               style: Theme.of(context).textTheme.pageTitle.copyWith(
@@ -76,34 +139,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             ),
           ),
           const SizedBox(height: 20),
-          // Tab 切换
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: AppSegmentedTabBar(
-              controller: _tabController,
-              tabs: [
-                Tab(text: S.of(context).libraryTabArtists),
-                Tab(text: S.of(context).libraryTabAlbums),
-                Tab(text: S.of(context).libraryTabSongs),
-              ],
-            ),
+            padding: EdgeInsets.symmetric(horizontal: h),
+            child: tabBar,
           ),
           const SizedBox(height: 8),
-          // 内容
-          Expanded(
-            child: lib.loading
-                ? Center(
-                    child: const CircularProgressIndicator(),
-                  )
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildArtistList(lib),
-                      _buildAlbumGrid(lib),
-                      _buildSongList(lib),
-                    ],
-                  ),
-          ),
+          Expanded(child: tabContent),
         ],
       ),
     );
@@ -117,7 +158,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         message: S.of(context).libraryNoArtists,
       );
     }
-    return ListView.builder(
+    return RefreshIndicator(
+      onRefresh: () => ref.read(libraryProvider.notifier).refresh(),
+      child: ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       itemCount: artists.length,
       itemBuilder: (context, index) {
@@ -170,6 +213,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           ),
         );
       },
+    ),
     );
   }
 
@@ -181,7 +225,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         message: S.of(context).libraryNoAlbums,
       );
     }
-    return LayoutBuilder(
+    return RefreshIndicator(
+      onRefresh: () => ref.read(libraryProvider.notifier).refresh(),
+      child: LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = (constraints.maxWidth / 180).floor().clamp(2, 6);
         return GridView.builder(
@@ -212,46 +258,53 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             }
             final album = albums[index];
             final client = ref.read(subsonicClientProvider);
-            return Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
+            return Semantics(
+              button: true,
+              label: album.artist == null || album.artist!.isEmpty
+                  ? album.name
+                  : '${album.name} · ${album.artist!}',
+              child: Material(
+                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
-                onTap: () => context.go('/album/${album.id}'),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: CoverArt(
-                        url: client.coverArtUrl(album.coverArt, size: 300),
-                        borderRadius: 10,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => context.go('/album/${album.id}'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: CoverArt(
+                          url: client.coverArtUrl(album.coverArt, size: 300),
+                          borderRadius: 10,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      album.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    if (album.artist != null)
+                      const SizedBox(height: 8),
                       Text(
-                        album.artist!,
+                        album.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                  ],
+                      if (album.artist != null)
+                        Text(
+                          album.artist!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             );
           },
         );
       },
+    ),
     );
   }
 
@@ -265,7 +318,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     }
     final client = ref.read(subsonicClientProvider);
     final playerService = ref.read(audioPlayerServiceProvider);
-    return StreamBuilder<Song?>(
+    return RefreshIndicator(
+      onRefresh: () => ref.read(libraryProvider.notifier).refresh(),
+      child: StreamBuilder<Song?>(
       stream: playerService.currentSongStream,
       initialData: playerService.currentSong,
       builder: (context, snapshot) {
@@ -354,6 +409,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       },
     );
       },
+    ),
     );
   }
 }

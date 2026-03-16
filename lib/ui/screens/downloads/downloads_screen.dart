@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/stat_card.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// 下载管理页面 — 统计卡片 + 实时下载队列
@@ -14,52 +16,89 @@ class DownloadsScreen extends ConsumerWidget {
     final manager = ref.read(downloadManagerProvider.notifier);
     final completed = manager.completedCount;
     final totalMb = manager.totalSizeMb;
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
+        padding: EdgeInsets.fromLTRB(h, h, h, h),
         children: [
           Text(
             S.of(context).navDownloads,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
+            style: Theme.of(context).textTheme.pageTitle.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 24),
 
           // 统计卡片
-          Row(
-            children: [
-              _StatCard(
-                icon: Icons.download_done,
-                label: S.of(context).downloadsCompleted,
-                value: '$completed',
-              ),
-              const SizedBox(width: 16),
-              _StatCard(
-                icon: Icons.music_note,
-                label: S.of(context).downloadsOfflineSongs,
-                value:
-                    '${tasks.where((t) => t.status == DownloadStatus.completed).length}',
-              ),
-              const SizedBox(width: 16),
-              _StatCard(
-                icon: Icons.storage,
-                label: S.of(context).downloadsUsedSpace,
-                value: S.of(context).commonSizeMb(totalMb.toStringAsFixed(1)),
-              ),
-            ],
-          ),
+          if (isMobile)
+            Column(
+              children: [
+                SizedBox(
+                  height: 80,
+                  child: Row(children: [
+                    StatCard(
+                      icon: Icons.download_done,
+                      label: S.of(context).downloadsCompleted,
+                      value: '$completed',
+                    ),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 80,
+                  child: Row(children: [
+                    StatCard(
+                      icon: Icons.music_note,
+                      label: S.of(context).downloadsOfflineSongs,
+                      value:
+                          '${tasks.where((t) => t.status == DownloadStatus.completed).length}',
+                    ),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 80,
+                  child: Row(children: [
+                    StatCard(
+                      icon: Icons.storage,
+                      label: S.of(context).downloadsUsedSpace,
+                      value: S.of(context).commonSizeMb(totalMb.toStringAsFixed(1)),
+                    ),
+                  ]),
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                StatCard(
+                  icon: Icons.download_done,
+                  label: S.of(context).downloadsCompleted,
+                  value: '$completed',
+                ),
+                const SizedBox(width: 16),
+                StatCard(
+                  icon: Icons.music_note,
+                  label: S.of(context).downloadsOfflineSongs,
+                  value:
+                      '${tasks.where((t) => t.status == DownloadStatus.completed).length}',
+                ),
+                const SizedBox(width: 16),
+                StatCard(
+                  icon: Icons.storage,
+                  label: S.of(context).downloadsUsedSpace,
+                  value: S.of(context).commonSizeMb(totalMb.toStringAsFixed(1)),
+                ),
+              ],
+            ),
           const SizedBox(height: 28),
 
           Text(
             S.of(context).downloadsQueue,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+            style: Theme.of(context).textTheme.sectionTitle.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
@@ -89,15 +128,14 @@ class DownloadsScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                     Text(
                       S.of(context).downloadsEmpty,
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       S.of(context).downloadsHint,
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -161,18 +199,14 @@ class _DownloadTaskTile extends StatelessWidget {
                   task.song.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(context).textTheme.songTitle,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${task.song.artist} · ${task.song.album}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -195,7 +229,7 @@ class _DownloadTaskTile extends StatelessWidget {
                     task.errorMessage!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: context.colors.error),
+                    style: Theme.of(context).textTheme.chipLabel.copyWith(color: context.colors.error),
                   ),
                 ],
               ],
@@ -263,73 +297,9 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 11,
+        style: Theme.of(context).textTheme.chipLabel.copyWith(
           color: color,
           fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-}
-
-// ── 统计卡片 ──────────────────────────────────────────────────────────────────
-
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: context.colors.primarySoftAlt,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: context.colors.primary, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );

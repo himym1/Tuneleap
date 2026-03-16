@@ -1,12 +1,6 @@
-enum SongBackend { subsonic, solara }
+import 'package:navidrome_player/utils/duration_format.dart';
 
-/// Format seconds into "m:ss" string. Returns '' for null.
-String formatDuration(int? seconds) {
-  if (seconds == null) return '';
-  final m = seconds ~/ 60;
-  final s = seconds % 60;
-  return '$m:${s.toString().padLeft(2, '0')}';
-}
+enum SongBackend { subsonic, solara }
 
 class Song {
   final String id;
@@ -48,7 +42,7 @@ class Song {
   bool get isOnline => backend == SongBackend.solara;
 
   /// Formatted duration string (e.g. "3:05"), empty if null.
-  String get formattedDuration => formatDuration(duration);
+  String get formattedDuration => formatDurationOrEmpty(duration);
 
   String get storageKey => isOnline
       ? 'solara:${onlineSource ?? 'unknown'}:${urlId ?? id}'

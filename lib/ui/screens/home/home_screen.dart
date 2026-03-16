@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
@@ -41,6 +42,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final newestAlbums = ref.watch(newestAlbumsProvider);
     final dailySongs = ref.watch(dailySongsProvider);
     final recentAlbums = ref.watch(recentAlbumsProvider);
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -57,7 +60,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: ScrollConfiguration(
             behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
             child: ListView(
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
+            padding: EdgeInsets.fromLTRB(h, h, h, h),
             children: [
               // Greeting + Weather
               Row(
@@ -167,7 +170,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onPressed: onMore,
             child: Text(
               S.of(context).homeViewMore,
-              style: TextStyle(fontSize: 13, color: context.colors.primary),
+              style: Theme.of(context).textTheme.chipLabel.copyWith(
+                color: context.colors.primary,
+              ),
             ),
           ),
       ],
@@ -187,7 +192,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           return Material(
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            child: InkWell(
+            child: Semantics(
+              button: true,
+              label: album.name,
+              child: InkWell(
               borderRadius: BorderRadius.circular(10),
               onTap: () => context.go('/album/${album.id}'),
               child: SizedBox(
@@ -219,6 +227,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
               ),
+            ),
             ),
           );
         },
@@ -298,7 +307,10 @@ class _DailyRecommendTileState extends State<_DailyRecommendTile> {
             ? Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.8)
             : Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(8),
-        child: InkWell(
+        child: Semantics(
+          button: true,
+          label: widget.song.title,
+          child: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: widget.onTap,
           child: Padding(
@@ -328,8 +340,7 @@ class _DailyRecommendTileState extends State<_DailyRecommendTile> {
                         widget.song.artist,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
+                        style: Theme.of(context).textTheme.songSubtitle.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -348,6 +359,7 @@ class _DailyRecommendTileState extends State<_DailyRecommendTile> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

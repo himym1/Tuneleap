@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// 艺术家详情页 — 头像 + 简介 + 专辑列表
@@ -27,7 +29,7 @@ class ArtistDetailScreen extends ConsumerWidget {
             children: [
               Text(
                 S.of(context).commonLoadFailed,
-                style: TextStyle(
+                style: Theme.of(context).textTheme.songSubtitle.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -47,132 +49,228 @@ class ArtistDetailScreen extends ConsumerWidget {
 
         return Scaffold(
           backgroundColor: Colors.transparent,
-          body: CustomScrollView(
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final mobile = AppBreakpoints.isMobile(width);
+              final hPad = mobile
+                  ? AppDimensions.paddingMobile
+                  : AppDimensions.paddingDesktop;
+              return CustomScrollView(
             slivers: [
               // 头部
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 头像
-                      CircleAvatar(
-                        radius: 64,
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHigh,
-                        backgroundImage: artist.coverArt != null
-                            ? NetworkImage(
-                                client.coverArtUrl(artist.coverArt, size: 300),
-                              )
-                            : null,
-                        child: artist.coverArt == null
-                            ? Icon(
-                                Icons.person,
-                                size: 48,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 28),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  padding: EdgeInsets.all(hPad),
+                  child: mobile
+                      // ── Mobile: avatar on top, info centered below ──
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // 返回
-                            InkWell(
-                              onTap: () => GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.arrow_back,
-                                    size: 16,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    S.of(context).commonBack,
-                                    style: TextStyle(
-                                      fontSize: 13,
+                            CircleAvatar(
+                              radius: 64,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHigh,
+                              backgroundImage: artist.coverArt != null
+                                  ? NetworkImage(
+                                      client.coverArtUrl(artist.coverArt, size: 300),
+                                    )
+                                  : null,
+                              child: artist.coverArt == null
+                                  ? Icon(
+                                      Icons.person,
+                                      size: 48,
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.onSurfaceVariant,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                            // 返回
+                            InkWell(
+                              onTap: () => GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
+                              customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              child: Semantics(
+                                button: true,
+                                label: S.of(context).tooltipBack,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.arrow_back,
+                                      size: 16,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      S.of(context).commonBack,
+                                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             const SizedBox(height: 12),
                             Text(
                               artist.name,
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w700,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.pageTitle.copyWith(
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               S.of(context).artistAlbumCount(albums.length),
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.chipLabel.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                FilledButton.icon(
-                                  onPressed: () async {
-                                    // 并行获取所有专辑的歌曲
-                                    try {
-                                      final albumDetails = await Future.wait(
-                                        albums.map((a) => client.getAlbum(a.id)),
-                                      );
-                                      final allSongs = albumDetails
-                                          .expand((a) => a.songs)
-                                          .toList();
-                                      if (allSongs.isNotEmpty) {
-                                        ref
-                                            .read(audioPlayerServiceProvider)
-                                            .playAll(allSongs);
-                                      }
-                                    } catch (e) {
-                                      debugPrint('Failed to play all songs: $e');
-                                    }
-                                  },
-                                  icon: const Icon(Icons.play_arrow, size: 18),
-                                  label: Text(S.of(context).albumPlayAll),
-                                  style: FilledButton.styleFrom(
-                                    minimumSize: const Size(0, 40),
+                            FilledButton.icon(
+                              onPressed: () async {
+                                try {
+                                  final albumDetails = await Future.wait(
+                                    albums.map((a) => client.getAlbum(a.id)),
+                                  );
+                                  final allSongs = albumDetails
+                                      .expand((a) => a.songs)
+                                      .toList();
+                                  if (allSongs.isNotEmpty) {
+                                    ref
+                                        .read(audioPlayerServiceProvider)
+                                        .playAll(allSongs);
+                                  }
+                                } catch (e) {
+                                  debugPrint('Failed to play all songs: $e');
+                                }
+                              },
+                              icon: const Icon(Icons.play_arrow, size: 18),
+                              label: Text(S.of(context).albumPlayAll),
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size(0, 40),
+                              ),
+                            ),
+                          ],
+                        )
+                      // ── Desktop: avatar left, info right ──
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 头像
+                            CircleAvatar(
+                              radius: 64,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHigh,
+                              backgroundImage: artist.coverArt != null
+                                  ? NetworkImage(
+                                      client.coverArtUrl(artist.coverArt, size: 300),
+                                    )
+                                  : null,
+                              child: artist.coverArt == null
+                                  ? Icon(
+                                      Icons.person,
+                                      size: 48,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 28),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // 返回
+                                  InkWell(
+                                    onTap: () => GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
+                                    customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    child: Semantics(
+                                      button: true,
+                                      label: S.of(context).tooltipBack,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.arrow_back,
+                                            size: 16,
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            S.of(context).commonBack,
+                                            style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    artist.name,
+                                    style: Theme.of(context).textTheme.pageTitle.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    S.of(context).artistAlbumCount(albums.length),
+                                    style: Theme.of(context).textTheme.chipLabel.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    children: [
+                                      FilledButton.icon(
+                                        onPressed: () async {
+                                          // 并行获取所有专辑的歌曲
+                                          try {
+                                            final albumDetails = await Future.wait(
+                                              albums.map((a) => client.getAlbum(a.id)),
+                                            );
+                                            final allSongs = albumDetails
+                                                .expand((a) => a.songs)
+                                                .toList();
+                                            if (allSongs.isNotEmpty) {
+                                              ref
+                                                  .read(audioPlayerServiceProvider)
+                                                  .playAll(allSongs);
+                                            }
+                                          } catch (e) {
+                                            debugPrint('Failed to play all songs: $e');
+                                          }
+                                        },
+                                        icon: const Icon(Icons.play_arrow, size: 18),
+                                        label: Text(S.of(context).albumPlayAll),
+                                        style: FilledButton.styleFrom(
+                                          minimumSize: const Size(0, 40),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
               // 专辑标题
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(32, 8, 32, 12),
+                  padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 12),
                   child: Text(
                     S.of(context).homeAlbums,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                    style: Theme.of(context).textTheme.sectionTitle.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
@@ -180,7 +278,7 @@ class ArtistDetailScreen extends ConsumerWidget {
               ),
               // 专辑网格
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                padding: EdgeInsets.symmetric(horizontal: hPad),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 220,
@@ -190,8 +288,12 @@ class ArtistDetailScreen extends ConsumerWidget {
                   ),
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final album = albums[index];
-                    return GestureDetector(
+                    return Semantics(
+                      button: true,
+                      label: album.name,
+                      child: InkWell(
                       onTap: () => context.go('/album/${album.id}'),
+                      borderRadius: BorderRadius.circular(12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -206,26 +308,27 @@ class ArtistDetailScreen extends ConsumerWidget {
                             album.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
+                            style: Theme.of(context).textTheme.songTitle.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
                             '${album.year ?? '—'}',
-                            style: TextStyle(
-                              fontSize: 11,
+                            style: Theme.of(context).textTheme.songDuration.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
                       ),
+                    ),
                     );
                   }, childCount: albums.length),
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
             ],
+          );
+            },
           ),
         );
       },

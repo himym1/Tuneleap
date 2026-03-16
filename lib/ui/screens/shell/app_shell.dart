@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/mini_player.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
@@ -159,7 +160,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   ];
 
   bool _isMobile(BuildContext context) =>
-      MediaQuery.of(context).size.width < 600;
+      AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
 
   String _currentPath(BuildContext context) =>
       GoRouterState.of(context).uri.toString();
@@ -200,7 +201,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             ],
           ),
         ),
-        child: widget.child,
+        child: SafeArea(bottom: false, child: widget.child),
       ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
@@ -262,10 +263,16 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   Widget _buildMobileTabItem(_NavItem item, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
+    return Semantics(
+      button: true,
+      label: item.labelOf(context),
+      selected: selected,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(26),
+          child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         decoration: BoxDecoration(
@@ -294,6 +301,8 @@ class _AppShellState extends ConsumerState<AppShell> {
               ),
             ),
           ],
+        ),
+      ),
         ),
       ),
     );
@@ -375,7 +384,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 800),
-          width: 200,
+          width: AppDimensions.sidebarWidth,
           decoration: BoxDecoration(
             color: sidebarColor,
             border: Border(

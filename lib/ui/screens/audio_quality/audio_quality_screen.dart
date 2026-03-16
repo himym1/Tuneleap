@@ -40,9 +40,7 @@ class AudioQualityScreen extends ConsumerWidget {
             children: [
               Text(
                 S.of(context).settingsAudioQuality,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
+                style: Theme.of(context).textTheme.pageTitle.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
@@ -53,8 +51,7 @@ class AudioQualityScreen extends ConsumerWidget {
                       orElse: () => qualities[0],
                     )
                     .name,
-                style: TextStyle(
-                  fontSize: 13,
+                style: Theme.of(context).textTheme.chipLabel.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -85,10 +82,7 @@ class AudioQualityScreen extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Text(
                       S.of(context).audioQualitySelection,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: Theme.of(context).textTheme.settingsSectionTitle,
                     ),
                   ],
                 ),
@@ -98,10 +92,15 @@ class AudioQualityScreen extends ConsumerWidget {
                     final q = qualities[i];
                     final selected = currentQuality == q.maxBitRate;
                     return Expanded(
-                      child: GestureDetector(
+                      child: Semantics(
+                        button: true,
+                        label: q.name,
+                        selected: selected,
+                        child: InkWell(
                         onTap: () => ref
                             .read(audioQualityProvider.notifier)
                             .setQuality(q.maxBitRate),
+                        borderRadius: BorderRadius.circular(10),
                         child: Container(
                           margin: EdgeInsets.only(
                             right: i < qualities.length - 1 ? 10 : 0,
@@ -127,8 +126,7 @@ class AudioQualityScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 q.name,
-                                style: TextStyle(
-                                  fontSize: 13,
+                                style: Theme.of(context).textTheme.chipLabel.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: selected
                                       ? context.colors.onEmphasis
@@ -138,7 +136,7 @@ class AudioQualityScreen extends ConsumerWidget {
                               const SizedBox(height: 2),
                               Text(
                                 q.desc,
-                                style: TextStyle(
+                                style: Theme.of(context).textTheme.songSubtitle.copyWith(
                                   fontSize: 11,
                                   color: selected
                                       ? context.colors.onEmphasisMuted
@@ -150,6 +148,7 @@ class AudioQualityScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
+                      ),
                       ),
                     );
                   }),

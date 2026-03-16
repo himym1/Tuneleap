@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
@@ -91,24 +92,24 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 16),
+            padding: EdgeInsets.fromLTRB(h, h, h, 16),
             child: Text(
               S.of(context).navSongs,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
+              style: Theme.of(context).textTheme.pageTitle.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 0, 32, 16),
+            padding: EdgeInsets.fromLTRB(h, 0, h, 16),
             child: TextField(
               onChanged: (value) => setState(() => _searchQuery = value),
               decoration: InputDecoration(
@@ -127,7 +128,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
                 ? Center(
                     child: Text(
                       S.of(context).libraryNoSongs,
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -235,9 +236,8 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
                     song.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isPlaying ? FontWeight.w600 : FontWeight.w500,
+                    style: Theme.of(context).textTheme.songTitle.copyWith(
+                      fontWeight: isPlaying ? FontWeight.w600 : null,
                       color: isPlaying ? context.colors.primary : null,
                     ),
                   ),
@@ -245,8 +245,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
                     '${song.artist} · ${song.album}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
                       color: isPlaying
                           ? context.colors.primary.withValues(alpha: 0.7)
                           : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -255,8 +254,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
                   trailing: song.duration != null
                       ? Text(
                           song.formattedDuration,
-                          style: TextStyle(
-                            fontSize: 11,
+                          style: Theme.of(context).textTheme.songDuration.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         )

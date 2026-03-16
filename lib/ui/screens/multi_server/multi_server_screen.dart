@@ -61,7 +61,7 @@ class MultiServerScreen extends ConsumerWidget {
                 child: Text(
                   S.of(context).multiServerEmptyHint,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.6,
                   ),
@@ -329,8 +329,7 @@ class _ServerCard extends StatelessWidget {
               children: [
                 Text(
                   server.name,
-                  style: const TextStyle(
-                    fontSize: 15,
+                  style: Theme.of(context).textTheme.songTitle.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -355,8 +354,7 @@ class _ServerCard extends StatelessWidget {
               ),
               child: Text(
                 S.of(context).multiServerCurrent,
-                style: TextStyle(
-                  fontSize: 11,
+                style: Theme.of(context).textTheme.chipLabel.copyWith(
                   fontWeight: FontWeight.w500,
                   color: context.colors.onEmphasis,
                 ),

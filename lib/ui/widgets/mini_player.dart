@@ -8,8 +8,10 @@ import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/api/subsonic_client.dart'
     show LyricsLine, LyricsList;
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/utils/duration_format.dart';
 
 /// 底部迷你播放条
 class MiniPlayer extends ConsumerWidget {
@@ -28,12 +30,6 @@ class MiniPlayer extends ConsumerWidget {
       }
     }
     return lines.isNotEmpty ? lines.first.text : '';
-  }
-
-  static String _formatDuration(Duration d) {
-    final min = d.inMinutes;
-    final sec = d.inSeconds % 60;
-    return '$min:${sec.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -126,33 +122,38 @@ class MiniPlayer extends ConsumerWidget {
   ) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: () => context.push('/player'),
-        child: SizedBox(
-          width: double.infinity,
-          height: 64,
-          child: Row(
-            children: [
-              _buildCover(coverUrl, useHero: true),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: _buildSongInfo(
-                    context,
-                    ref,
-                    currentSong,
-                    playerService,
+      child: Semantics(
+        button: true,
+        label: '${currentSong.title} - ${currentSong.artist}',
+        hint: S.of(context).playerNowPlaying,
+        child: InkWell(
+          onTap: () => context.push('/player'),
+          child: SizedBox(
+            width: double.infinity,
+            height: AppDimensions.miniPlayerHeightMobile,
+            child: Row(
+              children: [
+                _buildCover(coverUrl, useHero: true),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: _buildSongInfo(
+                      context,
+                      ref,
+                      currentSong,
+                      playerService,
+                    ),
                   ),
                 ),
-              ),
-              _buildPlayPauseButton(playerService),
-              IconButton(
-                icon: const Icon(Icons.skip_next_rounded, size: 28),
-                onPressed: () => playerService.next(),
-                tooltip: S.of(context).playerNext,
-              ),
-              const SizedBox(width: 8),
-            ],
+                _buildPlayPauseButton(playerService),
+                IconButton(
+                  icon: const Icon(Icons.skip_next_rounded, size: 28),
+                  onPressed: () => playerService.next(),
+                  tooltip: S.of(context).playerNext,
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
           ),
         ),
       ),
@@ -169,40 +170,50 @@ class MiniPlayer extends ConsumerWidget {
   ) {
     return SizedBox(
       width: double.infinity,
-      height: 72,
+      height: AppDimensions.miniPlayerHeightDesktop,
       child: Row(
         children: [
           // ── Left: cover ──
-          GestureDetector(
-            onTap: () => context.push('/player'),
-            child: _buildCover(coverUrl),
+          Semantics(
+            button: true,
+            label: '${currentSong.title} - ${currentSong.artist}',
+            hint: S.of(context).playerNowPlaying,
+            child: InkWell(
+              onTap: () => context.push('/player'),
+              child: _buildCover(coverUrl),
+            ),
           ),
           // ── Left: song info ──
           Expanded(
             flex: 3,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => context.push('/player'),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        currentSong.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      Text(
-                        '${currentSong.artist} - ${currentSong.album}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
+            child: Semantics(
+              button: true,
+              label: '${currentSong.title} - ${currentSong.artist}',
+              hint: S.of(context).playerNowPlaying,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => context.push('/player'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          currentSong.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        Text(
+                          '${currentSong.artist} - ${currentSong.album}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -270,7 +281,7 @@ class MiniPlayer extends ConsumerWidget {
     final strings = S.of(context);
     return SizedBox(
       width: double.infinity,
-      height: 72,
+      height: AppDimensions.miniPlayerHeightDesktop,
       child: Row(
         children: [
           const SizedBox(width: 16),
@@ -421,7 +432,7 @@ class MiniPlayer extends ConsumerWidget {
               child: Row(
                 children: [
                   Text(
-                    _formatDuration(position),
+                    formatPositionDuration(position),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: context.colors.onSurfaceVariant,
                     ),
@@ -441,7 +452,7 @@ class MiniPlayer extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    _formatDuration(duration),
+                    formatPositionDuration(duration),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: context.colors.onSurfaceVariant,
                     ),
@@ -476,7 +487,7 @@ class MiniPlayer extends ConsumerWidget {
               color: context.colors.onSurfaceVariant,
             ),
             SizedBox(
-              width: 100,
+              width: AppDimensions.volumeSliderWidth,
               child: SliderTheme(
                 data: AppTextStyles.miniSliderTheme(context),
                 child: Slider(
