@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:navidrome_player/ui/theme/app_color_loader.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 
 class AppColors {
   // ── Brand / semantic tokens (from JSON) ──
@@ -54,6 +55,37 @@ class AppTheme {
       fontFamily: 'Poppins',
     );
     return base.copyWith(
+      cardTheme: CardThemeData(
+        color: base.colorScheme.surfaceContainerHigh,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+          side: BorderSide(color: base.colorScheme.outlineVariant),
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadiusSmall),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: base.colorScheme.surfaceContainerHigh,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+          borderSide: BorderSide(color: base.colorScheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+          borderSide: BorderSide(color: base.colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
       segmentedButtonTheme: const SegmentedButtonThemeData(
         style: ButtonStyle(
           visualDensity: VisualDensity.compact,
@@ -84,6 +116,37 @@ class AppTheme {
       fontFamily: 'Poppins',
     );
     return base.copyWith(
+      cardTheme: CardThemeData(
+        color: base.colorScheme.surfaceContainerHigh,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+          side: BorderSide(color: base.colorScheme.outlineVariant),
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadiusSmall),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: base.colorScheme.surfaceContainerHigh,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+          borderSide: BorderSide(color: base.colorScheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+          borderSide: BorderSide(color: base.colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.accent,
         thumbColor: AppColors.accent,

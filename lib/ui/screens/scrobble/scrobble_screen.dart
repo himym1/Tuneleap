@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/stat_card.dart';
+import 'package:navidrome_player/utils/duration_format.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// Scrobble / 播放记录页面
@@ -18,59 +21,104 @@ class ScrobbleScreen extends ConsumerWidget {
     final todayCount = recentSongs.length; // 当前 session 播放数
     final client = ref.read(subsonicClientProvider);
 
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop),
         children: [
           // 头部
           Text(
             S.of(context).navScrobble,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
+            style: Theme.of(context).textTheme.pageTitle.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             S.of(context).scrobbleSubtitle,
-            style: TextStyle(
-              fontSize: 13,
+            style: Theme.of(context).textTheme.songSubtitle.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),
-          // 统计卡片
-          Row(
-            children: [
-              _StatCard(
-                icon: Icons.play_arrow,
-                value: '$todayCount',
-                label: S.of(context).scrobbleSessionPlays,
-              ),
-              const SizedBox(width: 16),
-              _StatCard(
-                icon: Icons.music_note,
-                value: recentSongs
-                    .map((s) => s.artist)
-                    .toSet()
-                    .length
-                    .toString(),
-                label: S.of(context).scrobbleUniqueArtists,
-              ),
-              const SizedBox(width: 16),
-              _StatCard(
-                icon: Icons.album,
-                value: recentSongs
-                    .map((s) => s.albumId)
-                    .toSet()
-                    .length
-                    .toString(),
-                label: S.of(context).scrobbleUniqueAlbums,
-              ),
-            ],
-          ),
+          // 统计卡片 — mobile 竖排，desktop 横排
+          if (isMobile)
+            Column(
+              children: [
+                SizedBox(
+                  height: 80,
+                  child: Row(children: [
+                    StatCard(
+                      icon: Icons.play_arrow,
+                      value: '$todayCount',
+                      label: S.of(context).scrobbleSessionPlays,
+                    ),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 80,
+                  child: Row(children: [
+                    StatCard(
+                      icon: Icons.music_note,
+                      value: recentSongs
+                          .map((s) => s.artist)
+                          .toSet()
+                          .length
+                          .toString(),
+                      label: S.of(context).scrobbleUniqueArtists,
+                    ),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 80,
+                  child: Row(children: [
+                    StatCard(
+                      icon: Icons.album,
+                      value: recentSongs
+                          .map((s) => s.albumId)
+                          .toSet()
+                          .length
+                          .toString(),
+                      label: S.of(context).scrobbleUniqueAlbums,
+                    ),
+                  ]),
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                StatCard(
+                  icon: Icons.play_arrow,
+                  value: '$todayCount',
+                  label: S.of(context).scrobbleSessionPlays,
+                ),
+                const SizedBox(width: 16),
+                StatCard(
+                  icon: Icons.music_note,
+                  value: recentSongs
+                      .map((s) => s.artist)
+                      .toSet()
+                      .length
+                      .toString(),
+                  label: S.of(context).scrobbleUniqueArtists,
+                ),
+                const SizedBox(width: 16),
+                StatCard(
+                  icon: Icons.album,
+                  value: recentSongs
+                      .map((s) => s.albumId)
+                      .toSet()
+                      .length
+                      .toString(),
+                  label: S.of(context).scrobbleUniqueAlbums,
+                ),
+              ],
+            ),
           const SizedBox(height: 20),
           // Scrobble 状态卡片
           Container(
@@ -100,15 +148,11 @@ class ScrobbleScreen extends ConsumerWidget {
                     children: [
                       Text(
                         S.of(context).scrobbleTitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.songTitle,
                       ),
                       Text(
                         S.of(context).scrobbleAutoDesc,
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: Theme.of(context).textTheme.songSubtitle.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -126,8 +170,7 @@ class ScrobbleScreen extends ConsumerWidget {
                   ),
                   child: Text(
                     S.of(context).scrobbleEnabled,
-                    style: TextStyle(
-                      fontSize: 11,
+                    style: Theme.of(context).textTheme.chipLabel.copyWith(
                       fontWeight: FontWeight.w500,
                       color: context.colors.primary,
                     ),
@@ -143,17 +186,14 @@ class ScrobbleScreen extends ConsumerWidget {
             children: [
               Text(
                 S.of(context).scrobbleRecentTitle,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                style: Theme.of(context).textTheme.sectionTitle.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               if (recentSongs.isNotEmpty)
                 Text(
                   S.of(context).scrobbleRecentCount(recentSongs.length),
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -174,7 +214,7 @@ class ScrobbleScreen extends ConsumerWidget {
                 child: Text(
                   S.of(context).scrobbleEmptyHint,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.6,
                   ),
@@ -196,8 +236,7 @@ class ScrobbleScreen extends ConsumerWidget {
                         width: 24,
                         child: Text(
                           '${i + 1}',
-                          style: TextStyle(
-                            fontSize: 12,
+                          style: Theme.of(context).textTheme.songSubtitle.copyWith(
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurfaceVariant,
@@ -215,25 +254,20 @@ class ScrobbleScreen extends ConsumerWidget {
                     song.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: Theme.of(context).textTheme.songTitle,
                   ),
                   subtitle: Text(
                     '${song.artist} · ${song.album}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   trailing: song.duration != null
                       ? Text(
-                          '${song.duration! ~/ 60}:${(song.duration! % 60).toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            fontSize: 12,
+                          formatDurationOrEmpty(song.duration),
+                          style: Theme.of(context).textTheme.songSubtitle.copyWith(
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurfaceVariant,
@@ -249,67 +283,6 @@ class ScrobbleScreen extends ConsumerWidget {
               );
             }),
         ],
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-  const _StatCard({
-    required this.icon,
-    required this.value,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: context.colors.primarySoftAlt,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: context.colors.primary, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

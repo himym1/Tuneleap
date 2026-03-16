@@ -13,3 +13,7 @@ String formatDuration(int totalSeconds) {
 String formatPositionDuration(Duration duration) {
   return formatDuration(duration.inSeconds);
 }
+
+/// Nullable variant — returns empty string when [totalSeconds] is null.
+String formatDurationOrEmpty(int? totalSeconds) =>
+    totalSeconds != null ? formatDuration(totalSeconds) : '';

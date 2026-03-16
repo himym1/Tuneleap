@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:navidrome_player/ui/theme/app_theme.dart';
 
 /// Reusable empty state widget for lists/grids with no content.
 class EmptyState extends StatelessWidget {
@@ -34,8 +35,7 @@ class EmptyState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
+              style: Theme.of(context).textTheme.songTitle.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -83,8 +83,7 @@ class ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
+              style: Theme.of(context).textTheme.songTitle.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),

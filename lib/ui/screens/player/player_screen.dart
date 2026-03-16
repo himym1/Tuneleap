@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/api/subsonic_client.dart' show LyricsLine;
+import 'package:navidrome_player/utils/duration_format.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// 响应式播放器页面 — 移动端单栏 / PC 端双栏布局
@@ -161,7 +163,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           ? Center(
                               child: Text(
                                 S.of(context).playerQueueEmpty,
-                                style: TextStyle(
+                                style: Theme.of(context).textTheme.songSubtitle.copyWith(
                                   color: Theme.of(
                                     context,
                                   ).colorScheme.onSurfaceVariant,
@@ -256,7 +258,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             const SizedBox(height: 12),
             Text(
               S.of(context).playerNoLyrics,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.songSubtitle.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -301,7 +303,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           int seekLineIndex = _seekLineIndex.clamp(0, lyrics.length - 1);
           final seekMs = lyrics[seekLineIndex].startMs;
           final seekTimeStr = seekMs != null
-              ? '${(seekMs ~/ 60000).toString().padLeft(2, '0')}:${((seekMs ~/ 1000) % 60).toString().padLeft(2, '0')}'
+              ? formatDuration(seekMs ~/ 1000)
               : '--:--';
 
           return LayoutBuilder(
@@ -349,20 +351,22 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         itemCount: lyrics.length,
                         itemBuilder: (context, index) {
                           final isActive = index == activeIndex;
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 200),
-                              style: TextStyle(
-                                fontSize: isActive ? 18 : 14,
-                                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                                color: isActive
-                                    ? context.colors.primary
-                                    : Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                              child: Text(
-                                lyrics[index].text,
-                                textAlign: TextAlign.center,
+                          return SizedBox(
+                            height: 44,
+                            child: Center(
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 200),
+                                style: TextStyle(
+                                  fontSize: isActive ? 18 : 14,
+                                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                                  color: isActive
+                                      ? context.colors.primary
+                                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                child: Text(
+                                  lyrics[index].text,
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
                             ),
                           );
@@ -386,8 +390,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             children: [
                               Text(
                                 seekTimeStr,
-                                style: TextStyle(
-                                  fontSize: 12,
+                                style: Theme.of(context).textTheme.chipLabel.copyWith(
                                   fontWeight: FontWeight.w500,
                                   color: context.colors.primary,
                                 ),
@@ -406,6 +409,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                 child: IconButton(
                                   padding: EdgeInsets.zero,
                                   iconSize: 20,
+                                  tooltip: S.of(context).tooltipPlay,
                                   icon: Icon(
                                     Icons.play_arrow_rounded,
                                     color: context.colors.primary,
@@ -447,7 +451,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             child: Text(
               lyrics[index].text,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.songSubtitle.copyWith(
                 fontSize: 15,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -511,7 +515,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ? context.colors.primary
                 : (ref.watch(coverColorProvider(coverUrl)).value ??
                       context.colors.primary);
-            final isMobile = MediaQuery.of(context).size.width < 600;
+            final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
 
             return Scaffold(
               backgroundColor: Colors.transparent,
@@ -707,7 +711,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                     value: s,
                                     child: Text(
                                       S.of(context).playerSpeedValue(s),
-                                      style: TextStyle(
+                                      style: Theme.of(context).textTheme.songTitle.copyWith(
                                         fontWeight: s == speed ? FontWeight.w700 : FontWeight.w400,
                                         color: s == speed ? context.colors.primary : null,
                                       ),
@@ -914,7 +918,7 @@ class _QueuePanelState extends State<_QueuePanel> {
                 ? Center(
                     child: Text(
                       S.of(context).playerQueueEmpty,
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -991,7 +995,7 @@ class _QueuePanelState extends State<_QueuePanel> {
                               song.artist,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
+                              style: Theme.of(context).textTheme.songSubtitle.copyWith(
                                 fontSize: 11,
                                 color: Theme.of(
                                   context,
@@ -1003,9 +1007,8 @@ class _QueuePanelState extends State<_QueuePanel> {
                               children: [
                                 if (song.duration != null)
                                   Text(
-                                    '${song.duration! ~/ 60}:${(song.duration! % 60).toString().padLeft(2, '0')}',
-                                    style: TextStyle(
-                                      fontSize: 11,
+                                    formatDuration(song.duration!),
+                                    style: Theme.of(context).textTheme.songDuration.copyWith(
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.onSurfaceVariant,

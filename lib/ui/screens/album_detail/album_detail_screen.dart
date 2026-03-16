@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/utils/duration_format.dart';
 
 /// 专辑详情页 — 大封面 + 信息 + 歌曲列表
 class AlbumDetailScreen extends ConsumerWidget {
@@ -35,7 +37,7 @@ class AlbumDetailScreen extends ConsumerWidget {
             children: [
               Text(
                 S.of(context).commonLoadFailed,
-                style: TextStyle(
+                style: Theme.of(context).textTheme.songSubtitle.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -96,29 +98,32 @@ class AlbumDetailScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      InkWell(
-                        onTap: () => GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.arrow_back,
-                              size: 16,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              S.of(context).commonBack,
-                              style: TextStyle(
-                                fontSize: 13,
+                      Semantics(
+                        button: true,
+                        label: S.of(context).tooltipBack,
+                        child: InkWell(
+                          onTap: () => GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.arrow_back,
+                                size: 16,
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurfaceVariant,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Text(
+                                S.of(context).commonBack,
+                                style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -156,7 +161,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                         S.of(context).albumSongDuration(
                               album.year?.toString() ?? '—',
                               album.songs.length,
-                              formatDuration(album.duration),
+                              formatDurationOrEmpty(album.duration),
                             ),
                         style: Theme.of(context)
                             .textTheme
@@ -210,9 +215,13 @@ class AlbumDetailScreen extends ConsumerWidget {
             ),
           ),
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Row(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = constraints.maxWidth > 600;
+                final hPadding = isDesktop ? 32.0 : 16.0;
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: hPadding),
+                  child: Row(
                 children: [
                   SizedBox(
                     width: 40,
@@ -244,7 +253,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                     ),
                   ),
                   SizedBox(
-                    width: 100,
+                    width: isDesktop ? 100 : 56,
                     child: Text(
                       S.of(context).albumDuration,
                       textAlign: TextAlign.right,
@@ -261,6 +270,8 @@ class AlbumDetailScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+                );
+              },
             ),
           ),
           const SliverToBoxAdapter(
@@ -270,6 +281,7 @@ class AlbumDetailScreen extends ConsumerWidget {
             delegate: SliverChildBuilderDelegate((context, index) {
               final song = album.songs[index];
               final isPlaying = currentSong?.id == song.id;
+              final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
               return SongContextMenu(
                 song: song,
                 onPlay: () {
@@ -288,8 +300,8 @@ class AlbumDetailScreen extends ConsumerWidget {
                   },
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 16 : 32,
                       vertical: 8,
                     ),
                     child: Row(
@@ -298,8 +310,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                           width: 40,
                           child: Text(
                             '${index + 1}',
-                            style: TextStyle(
-                              fontSize: 13,
+                            style: Theme.of(context).textTheme.chipLabel.copyWith(
                               fontWeight: isPlaying ? FontWeight.w600 : null,
                               color: isPlaying
                                   ? context.colors.primary
@@ -340,9 +351,9 @@ class AlbumDetailScreen extends ConsumerWidget {
                           ),
                         ),
                         SizedBox(
-                          width: 100,
+                          width: isMobile ? 56 : 100,
                           child: Text(
-                            formatDuration(song.duration),
+                            formatDurationOrEmpty(song.duration),
                             textAlign: TextAlign.right,
                             style: Theme.of(context)
                                 .textTheme
@@ -379,25 +390,28 @@ class AlbumDetailScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
-          onTap: () => GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.arrow_back,
-                size: 16,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                S.of(context).commonBack,
-                style: TextStyle(
-                  fontSize: 13,
+        Semantics(
+          button: true,
+          label: S.of(context).tooltipBack,
+          child: InkWell(
+            onTap: () => GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.arrow_back,
+                  size: 16,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-              ),
-            ],
+                const SizedBox(width: 4),
+                Text(
+                  S.of(context).commonBack,
+                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -420,7 +434,7 @@ class AlbumDetailScreen extends ConsumerWidget {
           S.of(context).albumSongDuration(
                 album.year?.toString() ?? '—',
                 album.songs.length,
-                formatDuration(album.duration),
+                formatDurationOrEmpty(album.duration),
               ),
           style: Theme.of(context).textTheme.chipLabel.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,

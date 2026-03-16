@@ -15,29 +15,36 @@ class AppFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: selected ? context.colors.primary : Colors.transparent,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: selected ? context.colors.primary : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: selected
-                ? null
-                : Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant),
-          ),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.chipLabel.copyWith(
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  color: selected
-                      ? context.colors.onEmphasis
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: selected
+                  ? null
+                  : Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant),
+            ),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.chipLabel.copyWith(
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    color: selected
+                        ? context.colors.onEmphasis
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
           ),
         ),
       ),

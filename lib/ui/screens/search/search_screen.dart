@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
@@ -67,6 +68,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final searchState = ref.watch(searchProvider);
     final filters = _getFilters(context, searchState.selectedBackend);
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -74,7 +77,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 0),
+            padding: EdgeInsets.fromLTRB(h, h, h, 0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -90,7 +93,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           const SizedBox(height: 20),
           // 搜索栏
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: EdgeInsets.symmetric(horizontal: h),
             child: TextField(
               controller: _searchController,
               focusNode: _searchFocusNode,
@@ -117,61 +120,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
           const SizedBox(height: 16),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: EdgeInsets.symmetric(horizontal: h),
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
               children: SearchBackend.values.map((backend) {
                 final selected = searchState.selectedBackend == backend;
-                return Material(
-                  color: selected
-                      ? context.colors.primary
-                      : Theme.of(context).colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(20),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () => _setBackend(backend),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        border: selected
-                            ? null
-                            : Border.all(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.outlineVariant,
-                              ),
-                      ),
-                      child: Text(
-                        backend.label(context),
-                        style: Theme.of(context).textTheme.chipLabel.copyWith(
-                          fontWeight: selected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                          color: selected
-                              ? context.colors.onEmphasis
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // 分类标签
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Row(
-              children: List.generate(filters.length, (index) {
-                final selected = searchState.selectedFilter == index;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                return Semantics(
+                  button: true,
+                  selected: selected,
+                  label: backend.label(context),
+                  excludeSemantics: true,
                   child: Material(
                     color: selected
                         ? context.colors.primary
@@ -179,10 +138,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     borderRadius: BorderRadius.circular(20),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(20),
-                      onTap: () => ref.read(searchProvider.notifier).setFilter(index),
+                      onTap: () => _setBackend(backend),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
+                          horizontal: 14,
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
@@ -196,16 +155,72 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 ),
                         ),
                         child: Text(
-                          filters[index],
+                          backend.label(context),
                           style: Theme.of(context).textTheme.chipLabel.copyWith(
                             fontWeight: selected
                                 ? FontWeight.w600
                                 : FontWeight.w400,
                             color: selected
                                 ? context.colors.onEmphasis
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 分类标签
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: h),
+            child: Row(
+              children: List.generate(filters.length, (index) {
+                final selected = searchState.selectedFilter == index;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Semantics(
+                    button: true,
+                    selected: selected,
+                    label: filters[index],
+                    excludeSemantics: true,
+                    child: Material(
+                      color: selected
+                          ? context.colors.primary
+                          : Theme.of(context).colorScheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => ref.read(searchProvider.notifier).setFilter(index),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: selected
+                                ? null
+                                : Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
+                                  ),
+                          ),
+                          child: Text(
+                            filters[index],
+                            style: Theme.of(context).textTheme.chipLabel.copyWith(
+                              fontWeight: selected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: selected
+                                  ? context.colors.onEmphasis
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                       ),
@@ -243,7 +258,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             const SizedBox(height: 16),
             Text(
               S.of(context).searchPlaceholder,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.songSubtitle.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 15,
               ),
@@ -401,8 +416,7 @@ class _SongResultTile extends ConsumerWidget {
                         'joox' => S.of(context).searchBackendJoox,
                         _ => S.of(context).searchBackendNetease,
                       },
-                      style: TextStyle(
-                        fontSize: 11,
+                      style: Theme.of(context).textTheme.chipLabel.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -410,8 +424,7 @@ class _SongResultTile extends ConsumerWidget {
                 if (song.duration != null)
                   Text(
                     song.formattedDuration,
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),

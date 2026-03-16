@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   final VoidCallback onLoginSuccess;
@@ -76,11 +77,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final s = S.of(context);
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Padding(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+              Theme.of(context).colorScheme.surface,
+            ],
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(32),
+            child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -94,7 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Text(
                   s.appName,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: Theme.of(context).textTheme.pageTitle,
                 ),
                 const SizedBox(height: 32),
                 TextField(
@@ -102,7 +114,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   decoration: InputDecoration(
                     labelText: s.multiServerUrl,
                     hintText: s.serverUrlExample,
-                    border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.dns),
                   ),
                   keyboardType: TextInputType.url,
@@ -112,7 +123,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _usernameController,
                   decoration: InputDecoration(
                     labelText: s.multiServerUsername,
-                    border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.person),
                   ),
                 ),
@@ -121,7 +131,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _passwordController,
                   decoration: InputDecoration(
                     labelText: s.multiServerPassword,
-                    border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.lock),
                   ),
                   obscureText: true,
@@ -148,6 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),

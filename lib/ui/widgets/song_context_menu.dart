@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// 通用歌曲右键/长按上下文菜单
@@ -27,12 +28,25 @@ class SongContextMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onSecondaryTapUp: (details) =>
-          _showMenu(context, ref, details.globalPosition),
-      onLongPressStart: (details) =>
-          _showMenu(context, ref, details.globalPosition),
-      child: child,
+    return Builder(
+      builder: (context) {
+        final renderBox = context.findRenderObject() as RenderBox?;
+        final menuPosition = renderBox == null
+            ? Offset.zero
+            : renderBox.localToGlobal(renderBox.size.center(Offset.zero));
+
+        return Semantics(
+          onLongPress: () => _showMenu(context, ref, menuPosition),
+          hint: S.of(context).tooltipMore,
+          child: GestureDetector(
+            onSecondaryTapUp: (details) =>
+                _showMenu(context, ref, details.globalPosition),
+            onLongPressStart: (details) =>
+                _showMenu(context, ref, details.globalPosition),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -195,8 +209,7 @@ class SongContextMenu extends ConsumerWidget {
           const SizedBox(width: 12),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 13,
+            style: Theme.of(context).textTheme.chipLabel.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),

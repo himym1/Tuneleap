@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
+import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 class LibraryAlbumsScreen extends ConsumerStatefulWidget {
@@ -20,6 +22,8 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
   @override
   Widget build(BuildContext context) {
     final albumsAsync = ref.watch(newestAlbumsProvider);
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -27,18 +31,16 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 16),
+            padding: EdgeInsets.fromLTRB(h, h, h, 16),
             child: Text(
               S.of(context).navAlbums,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
+              style: Theme.of(context).textTheme.pageTitle.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 0, 32, 16),
+            padding: EdgeInsets.fromLTRB(h, 0, h, 16),
             child: TextField(
               onChanged: (value) => setState(() => _searchQuery = value),
               decoration: InputDecoration(
@@ -58,7 +60,7 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
               error: (_, _) => Center(
                 child: Text(
                   S.of(context).libraryNoAlbums,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -114,7 +116,10 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
           itemCount: albums.length,
           itemBuilder: (context, index) {
             final album = albums[index];
-            return GestureDetector(
+            return Semantics(
+              button: true,
+              label: '${album.name}${album.artist != null ? ', ${album.artist}' : ''}',
+              child: GestureDetector(
               onTap: () => context.go('/album/${album.id}'),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,23 +135,20 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
                     album.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: Theme.of(context).textTheme.songTitle,
                   ),
                   if (album.artist != null)
                     Text(
                       album.artist!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                 ],
               ),
+            ),
             );
           },
         );
