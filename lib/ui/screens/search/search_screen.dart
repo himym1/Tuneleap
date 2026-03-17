@@ -97,7 +97,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             child: TextField(
               controller: _searchController,
               focusNode: _searchFocusNode,
-              autofocus: true,
+              autofocus: false,
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: S.of(context).searchHintInput,
@@ -324,7 +324,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             (album) => _AlbumResultTile(
               album: album,
               client: ref.read(subsonicClientProvider),
-              onTap: () => context.go('/album/${album.id}'),
+              onTap: () => context.push('/album/${album.id}'),
             ),
           ),
         ],
@@ -342,7 +342,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             (artist) => _ArtistResultTile(
               artist: artist,
               client: ref.read(subsonicClientProvider),
-              onTap: () => context.go('/artist/${artist.id}'),
+              onTap: () => context.push('/artist/${artist.id}'),
             ),
           ),
         ],

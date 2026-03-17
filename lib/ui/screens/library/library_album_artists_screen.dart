@@ -143,7 +143,7 @@ class _LibraryAlbumArtistsScreenState
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            onTap: () => context.go('/artist/${artist.id}'),
+            onTap: () => context.push('/artist/${artist.id}'),
           ),
         );
       },

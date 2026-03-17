@@ -418,26 +418,22 @@ class _SettingsSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.settingsSectionTitle,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.settingsSectionSubtitle,
-                ),
-              ],
-            ),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.settingsSectionTitle,
           ),
-          ?trailing,
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.settingsSectionSubtitle,
+          ),
+          if (trailing != null) ...[
+            const SizedBox(height: 12),
+            trailing!,
+          ],
         ],
       ),
     );

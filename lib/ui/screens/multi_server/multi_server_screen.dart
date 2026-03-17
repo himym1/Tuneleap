@@ -195,8 +195,8 @@ class _ServerDialogState extends State<_ServerDialog> {
             ? S.of(context).multiServerAdd
             : S.of(context).multiServerEdit,
       ),
-      content: SizedBox(
-        width: 360,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

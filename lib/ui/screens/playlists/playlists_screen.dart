@@ -428,7 +428,7 @@ class PlaylistsScreen extends ConsumerWidget {
                                     ),
                                       borderRadius: BorderRadius.circular(12),
                                       child: Padding(
-                                        padding: const EdgeInsets.all(4),
+                                        padding: const EdgeInsets.all(12),
                                         child: Icon(
                                           Icons.edit,
                                           size: 16,
@@ -585,7 +585,7 @@ class PlaylistsScreen extends ConsumerWidget {
                                         },
                                         borderRadius: BorderRadius.circular(12),
                                         child: Padding(
-                                          padding: const EdgeInsets.all(4),
+                                          padding: const EdgeInsets.all(12),
                                           child: Icon(
                                             Icons.remove_circle_outline,
                                             size: 16,
