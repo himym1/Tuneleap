@@ -209,7 +209,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            onTap: () => context.go('/artist/${artist.id}'),
+            onTap: () => context.push('/artist/${artist.id}'),
           ),
         );
       },
@@ -268,7 +268,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 borderRadius: BorderRadius.circular(10),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
-                  onTap: () => context.go('/album/${album.id}'),
+                  onTap: () => context.push('/album/${album.id}'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

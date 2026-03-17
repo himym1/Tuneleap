@@ -135,7 +135,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onTap: () => ref.invalidate(weatherProvider),
             borderRadius: BorderRadius.circular(6),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Text(
                 '${info.icon} ${info.temp}  ${info.location}',
                 style: Theme.of(context).textTheme.chipLabel.copyWith(
@@ -197,7 +197,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               label: album.name,
               child: InkWell(
               borderRadius: BorderRadius.circular(10),
-              onTap: () => context.go('/album/${album.id}'),
+              onTap: () => context.push('/album/${album.id}'),
               child: SizedBox(
                 width: 130,
                 child: Column(

@@ -95,22 +95,26 @@ class ArtistDetailScreen extends ConsumerWidget {
                               child: Semantics(
                                 button: true,
                                 label: S.of(context).tooltipBack,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.arrow_back,
-                                      size: 16,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      S.of(context).commonBack,
-                                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(minHeight: 44),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.arrow_back,
+                                        size: 16,
                                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        S.of(context).commonBack,
+                                        style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -194,22 +198,26 @@ class ArtistDetailScreen extends ConsumerWidget {
                                     child: Semantics(
                                       button: true,
                                       label: S.of(context).tooltipBack,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.arrow_back,
-                                            size: 16,
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            S.of(context).commonBack,
-                                            style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(minHeight: 44),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.arrow_back,
+                                              size: 16,
                                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              S.of(context).commonBack,
+                                              style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -292,7 +300,7 @@ class ArtistDetailScreen extends ConsumerWidget {
                       button: true,
                       label: album.name,
                       child: InkWell(
-                      onTap: () => context.go('/album/${album.id}'),
+                      onTap: () => context.push('/album/${album.id}'),
                       borderRadius: BorderRadius.circular(12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

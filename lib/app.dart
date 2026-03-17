@@ -27,6 +27,33 @@ import 'package:navidrome_player/ui/screens/artist_detail/artist_detail_screen.d
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/l10n/localization_utils.dart';
 
+/// FadeThrough transition: old page fades out completely, then new page fades in.
+/// Avoids text overlap that occurs with simple FadeTransition.
+Widget _fadeThroughTransition(
+  BuildContext context,
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  return FadeTransition(
+    opacity: CurvedAnimation(
+      parent: animation,
+      curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
+    ),
+    child: FadeTransition(
+      opacity: Tween<double>(begin: 1.0, end: 0.0).animate(
+        CurvedAnimation(
+          parent: secondaryAnimation,
+          curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+        ),
+      ),
+      child: child,
+    ),
+  );
+}
+
+const _kFadeDuration = Duration(milliseconds: 250);
+
 class NavidromePlayerApp extends ConsumerStatefulWidget {
   const NavidromePlayerApp({super.key});
 
@@ -95,11 +122,8 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
               pageBuilder: (context, state) => CustomTransitionPage(
                 key: state.pageKey,
                 child: const HomeScreen(),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                transitionDuration: const Duration(milliseconds: 200),
+                transitionsBuilder: _fadeThroughTransition,
+                transitionDuration: _kFadeDuration,
               ),
             ),
             GoRoute(
@@ -113,11 +137,8 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
               pageBuilder: (context, state) => CustomTransitionPage(
                 key: state.pageKey,
                 child: const LibraryScreen(),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                transitionDuration: const Duration(milliseconds: 200),
+                transitionsBuilder: _fadeThroughTransition,
+                transitionDuration: _kFadeDuration,
               ),
               routes: [
                 GoRoute(
@@ -125,14 +146,8 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
                     child: const LibrarySongsScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                    transitionDuration: const Duration(milliseconds: 200),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
                   ),
                 ),
                 GoRoute(
@@ -140,14 +155,8 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
                     child: const LibraryAlbumsScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                    transitionDuration: const Duration(milliseconds: 200),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
                   ),
                 ),
                 GoRoute(
@@ -155,14 +164,8 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
                     child: const LibraryArtistsScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                    transitionDuration: const Duration(milliseconds: 200),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
                   ),
                 ),
                 GoRoute(
@@ -170,14 +173,8 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
                     child: const LibraryAlbumArtistsScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                    transitionDuration: const Duration(milliseconds: 200),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
                   ),
                 ),
                 GoRoute(
@@ -185,14 +182,8 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
                     child: const LibraryGenresScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                    transitionDuration: const Duration(milliseconds: 200),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
                   ),
                 ),
                 GoRoute(
@@ -200,14 +191,8 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
                     child: const LibraryRadioScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                    transitionDuration: const Duration(milliseconds: 200),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
                   ),
                 ),
               ],
@@ -217,11 +202,8 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
               pageBuilder: (context, state) => CustomTransitionPage(
                 key: state.pageKey,
                 child: const SearchScreen(),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                transitionDuration: const Duration(milliseconds: 200),
+                transitionsBuilder: _fadeThroughTransition,
+                transitionDuration: _kFadeDuration,
               ),
             ),
             GoRoute(
@@ -229,11 +211,8 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
               pageBuilder: (context, state) => CustomTransitionPage(
                 key: state.pageKey,
                 child: const PlaylistsScreen(),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                transitionDuration: const Duration(milliseconds: 200),
+                transitionsBuilder: _fadeThroughTransition,
+                transitionDuration: _kFadeDuration,
               ),
             ),
             GoRoute(
@@ -258,15 +237,30 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
             ),
             GoRoute(
               path: '/downloads',
-              builder: (context, state) => const DownloadsScreen(),
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const DownloadsScreen(),
+                transitionsBuilder: _fadeThroughTransition,
+                transitionDuration: _kFadeDuration,
+              ),
             ),
             GoRoute(
               path: '/scrobble',
-              builder: (context, state) => const ScrobbleScreen(),
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const ScrobbleScreen(),
+                transitionsBuilder: _fadeThroughTransition,
+                transitionDuration: _kFadeDuration,
+              ),
             ),
             GoRoute(
               path: '/servers',
-              builder: (context, state) => const MultiServerScreen(),
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const MultiServerScreen(),
+                transitionsBuilder: _fadeThroughTransition,
+                transitionDuration: _kFadeDuration,
+              ),
             ),
             GoRoute(
               path: '/album/:id',
@@ -320,11 +314,16 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
             ),
             GoRoute(
               path: '/settings',
-              builder: (context, state) => SettingsScreen(
-                onLogout: () {
-                  setState(() => _loggedIn = false);
-                  _router.go('/login');
-                },
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: SettingsScreen(
+                  onLogout: () {
+                    setState(() => _loggedIn = false);
+                    _router.go('/login');
+                  },
+                ),
+                transitionsBuilder: _fadeThroughTransition,
+                transitionDuration: _kFadeDuration,
               ),
             ),
           ],

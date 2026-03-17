@@ -119,8 +119,9 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
             return Semantics(
               button: true,
               label: '${album.name}${album.artist != null ? ', ${album.artist}' : ''}',
-              child: GestureDetector(
-              onTap: () => context.go('/album/${album.id}'),
+              child: InkWell(
+              onTap: () => context.push('/album/${album.id}'),
+              borderRadius: BorderRadius.circular(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

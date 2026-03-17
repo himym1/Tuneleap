@@ -682,7 +682,7 @@ class _RefreshButtonState extends ConsumerState<_RefreshButton>
         onTap: _onRefresh,
         borderRadius: BorderRadius.circular(6),
         child: Padding(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(8),
           child: RotationTransition(
             turns: _controller,
             child: Icon(
