@@ -46,9 +46,6 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
               ),
             ),
           ),

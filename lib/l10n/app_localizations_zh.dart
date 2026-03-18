@@ -759,11 +759,11 @@ class SZh extends S {
   }
 
   @override
-  String get contextMenuDelete => '从服务器删除';
+  String get contextMenuDelete => '删除歌曲';
 
   @override
-  String contextMenuDeleteConfirm(String title) {
-    return '确定要删除「$title」吗？这将从服务器永久移除该文件。';
+  String contextMenuDeleteConfirm(String title, String artist) {
+    return '确定要从服务器删除「$title」($artist)？\n此操作不可恢复。';
   }
 
   @override
@@ -860,4 +860,36 @@ class SZh extends S {
 
   @override
   String get tooltipMore => '更多';
+
+  @override
+  String get updateCheckUpdate => '检查更新';
+
+  @override
+  String get updateChecking => '检查中...';
+
+  @override
+  String updateNewVersion(String version) {
+    return '发现新版本 v$version';
+  }
+
+  @override
+  String get updateChangelog => '更新内容';
+
+  @override
+  String get updateDownload => '下载更新';
+
+  @override
+  String get updateLatest => '已是最新版本';
+
+  @override
+  String get updateFailed => '检查更新失败，请稍后重试';
+
+  @override
+  String get contextMenuDeleteTitle => '确认删除';
+
+  @override
+  String get contextMenuDeleted => '已删除';
+
+  @override
+  String get contextMenuDeleteFailed => '删除失败，请稍后重试';
 }

@@ -769,11 +769,11 @@ class SEn extends S {
   }
 
   @override
-  String get contextMenuDelete => 'Delete from Server';
+  String get contextMenuDelete => 'Delete Song';
 
   @override
-  String contextMenuDeleteConfirm(String title) {
-    return 'Are you sure you want to delete \"$title\"? This will remove it from the server permanently.';
+  String contextMenuDeleteConfirm(String title, String artist) {
+    return 'Delete \"$title\" ($artist) from server?\nThis cannot be undone.';
   }
 
   @override
@@ -870,4 +870,36 @@ class SEn extends S {
 
   @override
   String get tooltipMore => 'More';
+
+  @override
+  String get updateCheckUpdate => 'Check for Updates';
+
+  @override
+  String get updateChecking => 'Checking...';
+
+  @override
+  String updateNewVersion(String version) {
+    return 'New version v$version available';
+  }
+
+  @override
+  String get updateChangelog => 'Changelog';
+
+  @override
+  String get updateDownload => 'Download Update';
+
+  @override
+  String get updateLatest => 'You\'re up to date';
+
+  @override
+  String get updateFailed => 'Update check failed, please try again';
+
+  @override
+  String get contextMenuDeleteTitle => 'Confirm Delete';
+
+  @override
+  String get contextMenuDeleted => 'Deleted';
+
+  @override
+  String get contextMenuDeleteFailed => 'Delete failed, please try again';
 }

@@ -197,7 +197,6 @@ class PlaylistsScreen extends ConsumerWidget {
           autofocus: true,
           decoration: InputDecoration(
             labelText: S.of(context).playlistNameLabel,
-            border: const OutlineInputBorder(),
           ),
           onSubmitted: (_) => _submitCreate(ctx, context, ref, nameController.text),
         ),
@@ -635,7 +634,6 @@ class PlaylistsScreen extends ConsumerWidget {
           autofocus: true,
           decoration: InputDecoration(
             labelText: S.of(screenContext).playlistNewName,
-            border: const OutlineInputBorder(),
           ),
           onSubmitted: (_) async {
             final newName = controller.text.trim();

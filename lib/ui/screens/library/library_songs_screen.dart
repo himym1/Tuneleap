@@ -16,7 +16,15 @@ class LibrarySongsScreen extends ConsumerStatefulWidget {
   ConsumerState<LibrarySongsScreen> createState() => _LibrarySongsScreenState();
 }
 
-class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
+class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  // 静态缓存：跨 widget 实例保留歌曲列表和滚动位置
+  static List<Song> _cachedSongs = [];
+  static bool _cachedHasMore = true;
+
   List<Song> _songs = [];
   bool _loading = true;
   bool _loadingMore = false;
@@ -30,7 +38,17 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _loadData();
+    // 从静态缓存恢复
+    if (_cachedSongs.isNotEmpty) {
+      _songs = List.of(_cachedSongs);
+      _hasMore = _cachedHasMore;
+      _loading = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToCurrentSong();
+      });
+    } else {
+      _loadData();
+    }
   }
 
   @override
@@ -54,6 +72,8 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
         _songs = result.songs;
         _hasMore = result.songs.length >= _pageSize;
         _loading = false;
+        _cachedSongs = List.of(_songs);
+        _cachedHasMore = _hasMore;
       });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
@@ -83,6 +103,8 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
       setState(() {
         _songs.addAll(result.songs);
         _hasMore = result.songs.length >= _pageSize;
+        _cachedSongs = List.of(_songs);
+        _cachedHasMore = _hasMore;
       });
     } catch (e) {
       debugPrint('Failed to load more songs: $e');
@@ -92,6 +114,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
     return Scaffold(
@@ -115,9 +138,6 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
               ),
             ),
           ),
@@ -217,6 +237,9 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
                     .playAll(filtered, startIndex: index);
                 context.push('/player');
               },
+              onDeleted: () {
+                setState(() => _songs.removeWhere((s) => s.id == song.id));
+              },
               child: Container(
                 decoration: BoxDecoration(
                   color: isPlaying ? context.colors.primarySoft : null,
@@ -278,8 +301,8 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen> {
             right: 16,
             bottom: 16,
             child: SizedBox(
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               child: FloatingActionButton(
                 onPressed: _scrollToCurrentSong,
                 elevation: 2,

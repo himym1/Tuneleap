@@ -343,5 +343,32 @@
     "tooltipDelete": "Delete",
     "tooltipClear": "Clear",
     "tooltipBack": "Back",
-    "tooltipMore": "More"
+    "tooltipMore": "More",
+
+    "updateCheckUpdate": "Check for Updates",
+    "updateChecking": "Checking...",
+    "updateNewVersion": "New version v{version} available",
+    "@updateNewVersion": {
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "updateChangelog": "Changelog",
+    "updateDownload": "Download Update",
+    "updateLatest": "You're up to date",
+    "updateFailed": "Update check failed, please try again",
+
+    "contextMenuDelete": "Delete Song",
+    "contextMenuDeleteTitle": "Confirm Delete",
+    "contextMenuDeleteConfirm": "Delete \"{title}\" ({artist}) from server?\nThis cannot be undone.",
+    "@contextMenuDeleteConfirm": {
+        "placeholders": {
+            "title": { "type": "String" },
+            "artist": { "type": "String" }
+        }
+    },
+    "contextMenuDeleted": "Deleted",
+    "contextMenuDeleteFailed": "Delete failed, please try again"
 }

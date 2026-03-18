@@ -348,7 +348,7 @@ class _DailyRecommendTileState extends State<_DailyRecommendTile> {
                   ),
                 ),
                 AnimatedOpacity(
-                  opacity: _hovered ? 1.0 : 0.0,
+                  opacity: _hovered ? 1.0 : 0.3,
                   duration: const Duration(milliseconds: 150),
                   child: Icon(
                     Icons.play_circle_outline,

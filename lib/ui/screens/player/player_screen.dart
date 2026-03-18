@@ -22,8 +22,14 @@ class PlayerScreen extends ConsumerStatefulWidget {
 }
 
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
-  bool _showQueue = false;
-  bool _showLyrics = false;
+  // 跨 widget 实例保留的静态状态
+  static final Map<String, List<LyricsLine>> _lyricsCache = {};
+  static bool _lastShowLyrics = false;
+  static bool _lastShowQueue = false;
+  static int _lastDesktopPage = 0;
+
+  bool _showQueue = _lastShowQueue;
+  bool _showLyrics = _lastShowLyrics;
   List<LyricsLine>? _lyrics;
   String? _lyricsForSongId;
   final _lyricsScrollController = ScrollController();
@@ -31,8 +37,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Timer? _userScrollTimer;
   int _seekLineIndex = 0;
   // PC 端页面切换
-  final _desktopPageController = PageController();
-  int _desktopCurrentPage = 0;
+  late final PageController _desktopPageController = PageController(initialPage: _lastDesktopPage);
+  int _desktopCurrentPage = _lastDesktopPage;
   StreamSubscription<Song?>? _songChangeSub;
 
   @override
@@ -69,12 +75,22 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   Future<void> _loadLyrics(Song song) async {
     if (_lyricsForSongId == song.storageKey && _lyrics != null) return;
+    // 优先从静态缓存恢复，避免重新打开播放器时重复请求
+    if (_lyricsCache.containsKey(song.storageKey)) {
+      setState(() {
+        _lyrics = _lyricsCache[song.storageKey];
+        _lyricsForSongId = song.storageKey;
+      });
+      return;
+    }
     try {
       final resolver = ref.read(songMediaResolverProvider);
       final result = await resolver.lyrics(song);
+      final lines = result?.lines ?? [];
+      _lyricsCache[song.storageKey] = lines;
       if (mounted) {
         setState(() {
-          _lyrics = result?.lines ?? [];
+          _lyrics = lines;
           _lyricsForSongId = song.storageKey;
         });
       }
@@ -236,7 +252,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  Widget _buildLyricsPanel(Song currentSong, AudioPlayerService playerService) {
+  Widget _buildLyricsPanel(Song currentSong, AudioPlayerService playerService,
+      {Color? activeFg, Color? inactiveFg}) {
     final lyrics = _lyrics;
     if (lyrics == null || _lyricsForSongId != currentSong.storageKey) {
       // 歌词尚未加载：不在 build 中直接调用 _loadLyrics（会触发 setState during build）。
@@ -360,8 +377,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                   fontSize: isActive ? 18 : 14,
                                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                                   color: isActive
-                                      ? context.colors.primary
-                                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ? (activeFg ?? context.colors.primary)
+                                      : (inactiveFg ?? Theme.of(context).colorScheme.onSurfaceVariant),
+                                  shadows: [
+                                    Shadow(
+                                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
                                 ),
                                 child: Text(
                                   lyrics[index].text,
@@ -392,14 +415,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                 seekTimeStr,
                                 style: Theme.of(context).textTheme.chipLabel.copyWith(
                                   fontWeight: FontWeight.w500,
-                                  color: context.colors.primary,
+                                  color: activeFg ?? context.colors.primary,
                                 ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Container(
                                   height: 1,
-                                  color: context.colors.primary.withValues(alpha: 0.4),
+                                  color: (activeFg ?? context.colors.primary).withValues(alpha: 0.4),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -412,7 +435,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                   tooltip: S.of(context).tooltipPlay,
                                   icon: Icon(
                                     Icons.play_arrow_rounded,
-                                    color: context.colors.primary,
+                                    color: activeFg ?? context.colors.primary,
                                   ),
                                   onPressed: () {
                                     if (seekMs != null) {
@@ -453,7 +476,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.songSubtitle.copyWith(
                 fontSize: 15,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: inactiveFg ?? Theme.of(context).colorScheme.onSurfaceVariant,
+                shadows: [
+                  Shadow(
+                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
             ),
           );
@@ -516,37 +545,97 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 : (ref.watch(coverColorProvider(coverUrl)).value ??
                       context.colors.primary);
             final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+            final surfaceColor = Theme.of(context).colorScheme.surface;
+            // 使用不透明预混色，避免半透明渲染导致不可预测的对比度
+            final gradientTop = Color.lerp(surfaceColor, accentColor, 0.45)!;
 
             return Scaffold(
-              backgroundColor: Colors.transparent,
-              body: AnimatedContainer(
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.easeInOut,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      accentColor.withValues(alpha: 0.18),
-                      Theme.of(context).colorScheme.surface,
-                      Theme.of(context).colorScheme.surface,
-                    ],
-                    stops: const [0.0, 0.35, 1.0],
-                  ),
-                ),
-                child: isMobile
-                    ? _buildMobilePlayer(
+              backgroundColor: surfaceColor,
+              body: isMobile
+                  // ── 移动端：原有渐变 ──
+                  ? AnimatedContainer(
+                      duration: const Duration(milliseconds: 800),
+                      curve: Curves.easeInOut,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [gradientTop, surfaceColor],
+                          stops: const [0.0, 0.65],
+                        ),
+                      ),
+                      child: _buildDismissibleMobilePlayer(
                         context,
                         currentSong,
                         playerService,
                         coverUrl,
-                      )
-                    : _buildDesktopPlayer(currentSong, playerService, coverUrl),
-              ),
+                        accentColor,
+                      ),
+                    )
+                  // ── 桌面端：模糊封面背景 + 渐变叠加 ──
+                  : Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // 层 1：模糊封面图
+                        if (coverUrl.isNotEmpty)
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 800),
+                            child: SizedBox.expand(
+                              key: ValueKey(coverUrl),
+                              child: ImageFiltered(
+                                imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                                child: Opacity(
+                                  opacity: 0.18,
+                                  child: Image.network(
+                                    coverUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        // 层 2：半透明渐变叠加层（保证文字可读性）
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 800),
+                          curve: Curves.easeInOut,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Color.lerp(surfaceColor, accentColor, 0.40)!.withValues(alpha: 0.85),
+                                surfaceColor.withValues(alpha: 0.92),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // 层 3：播放器内容
+                        _buildDesktopPlayer(currentSong, playerService, coverUrl),
+                      ],
+                    ),
             );
           },
         );
       },
+    );
+  }
+
+  /// Wraps mobile player with drag-down-to-dismiss gesture (GPU-composited)
+  Widget _buildDismissibleMobilePlayer(
+    BuildContext context,
+    Song currentSong,
+    AudioPlayerService playerService,
+    String coverUrl,
+    Color accentColor,
+  ) {
+    return _DragDismissWrapper(
+      onDismiss: () => GoRouter.of(context).canPop()
+          ? context.pop()
+          : context.go('/home'),
+      child: _buildMobilePlayer(
+        context, currentSong, playerService, coverUrl, accentColor,
+      ),
     );
   }
 
@@ -556,7 +645,18 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     Song currentSong,
     AudioPlayerService playerService,
     String coverUrl,
+    Color accentColor,
   ) {
+    // 根据封面色计算自适应前景色
+    final surfaceColor = Theme.of(context).colorScheme.surface;
+    final blendedBg = Color.lerp(surfaceColor, accentColor, 0.45)!;
+    final isDarkBg = blendedBg.computeLuminance() < 0.4;
+    final playerFg = isDarkBg ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final playerFgMuted = isDarkBg
+        ? Colors.white.withValues(alpha: 0.7)
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    final playerActiveFg = isDarkBg ? Colors.white : context.colors.primary;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -572,14 +672,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   icon: Icon(
                     Icons.keyboard_arrow_down,
                     size: 28,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: playerFg,
                   ),
                 ),
                 Text(
                   S.of(context).playerNowPlaying,
                   style: Theme.of(context).textTheme.chipLabel.copyWith(
                     fontWeight: FontWeight.w500,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: playerFgMuted,
                   ),
                 ),
                 Row(
@@ -588,6 +688,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     IconButton(
                       onPressed: () {
                         setState(() => _showLyrics = !_showLyrics);
+                        _lastShowLyrics = _showLyrics;
                         if (_showLyrics) {
                           _loadLyrics(currentSong);
                         }
@@ -597,8 +698,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         Icons.lyrics_outlined,
                         size: 22,
                         color: _showLyrics
-                            ? context.colors.primary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                            ? playerActiveFg
+                            : playerFgMuted,
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -608,7 +709,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       icon: Icon(
                         Icons.queue_music,
                         size: 24,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: playerFgMuted,
                       ),
                     ),
                   ],
@@ -616,18 +717,29 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ],
             ),
             const Spacer(flex: 1),
-            // 大封面 / 歌词
+            // 大封面 / 歌词 — 点击切换
             Flexible(
               flex: 5,
-              child: _showLyrics
-                  ? _buildLyricsPanel(currentSong, playerService)
-                  : AspectRatio(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() => _showLyrics = !_showLyrics);
+                  _lastShowLyrics = _showLyrics;
+                  if (_showLyrics) {
+                    _loadLyrics(currentSong);
+                  }
+                },
+                behavior: HitTestBehavior.opaque,
+                child: _showLyrics
+                    ? _buildLyricsPanel(currentSong, playerService,
+                        activeFg: playerActiveFg, inactiveFg: playerFgMuted)
+                    : AspectRatio(
                       aspectRatio: 1,
                       child: Hero(
                         tag: 'player-cover',
                         child: CoverArt(url: coverUrl, borderRadius: 20),
                       ),
                     ),
+              ),
             ),
             const SizedBox(height: 28),
             // 歌曲信息
@@ -651,12 +763,28 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
+            if (currentSong.suffix != null || currentSong.bitRate != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                [
+                  if (currentSong.suffix != null) currentSong.suffix!.toUpperCase(),
+                  if (currentSong.bitRate != null) '${currentSong.bitRate}kbps',
+                ].join(' · '),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: context.colors.primary.withValues(alpha: 0.7),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             // 进度条
             _ProgressBar(playerService: playerService),
             const SizedBox(height: 16),
             // 播放控制
-            _PlaybackControls(playerService: playerService),
+            _PlaybackControls(
+              playerService: playerService,
+              accentColor: accentColor,
+            ),
             const Spacer(flex: 1),
           ],
         ),
@@ -745,7 +873,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                 ? context.colors.primary
                                 : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
-                          onPressed: () => setState(() => _showQueue = !_showQueue),
+                          onPressed: () {
+                            setState(() => _showQueue = !_showQueue);
+                            _lastShowQueue = _showQueue;
+                          },
                           tooltip: _showQueue
                               ? S.of(context).playerHideQueue
                               : S.of(context).playerShowQueue,
@@ -770,6 +901,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     scrollDirection: Axis.horizontal,
                     onPageChanged: (page) {
                         setState(() => _desktopCurrentPage = page);
+                        _lastDesktopPage = page;
                         // 切换到歌词页（page 1）时触发加载，在 onPageChanged 回调中
                         // 调用是安全的（非 build 阶段）
                         if (page == 1) _loadLyrics(currentSong);
@@ -781,14 +913,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   ),
                 ),
               ),
-              // 底部：歌曲信息 + 辅助操作（无进度条/播放控制/音量）
+              // 底部：进度条 + 控制按钮 + 歌曲信息
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
                   children: [
                     // 页面指示器（小圆点）
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(2, (i) {
@@ -817,7 +949,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       '${currentSong.artist} · ${currentSong.album}',
                       maxLines: 1,
@@ -826,6 +958,28 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
+                    if (currentSong.suffix != null || currentSong.bitRate != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        [
+                          if (currentSong.suffix != null) currentSong.suffix!.toUpperCase(),
+                          if (currentSong.bitRate != null) '${currentSong.bitRate}kbps',
+                        ].join(' · '),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: context.colors.primary.withValues(alpha: 0.7),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    // 进度条
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 500),
+                      child: _ProgressBar(playerService: playerService),
+                    ),
+                    const SizedBox(height: 4),
+                    // 播放控制
+                    _PlaybackControls(playerService: playerService),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -1117,7 +1271,8 @@ class _ProgressBar extends StatelessWidget {
 /// 播放控制按钮 — AnimatedIcon play/pause + 响应式 Repeat 状态
 class _PlaybackControls extends StatefulWidget {
   final AudioPlayerService playerService;
-  const _PlaybackControls({required this.playerService});
+  final Color? accentColor;
+  const _PlaybackControls({required this.playerService, this.accentColor});
 
   @override
   State<_PlaybackControls> createState() => _PlaybackControlsState();
@@ -1160,6 +1315,13 @@ class _PlaybackControlsState extends State<_PlaybackControls>
 
   @override
   Widget build(BuildContext context) {
+    // 播放按钮使用封面色，让控制区与背景协调
+    final btnColor = widget.accentColor ?? context.colors.primary;
+    // 确保按钮上的图标可见：深色按钮用白色图标，浅色按钮用深色图标
+    final btnFg = btnColor.computeLuminance() < 0.4
+        ? Colors.white
+        : Colors.black87;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -1168,8 +1330,8 @@ class _PlaybackControlsState extends State<_PlaybackControls>
             Icons.shuffle,
             size: 22,
             color: widget.playerService.shuffle
-                ? context.colors.primary
-                : Theme.of(context).colorScheme.onSurfaceVariant,
+                ? btnColor
+                : Theme.of(context).colorScheme.onSurface,
           ),
           tooltip: S.of(context).playerShuffle,
           onPressed: () => widget.playerService.toggleShuffle(),
@@ -1186,7 +1348,7 @@ class _PlaybackControlsState extends State<_PlaybackControls>
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: context.colors.primary,
+            color: btnColor,
             shape: BoxShape.circle,
           ),
           child: IconButton(
@@ -1194,7 +1356,7 @@ class _PlaybackControlsState extends State<_PlaybackControls>
               icon: AnimatedIcons.play_pause,
               progress: _playPauseController,
               size: 32,
-              color: context.colors.onEmphasis,
+              color: btnFg,
             ),
             onPressed: () => _playing
                 ? widget.playerService.pause()
@@ -1215,8 +1377,8 @@ class _PlaybackControlsState extends State<_PlaybackControls>
             _repeatMode == RepeatMode.one ? Icons.repeat_one : Icons.repeat,
             size: 22,
             color: _repeatMode != RepeatMode.off
-                ? context.colors.primary
-                : Theme.of(context).colorScheme.onSurfaceVariant,
+                ? btnColor
+                : Theme.of(context).colorScheme.onSurface,
           ),
           tooltip: S.of(context).playerRepeat,
           onPressed: () {
@@ -1227,6 +1389,83 @@ class _PlaybackControlsState extends State<_PlaybackControls>
           },
         ),
       ],
+    );
+  }
+}
+
+/// GPU-composited drag-down dismiss wrapper with spring-back animation.
+class _DragDismissWrapper extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onDismiss;
+
+  const _DragDismissWrapper({required this.child, required this.onDismiss});
+
+  @override
+  State<_DragDismissWrapper> createState() => _DragDismissWrapperState();
+}
+
+class _DragDismissWrapperState extends State<_DragDismissWrapper>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  double _dragExtent = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragExtent = (_dragExtent + details.delta.dy).clamp(0.0, 300.0);
+    });
+  }
+
+  void _handleDragEnd(DragEndDetails details) {
+    if (_dragExtent > 120 || (details.primaryVelocity ?? 0) > 600) {
+      widget.onDismiss();
+    } else {
+      // Spring back with animation
+      final startValue = _dragExtent;
+      _controller.reset();
+      _controller.forward();
+      late final VoidCallback listener;
+      listener = () {
+        setState(() {
+          _dragExtent =
+              startValue * (1 - Curves.easeOut.transform(_controller.value));
+        });
+        if (_controller.isCompleted) {
+          _controller.removeListener(listener);
+        }
+      };
+      _controller.addListener(listener);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = (_dragExtent / 300).clamp(0.0, 1.0);
+    return GestureDetector(
+      onVerticalDragUpdate: _handleDragUpdate,
+      onVerticalDragEnd: _handleDragEnd,
+      behavior: HitTestBehavior.translucent,
+      child: Transform.translate(
+        offset: Offset(0, _dragExtent),
+        child: Opacity(
+          opacity: 1.0 - progress * 0.4,
+          child: widget.child,
+        ),
+      ),
     );
   }
 }

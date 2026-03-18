@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
@@ -19,16 +20,38 @@ class DownloadsScreen extends ConsumerWidget {
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/home');
+      },
+      child: Scaffold(
       backgroundColor: Colors.transparent,
       body: ListView(
         padding: EdgeInsets.fromLTRB(h, h, h, h),
         children: [
-          Text(
-            S.of(context).navDownloads,
-            style: Theme.of(context).textTheme.pageTitle.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
+          Row(
+            children: [
+              if (isMobile)
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      context.go('/home');
+                    }
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                ),
+              Text(
+                S.of(context).navDownloads,
+                style: Theme.of(context).textTheme.pageTitle.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
 
@@ -36,39 +59,30 @@ class DownloadsScreen extends ConsumerWidget {
           if (isMobile)
             Column(
               children: [
-                SizedBox(
-                  height: 80,
-                  child: Row(children: [
-                    StatCard(
-                      icon: Icons.download_done,
-                      label: S.of(context).downloadsCompleted,
-                      value: '$completed',
-                    ),
-                  ]),
-                ),
+                Row(children: [
+                  StatCard(
+                    icon: Icons.download_done,
+                    label: S.of(context).downloadsCompleted,
+                    value: '$completed',
+                  ),
+                ]),
                 const SizedBox(height: 12),
-                SizedBox(
-                  height: 80,
-                  child: Row(children: [
-                    StatCard(
-                      icon: Icons.music_note,
-                      label: S.of(context).downloadsOfflineSongs,
-                      value:
-                          '${tasks.where((t) => t.status == DownloadStatus.completed).length}',
-                    ),
-                  ]),
-                ),
+                Row(children: [
+                  StatCard(
+                    icon: Icons.music_note,
+                    label: S.of(context).downloadsOfflineSongs,
+                    value:
+                        '${tasks.where((t) => t.status == DownloadStatus.completed).length}',
+                  ),
+                ]),
                 const SizedBox(height: 12),
-                SizedBox(
-                  height: 80,
-                  child: Row(children: [
-                    StatCard(
-                      icon: Icons.storage,
-                      label: S.of(context).downloadsUsedSpace,
-                      value: S.of(context).commonSizeMb(totalMb.toStringAsFixed(1)),
-                    ),
-                  ]),
-                ),
+                Row(children: [
+                  StatCard(
+                    icon: Icons.storage,
+                    label: S.of(context).downloadsUsedSpace,
+                    value: S.of(context).commonSizeMb(totalMb.toStringAsFixed(1)),
+                  ),
+                ]),
               ],
             )
           else
@@ -108,11 +122,8 @@ class DownloadsScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(40),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
               ),
               child: Center(
                 child: Column(
@@ -158,6 +169,7 @@ class DownloadsScreen extends ConsumerWidget {
             ),
         ],
       ),
+    ),
     );
   }
 }
@@ -175,9 +187,8 @@ class _DownloadTaskTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHigh,
+        color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         children: [

@@ -106,7 +106,7 @@ class MiniPlayer extends ConsumerWidget {
               ),
             ),
           ),
-          child: SafeArea(top: false, child: child),
+          child: SafeArea(top: false, bottom: false, child: child),
         ),
       ),
     );
@@ -147,11 +147,11 @@ class MiniPlayer extends ConsumerWidget {
                 ),
                 _buildPlayPauseButton(playerService),
                 IconButton(
-                  icon: const Icon(Icons.skip_next_rounded, size: 28),
+                icon: const Icon(Icons.skip_next_rounded, size: 24),
                   onPressed: () => playerService.next(),
                   tooltip: S.of(context).playerNext,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
               ],
             ),
           ),
@@ -327,9 +327,9 @@ class MiniPlayer extends ConsumerWidget {
   }
 
   Widget _buildCover(String coverUrl, {bool useHero = false}) {
-    final art = CoverArt(url: coverUrl, size: 48, borderRadius: 6);
+    final art = CoverArt(url: coverUrl, size: 40, borderRadius: 6);
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       child: useHero ? Hero(tag: 'player-cover', child: art) : art,
     );
   }
@@ -399,7 +399,7 @@ class MiniPlayer extends ConsumerWidget {
         return IconButton(
           icon: Icon(
             playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            size: 32,
+            size: 26,
           ),
           tooltip: S.of(context).playerPlayPause,
           onPressed: () =>

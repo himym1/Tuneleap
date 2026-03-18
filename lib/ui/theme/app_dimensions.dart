@@ -20,7 +20,7 @@ abstract final class AppDimensions {
   // ── Layout regions ──
   static const double sidebarWidth = 200;
   static const double queuePanelWidth = 320;
-  static const double miniPlayerHeightMobile = 64;
+  static const double miniPlayerHeightMobile = 52;
   static const double miniPlayerHeightDesktop = 72;
   static const double lyricsLineHeight = 44;
 

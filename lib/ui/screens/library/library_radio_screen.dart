@@ -43,9 +43,6 @@ class _LibraryRadioScreenState extends ConsumerState<LibraryRadioScreen> {
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
               ),
             ),
           ),

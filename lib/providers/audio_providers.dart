@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/song_media_resolver.dart';
 import 'package:navidrome_player/api/solara_client.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
+import 'package:navidrome_player/api/tunescout_client.dart';
 import 'package:navidrome_player/player/audio_handler.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/providers/download_provider.dart';
@@ -28,6 +29,11 @@ final subsonicClientProvider = Provider<SubsonicClient>((ref) {
     );
   }
   return client;
+});
+
+/// TuneScout 客户端 provider — 用于删除本地歌曲文件
+final tuneScoutClientProvider = Provider<TuneScoutClient>((ref) {
+  return TuneScoutClient();
 });
 
 /// Solara 在线音乐客户端 provider

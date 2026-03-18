@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
@@ -23,17 +24,39 @@ class ScrobbleScreen extends ConsumerWidget {
 
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/home');
+      },
+      child: Scaffold(
       backgroundColor: Colors.transparent,
       body: ListView(
         padding: EdgeInsets.all(isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop),
         children: [
-          // 头部
-          Text(
-            S.of(context).navScrobble,
-            style: Theme.of(context).textTheme.pageTitle.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
+          // 头部 — 移动端带返回按钮
+          Row(
+            children: [
+              if (isMobile)
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      context.go('/home');
+                    }
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                ),
+              Text(
+                S.of(context).navScrobble,
+                style: Theme.of(context).textTheme.pageTitle.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -47,46 +70,37 @@ class ScrobbleScreen extends ConsumerWidget {
           if (isMobile)
             Column(
               children: [
-                SizedBox(
-                  height: 80,
-                  child: Row(children: [
-                    StatCard(
-                      icon: Icons.play_arrow,
-                      value: '$todayCount',
-                      label: S.of(context).scrobbleSessionPlays,
-                    ),
-                  ]),
-                ),
+                Row(children: [
+                  StatCard(
+                    icon: Icons.play_arrow,
+                    value: '$todayCount',
+                    label: S.of(context).scrobbleSessionPlays,
+                  ),
+                ]),
                 const SizedBox(height: 12),
-                SizedBox(
-                  height: 80,
-                  child: Row(children: [
-                    StatCard(
-                      icon: Icons.music_note,
-                      value: recentSongs
-                          .map((s) => s.artist)
-                          .toSet()
-                          .length
-                          .toString(),
-                      label: S.of(context).scrobbleUniqueArtists,
-                    ),
-                  ]),
-                ),
+                Row(children: [
+                  StatCard(
+                    icon: Icons.music_note,
+                    value: recentSongs
+                        .map((s) => s.artist)
+                        .toSet()
+                        .length
+                        .toString(),
+                    label: S.of(context).scrobbleUniqueArtists,
+                  ),
+                ]),
                 const SizedBox(height: 12),
-                SizedBox(
-                  height: 80,
-                  child: Row(children: [
-                    StatCard(
-                      icon: Icons.album,
-                      value: recentSongs
-                          .map((s) => s.albumId)
-                          .toSet()
-                          .length
-                          .toString(),
-                      label: S.of(context).scrobbleUniqueAlbums,
-                    ),
-                  ]),
-                ),
+                Row(children: [
+                  StatCard(
+                    icon: Icons.album,
+                    value: recentSongs
+                        .map((s) => s.albumId)
+                        .toSet()
+                        .length
+                        .toString(),
+                    label: S.of(context).scrobbleUniqueAlbums,
+                  ),
+                ]),
               ],
             )
           else
@@ -124,11 +138,8 @@ class ScrobbleScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
+              color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
             ),
             child: Row(
               children: [
@@ -204,11 +215,8 @@ class ScrobbleScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(40),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
               ),
               child: Center(
                 child: Text(
@@ -284,6 +292,7 @@ class ScrobbleScreen extends ConsumerWidget {
             }),
         ],
       ),
+    ),
     );
   }
 }
