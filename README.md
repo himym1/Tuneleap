@@ -1,6 +1,6 @@
-# Navidrome Player
+# 音跃 (Navidrome Player)
 
-一个基于 Flutter 的 Navidrome 音乐播放器客户端，面向 Navidrome/Subsonic 协议，支持 Android 与 macOS。
+一个基于 Flutter 的 Navidrome 音乐播放器客户端，面向 Navidrome/Subsonic 协议，支持 Android、macOS 与 Windows。
 
 > 项目灵感来源于 [音流 (Stream Music)](https://music.aqzscn.cn/)，专注于 Navidrome/Subsonic 协议的轻量级开源实现。
 
@@ -13,12 +13,15 @@
 - **音乐库浏览** — 已有艺术家/专辑/歌曲多维度浏览页面
 - **专辑/艺术家详情** — 独立详情页已接入基础数据与播放入口
 - **搜索** — 全局搜索艺术家、专辑、歌曲
-- **全屏播放页** — 已有大封面、进度、歌词、队列、倍速、音量等主链路
+- **全屏播放页** — 大封面、进度条、歌词、播放队列、倍速、音量，封面动态取色渐变背景
+- **均衡器 (EQ)** — 7 频段均衡器，内置 6 种预设，设置自动持久化
+- **播放历史与统计** — Scrobble 记录、播放统计卡片、最近播放列表
 - **播放列表管理** — 已支持浏览、创建、删除；更多编辑能力待完善
 - **收藏体系** — 已有歌曲/专辑/艺术家收藏页面与交互，稳定性仍需补强
-- **下载管理** — 已有基础下载与离线回退能力，暂停/续传等高级能力待补
+- **下载管理** — 基础下载与离线回退能力，进度追踪与任务管理
 - **多服务器支持** — 已支持多 Navidrome 实例的增删改切换
-- **设置** — 已有主题切换、音质选择、缓存信息、服务器信息等设置项
+- **设置** — 主题切换、音质选择、均衡器、缓存管理、服务器信息等
+- **应用更新检查** — 自动检测新版本并提示更新
 - **安全存储** — 密码通过 `flutter_secure_storage` 加密存储
 - **深色/浅色主题** — Material 3，跟随系统 / 手动切换
 
@@ -31,9 +34,11 @@
 | 音频引擎 | just_audio + audio_service |
 | 网络请求 | dio 5.x |
 | 图片缓存 | cached_network_image |
+| 封面取色 | palette_generator |
 | 路由 | go_router |
 | 窗口管理 | window_manager (macOS) |
 | 本地存储 | shared_preferences + flutter_secure_storage |
+| 外部链接 | url_launcher |
 | 设计系统 | Material 3 |
 
 ## 快速开始
@@ -44,6 +49,7 @@
 - Dart 3.10+
 - Android SDK（Android 开发）
 - Xcode 15+（macOS 开发）
+- Visual Studio 2022+（Windows 开发）
 - 一个运行中的 [Navidrome](https://www.navidrome.org/) 服务端
 
 ### 安装运行
@@ -61,6 +67,9 @@ flutter run -d android
 
 # 运行 (macOS)
 flutter run -d macos
+
+# 运行 (Windows)
+flutter run -d windows
 ```
 
 ### 配置服务器
@@ -84,6 +93,8 @@ lib/
 ├── player/
 │   ├── audio_player_service.dart    # 音频播放服务 (just_audio 封装)
 │   └── audio_handler.dart           # 后台播放 Handler (audio_service)
+├── services/
+│   └── update_checker.dart          # 应用更新检查服务
 ├── providers/
 │   ├── providers.dart               # 核心 Provider
 │   ├── audio_providers.dart         # 音频相关 Provider
