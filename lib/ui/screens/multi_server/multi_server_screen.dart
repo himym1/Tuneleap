@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
@@ -11,21 +13,40 @@ class MultiServerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final servers = ref.watch(serversListProvider);
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/home');
+      },
+      child: Scaffold(
       backgroundColor: Colors.transparent,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              if (isMobile)
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      context.go('/home');
+                    }
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                ),
               Text(
                 S.of(context).multiServerManage,
                 style: Theme.of(context).textTheme.pageTitle.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
+              const Spacer(),
               Text(
                 S.of(context).multiServerCount(servers.length),
                 style: Theme.of(context).textTheme.chipLabel.copyWith(
@@ -51,11 +72,8 @@ class MultiServerScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(40),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
               ),
               child: Center(
                 child: Text(
@@ -84,6 +102,7 @@ class MultiServerScreen extends ConsumerWidget {
             ),
         ],
       ),
+    ),
     );
   }
 
@@ -292,14 +311,11 @@ class _ServerCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHigh,
+        color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: server.isActive
-              ? context.colors.primary
-              : Theme.of(context).colorScheme.outlineVariant,
-          width: server.isActive ? 1.5 : 1,
-        ),
+        border: server.isActive
+            ? Border.all(color: context.colors.primary, width: 1.5)
+            : null,
       ),
       child: Row(
         children: [

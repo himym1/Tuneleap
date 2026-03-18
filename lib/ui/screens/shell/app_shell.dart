@@ -6,9 +6,11 @@ import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/services/update_checker.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/mini_player.dart';
+import 'package:navidrome_player/ui/widgets/update_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// 响应式外壳 — 移动端 BottomNavigationBar / 桌面端侧边栏
@@ -45,6 +47,18 @@ class _AppShellState extends ConsumerState<AppShell> {
             .catchError((_) {});
       }
     });
+    // 启动时静默检查更新
+    _checkUpdateOnStartup();
+  }
+
+  Future<void> _checkUpdateOnStartup() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    final info = await checkForUpdate();
+    if (info == null || !mounted) return;
+    final currentVersion = ref.read(appVersionProvider);
+    if (!isNewerVersion(info.version, currentVersion)) return;
+    UpdateDialog.show(context, info);
   }
 
   @override
@@ -235,12 +249,18 @@ class _AppShellState extends ConsumerState<AppShell> {
                     Theme.of(context).colorScheme.surfaceContainerHigh,
                     ref.watch(globalAccentColorProvider),
                     0.06,
-                  )!.withValues(alpha: 0.88),
+                  )!.withValues(alpha: 0.95),
+                  border: Border(
+                    top: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.25),
+                      width: 0.5,
+                    ),
+                  ),
                 ),
                 child: SafeArea(
                   top: false,
                   child: SizedBox(
-                    height: 62,
+                    height: 50,
                     child: Row(
                       children: List.generate(_mobileNavItems.length, (i) {
                         final item = _mobileNavItems[i];
@@ -271,14 +291,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(26),
-          child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        decoration: BoxDecoration(
-          color: selected ? context.colors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(26),
-        ),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -286,7 +301,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               selected ? item.activeIcon : item.icon,
               size: 20,
               color: selected
-                  ? context.colors.onEmphasis
+                  ? context.colors.primary
                   : context.colors.onSurfaceVariant,
             ),
             const SizedBox(height: 2),
@@ -294,9 +309,9 @@ class _AppShellState extends ConsumerState<AppShell> {
               item.labelOf(context),
               style: Theme.of(context).textTheme.chipLabel.copyWith(
                 fontSize: 10,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                 color: selected
-                    ? context.colors.onEmphasis
+                    ? context.colors.primary
                     : context.colors.onSurfaceVariant,
               ),
             ),

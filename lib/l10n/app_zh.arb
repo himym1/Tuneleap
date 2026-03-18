@@ -482,5 +482,32 @@
     "tooltipDelete": "删除",
     "tooltipClear": "清除",
     "tooltipBack": "返回",
-    "tooltipMore": "更多"
+    "tooltipMore": "更多",
+
+    "updateCheckUpdate": "检查更新",
+    "updateChecking": "检查中...",
+    "updateNewVersion": "发现新版本 v{version}",
+    "@updateNewVersion": {
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "updateChangelog": "更新内容",
+    "updateDownload": "下载更新",
+    "updateLatest": "已是最新版本",
+    "updateFailed": "检查更新失败，请稍后重试",
+
+    "contextMenuDelete": "删除歌曲",
+    "contextMenuDeleteTitle": "确认删除",
+    "contextMenuDeleteConfirm": "确定要从服务器删除「{title}」({artist})？\n此操作不可恢复。",
+    "@contextMenuDeleteConfirm": {
+        "placeholders": {
+            "title": { "type": "String" },
+            "artist": { "type": "String" }
+        }
+    },
+    "contextMenuDeleted": "已删除",
+    "contextMenuDeleteFailed": "删除失败，请稍后重试"
 }

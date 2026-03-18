@@ -1492,14 +1492,14 @@ abstract class S {
   /// No description provided for @contextMenuDelete.
   ///
   /// In zh, this message translates to:
-  /// **'从服务器删除'**
+  /// **'删除歌曲'**
   String get contextMenuDelete;
 
   /// No description provided for @contextMenuDeleteConfirm.
   ///
   /// In zh, this message translates to:
-  /// **'确定要删除「{title}」吗？这将从服务器永久移除该文件。'**
-  String contextMenuDeleteConfirm(String title);
+  /// **'确定要从服务器删除「{title}」({artist})？\n此操作不可恢复。'**
+  String contextMenuDeleteConfirm(String title, String artist);
 
   /// No description provided for @contextMenuDeleteSuccess.
   ///
@@ -1686,6 +1686,66 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'更多'**
   String get tooltipMore;
+
+  /// No description provided for @updateCheckUpdate.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新'**
+  String get updateCheckUpdate;
+
+  /// No description provided for @updateChecking.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查中...'**
+  String get updateChecking;
+
+  /// No description provided for @updateNewVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'发现新版本 v{version}'**
+  String updateNewVersion(String version);
+
+  /// No description provided for @updateChangelog.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新内容'**
+  String get updateChangelog;
+
+  /// No description provided for @updateDownload.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载更新'**
+  String get updateDownload;
+
+  /// No description provided for @updateLatest.
+  ///
+  /// In zh, this message translates to:
+  /// **'已是最新版本'**
+  String get updateLatest;
+
+  /// No description provided for @updateFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新失败，请稍后重试'**
+  String get updateFailed;
+
+  /// No description provided for @contextMenuDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认删除'**
+  String get contextMenuDeleteTitle;
+
+  /// No description provided for @contextMenuDeleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'已删除'**
+  String get contextMenuDeleted;
+
+  /// No description provided for @contextMenuDeleteFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除失败，请稍后重试'**
+  String get contextMenuDeleteFailed;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

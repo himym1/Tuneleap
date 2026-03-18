@@ -15,6 +15,7 @@ class Song {
   final int? bitRate;
   final String? coverArt;
   final String? suffix; // mp3, flac, etc.
+  final String? path; // file path from Subsonic API
   final SongBackend backend;
   final String? onlineSource;
   final String? urlId;
@@ -33,6 +34,7 @@ class Song {
     this.bitRate,
     this.coverArt,
     this.suffix,
+    this.path,
     this.backend = SongBackend.subsonic,
     this.onlineSource,
     this.urlId,
@@ -69,6 +71,7 @@ class Song {
       bitRate: json['bitRate'] as int?,
       coverArt: json['coverArt'] as String?,
       suffix: json['suffix'] as String?,
+      path: json['path'] as String?,
       backend: _parseBackend(json['backend'] as String?),
       onlineSource: json['onlineSource'] as String?,
       urlId: json['urlId'] as String?,
@@ -115,6 +118,7 @@ class Song {
     if (bitRate != null) 'bitRate': bitRate,
     if (coverArt != null) 'coverArt': coverArt,
     if (suffix != null) 'suffix': suffix,
+    if (path != null) 'path': path,
     if (backend != SongBackend.subsonic) 'backend': backend.name,
     if (onlineSource != null) 'onlineSource': onlineSource,
     if (urlId != null) 'urlId': urlId,

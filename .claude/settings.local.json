@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(flutter gen-l10n:*)",
-      "Bash(cp ~/.claude/skills/flutter-impeccable-skill/SKILL.md ~/.codex/skills/flutter-impeccable-skill/SKILL.md && cp ~/.claude/skills/flutter-impeccable-skill/references/flutter-pc-app-review-playbook.md ~/.codex/skills/flutter-impeccable-skill/references/flutter-pc-app-review-playbook.md)"
+      "Bash(cp ~/.claude/skills/flutter-impeccable-skill/SKILL.md ~/.codex/skills/flutter-impeccable-skill/SKILL.md && cp ~/.claude/skills/flutter-impeccable-skill/references/flutter-pc-app-review-playbook.md ~/.codex/skills/flutter-impeccable-skill/references/flutter-pc-app-review-playbook.md)",
+      "mcp__ace-tool__search_context",
+      "Bash(python3:*)"
     ]
   }
 }

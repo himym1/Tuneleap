@@ -18,12 +18,14 @@ class SongContextMenu extends ConsumerWidget {
   final Song song;
   final Widget child;
   final VoidCallback? onPlay;
+  final VoidCallback? onDeleted;
 
   const SongContextMenu({
     super.key,
     required this.song,
     required this.child,
     this.onPlay,
+    this.onDeleted,
   });
 
   @override
@@ -118,6 +120,17 @@ class SongContextMenu extends ConsumerWidget {
             S.of(context).contextMenuImportNavidrome,
             'import_navidrome',
           ),
+        // 删除 — 仅 Subsonic 本地歌曲
+        if (!song.isOnline) ...[
+          const PopupMenuDivider(),
+          _menuItem(
+            context,
+            Icons.delete_outline,
+            S.of(context).contextMenuDelete,
+            'delete',
+            isDestructive: true,
+          ),
+        ],
       ],
     );
 
@@ -170,6 +183,48 @@ class SongContextMenu extends ConsumerWidget {
           );
         }
         break;
+      case 'delete':
+        if (!context.mounted) return;
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.contextMenuDeleteTitle),
+            content: Text(l10n.contextMenuDeleteConfirm(song.title, song.artist)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.commonCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+                child: Text(l10n.commonDelete),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true) return;
+        debugPrint('[Delete] song.id: ${song.id}, song.title: ${song.title}');
+        final tuneScout = ref.read(tuneScoutClientProvider);
+        final ok = await tuneScout.deleteSongById(song.id);
+        if (ok) {
+          // 从播放队列移除该歌曲
+          final queue = playerService.queue;
+          final idx = queue.indexWhere((s) => s.storageKey == song.storageKey);
+          if (idx >= 0) playerService.removeFromQueue(idx);
+          // 刷新所有歌曲列表数据源
+          ref.invalidate(newestAlbumsProvider);
+          ref.invalidate(dailySongsProvider);
+          ref.invalidate(recentAlbumsProvider);
+          ref.read(libraryProvider.notifier).refresh();
+          onDeleted?.call();
+          messenger.showSnackBar(_snackBar(l10n.contextMenuDeleted));
+        } else {
+          messenger.showSnackBar(_snackBar(l10n.contextMenuDeleteFailed));
+        }
+        break;
     }
   }
 
@@ -194,8 +249,15 @@ class SongContextMenu extends ConsumerWidget {
     BuildContext context,
     IconData icon,
     String label,
-    String value,
-  ) {
+    String value, {
+    bool isDestructive = false,
+  }) {
+    final color = isDestructive
+        ? Theme.of(context).colorScheme.error
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    final textColor = isDestructive
+        ? Theme.of(context).colorScheme.error
+        : Theme.of(context).colorScheme.onSurface;
     return PopupMenuItem<String>(
       value: value,
       height: 40,
@@ -204,13 +266,13 @@ class SongContextMenu extends ConsumerWidget {
           Icon(
             icon,
             size: 18,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: color,
           ),
           const SizedBox(width: 12),
           Text(
             label,
             style: Theme.of(context).textTheme.chipLabel.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
+              color: textColor,
             ),
           ),
         ],

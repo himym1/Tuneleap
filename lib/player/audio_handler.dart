@@ -241,10 +241,9 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     if (_queue.isEmpty) return;
     if (_currentIndex < _queue.length - 1) {
       _currentIndex++;
-    } else if (_repeatMode == RepeatMode.all) {
-      _currentIndex = 0;
     } else {
-      return;
+      // 队列播完：循环模式回到开头，否则也回到开头继续播
+      _currentIndex = 0;
     }
     await _loadAndPlay();
   }

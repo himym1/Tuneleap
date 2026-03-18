@@ -65,6 +65,7 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
   bool _initialized = false;
   bool _loggedIn = false;
   late final GoRouter _router;
+  final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
   @override
   void initState() {
@@ -97,6 +98,7 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
 
   GoRouter _buildRouter() {
     return GoRouter(
+      navigatorKey: _rootNavigatorKey,
       initialLocation: '/home',
       redirect: (context, state) {
         if (!_initialized) return null;
@@ -111,6 +113,27 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
             onLoginSuccess: () {
               setState(() => _loggedIn = true);
               _router.go('/home');
+            },
+          ),
+        ),
+        GoRoute(
+          path: '/player',
+          parentNavigatorKey: _rootNavigatorKey,
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const PlayerScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 1),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                  reverseCurve: Curves.easeInCubic,
+                )),
+                child: child,
+              );
             },
           ),
         ),
@@ -213,26 +236,6 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                 child: const PlaylistsScreen(),
                 transitionsBuilder: _fadeThroughTransition,
                 transitionDuration: _kFadeDuration,
-              ),
-            ),
-            GoRoute(
-              path: '/player',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const PlayerScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 1),
-                      end: Offset.zero,
-                    ).animate(CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutCubic,
-                      reverseCurve: Curves.easeInCubic,
-                    )),
-                    child: child,
-                  );
-                },
               ),
             ),
             GoRoute(
