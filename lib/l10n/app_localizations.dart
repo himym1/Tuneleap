@@ -877,6 +877,24 @@ abstract class S {
   /// **'导入到 Navidrome 失败'**
   String get contextMenuImportNavidromeFailed;
 
+  /// No description provided for @importDuplicateTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲已存在'**
+  String get importDuplicateTitle;
+
+  /// No description provided for @importDuplicateMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'「{title}」({artist}) 在本地库中已存在，是否仍要导入？'**
+  String importDuplicateMessage(String title, String artist);
+
+  /// No description provided for @commonContinue.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续'**
+  String get commonContinue;
+
   /// No description provided for @contextMenuQueueingNavidrome.
   ///
   /// In zh, this message translates to:
@@ -1620,6 +1638,24 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'JOOX'**
   String get searchBackendJoox;
+
+  /// No description provided for @searchFilterOnline.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线'**
+  String get searchFilterOnline;
+
+  /// No description provided for @searchSectionLocal.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地搜索结果'**
+  String get searchSectionLocal;
+
+  /// No description provided for @searchSectionOnline.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线搜索结果'**
+  String get searchSectionOnline;
 
   /// No description provided for @playerShuffle.
   ///

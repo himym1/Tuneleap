@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/models.dart';
-import 'package:navidrome_player/api/solara_client.dart';
+import 'package:navidrome_player/api/backend_client.dart';
 
 import 'audio_providers.dart';
 
@@ -12,34 +13,59 @@ class NavidromeImportResult {
 }
 
 final navidromeImportServiceProvider = Provider<NavidromeImportService>((ref) {
-  return NavidromeImportService(solaraClient: ref.watch(solaraClientProvider));
+  return NavidromeImportService(backendClient: ref.watch(backendClientProvider));
 });
 
 class NavidromeImportService {
-  final SolaraClient solaraClient;
+  final BackendClient backendClient;
 
-  NavidromeImportService({required this.solaraClient});
+  NavidromeImportService({required this.backendClient});
 
   Future<NavidromeImportResult> importOnlineSong(Song song) async {
     if (!song.isOnline) {
       throw ArgumentError('Only online songs can be imported');
     }
-    if (!solaraClient.isConfigured) {
-      throw StateError('Solara client is not configured');
+    if (!backendClient.isConfigured) {
+      throw StateError('Backend client is not configured');
     }
 
-    final playbackUrl = await solaraClient.getPlaybackUrl(song);
-    final extension = inferFileExtension(playbackUrl, song);
-    final filename = buildFileName(song, extension: extension);
-    final picUrl = solaraClient.buildCoverProxyUrl(song);
-    final message = await solaraClient.queueNasDownload(
-      url: playbackUrl,
-      filename: filename,
-      song: buildNasDownloadSong(song),
-      picUrl: picUrl,
-    );
+    debugPrint('[Import] 开始导入: ${song.title} - ${song.artist}');
+    debugPrint('[Import] source=${song.onlineSource}, urlId=${song.urlId}');
 
-    return NavidromeImportResult(filename: filename, message: message);
+    try {
+      final playbackUrl = await backendClient.getPlaybackUrl(song);
+      debugPrint('[Import] 获取播放URL: ${playbackUrl.substring(0, playbackUrl.length.clamp(0, 80))}...');
+
+      final extension = inferFileExtension(playbackUrl, song);
+      final filename = buildFileName(song, extension: extension);
+      // Resolve actual cover URL from source (not proxy URL)
+      String picUrl = '';
+      try {
+        picUrl = await backendClient.resolveCoverArtUrl(song);
+      } catch (_) {}
+      // 获取歌词原文
+      String? lrcText;
+      try {
+        lrcText = await backendClient.getRawLyrics(song);
+        debugPrint('[Import] 歌词: ${lrcText != null ? '${lrcText.length} chars' : 'none'}');
+      } catch (_) {}
+      debugPrint('[Import] filename=$filename, picUrl=${picUrl.isNotEmpty}');
+
+      final message = await backendClient.queueNasDownload(
+        url: playbackUrl,
+        filename: filename,
+        song: buildNasDownloadSong(song),
+        picUrl: picUrl,
+        lyric: lrcText,
+      );
+      debugPrint('[Import] 导入成功: $message');
+
+      return NavidromeImportResult(filename: filename, message: message);
+    } catch (e, stack) {
+      debugPrint('[Import] 导入失败: $e');
+      debugPrint('[Import] Stack: $stack');
+      rethrow;
+    }
   }
 
   static String safeSegment(String value) {

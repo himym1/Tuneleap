@@ -417,6 +417,17 @@ class SZh extends S {
   String get contextMenuImportNavidromeFailed => '导入到 Navidrome 失败';
 
   @override
+  String get importDuplicateTitle => '歌曲已存在';
+
+  @override
+  String importDuplicateMessage(String title, String artist) {
+    return '「$title」($artist) 在本地库中已存在，是否仍要导入？';
+  }
+
+  @override
+  String get commonContinue => '继续';
+
+  @override
   String get contextMenuQueueingNavidrome => '正在提交到 NAS 下载队列…';
 
   @override
@@ -827,6 +838,15 @@ class SZh extends S {
 
   @override
   String get searchBackendJoox => 'JOOX';
+
+  @override
+  String get searchFilterOnline => '在线';
+
+  @override
+  String get searchSectionLocal => '本地搜索结果';
+
+  @override
+  String get searchSectionOnline => '在线搜索结果';
 
   @override
   String get playerShuffle => '随机播放';

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:navidrome_player/api/models/models.dart';
+import 'package:navidrome_player/api/subsonic_client.dart' show LyricsList;
 import 'audio_providers.dart';
 import 'server_config_provider.dart';
 
@@ -198,6 +199,19 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       final file = File(savePath);
       final fileSize = await file.length();
 
+      // 同步下载歌词并保存为 .lrc 文件（失败不影响整体下载）
+      try {
+        final resolver = ref.read(songMediaResolverProvider);
+        final lyrics = await resolver.lyrics(song);
+        if (lyrics != null && lyrics.lines.isNotEmpty) {
+          final lrcPath = '${savePath.replaceAll(RegExp(r'\.[^.]+$'), '')}.lrc';
+          await File(lrcPath).writeAsString(_buildLrcContent(lyrics));
+          debugPrint('[Download] Lyrics saved: $lrcPath');
+        }
+      } catch (e) {
+        debugPrint('[Download] Lyrics download failed (non-fatal): $e');
+      }
+
       _updateTask(
         song.storageKey,
         status: DownloadStatus.completed,
@@ -261,6 +275,12 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       if (file.existsSync()) {
         file.deleteSync();
       }
+      // 同时删除歌词文件
+      final lrcPath = '${task.localPath!.replaceAll(RegExp(r'\.[^.]+$'), '')}.lrc';
+      final lrcFile = File(lrcPath);
+      if (lrcFile.existsSync()) {
+        lrcFile.deleteSync();
+      }
     }
     state = state.where((t) => t.id != id).toList();
     _persist(); // 更新持久化
@@ -275,5 +295,22 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         .where((t) => t.status == DownloadStatus.completed)
         .fold<int>(0, (sum, t) => sum + (t.fileSizeBytes ?? 0));
     return totalBytes / (1024 * 1024);
+  }
+
+  /// 将歌词列表转为 LRC 格式文本
+  static String _buildLrcContent(LyricsList lyrics) {
+    final buf = StringBuffer();
+    for (final line in lyrics.lines) {
+      if (line.startMs != null) {
+        final ms = line.startMs!;
+        final min = (ms ~/ 60000).toString().padLeft(2, '0');
+        final sec = ((ms % 60000) ~/ 1000).toString().padLeft(2, '0');
+        final frac = (ms % 1000).toString().padLeft(3, '0').substring(0, 2);
+        buf.writeln('[$min:$sec.$frac]${line.text}');
+      } else {
+        buf.writeln(line.text);
+      }
+    }
+    return buf.toString();
   }
 }

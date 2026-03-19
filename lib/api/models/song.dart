@@ -16,6 +16,7 @@ class Song {
   final String? coverArt;
   final String? suffix; // mp3, flac, etc.
   final String? path; // file path from Subsonic API
+  final String? comment; // comment tag (may contain solara source info)
   final SongBackend backend;
   final String? onlineSource;
   final String? urlId;
@@ -35,6 +36,7 @@ class Song {
     this.coverArt,
     this.suffix,
     this.path,
+    this.comment,
     this.backend = SongBackend.subsonic,
     this.onlineSource,
     this.urlId,
@@ -42,6 +44,16 @@ class Song {
   });
 
   bool get isOnline => backend == SongBackend.solara;
+
+  /// 音源显示标签
+  String? get sourceLabel => switch (onlineSource) {
+    'netease' => '网易云',
+    'migu' => '咪咕',
+    'joox' => 'JOOX',
+    'kuwo' => '酷我',
+    'kugou' => '酷狗',
+    _ => onlineSource,
+  };
 
   /// Formatted duration string (e.g. "3:05"), empty if null.
   String get formattedDuration => formatDurationOrEmpty(duration);
@@ -72,6 +84,7 @@ class Song {
       coverArt: json['coverArt'] as String?,
       suffix: json['suffix'] as String?,
       path: json['path'] as String?,
+      comment: json['comment'] as String?,
       backend: _parseBackend(json['backend'] as String?),
       onlineSource: json['onlineSource'] as String?,
       urlId: json['urlId'] as String?,
@@ -119,6 +132,7 @@ class Song {
     if (coverArt != null) 'coverArt': coverArt,
     if (suffix != null) 'suffix': suffix,
     if (path != null) 'path': path,
+    if (comment != null) 'comment': comment,
     if (backend != SongBackend.subsonic) 'backend': backend.name,
     if (onlineSource != null) 'onlineSource': onlineSource,
     if (urlId != null) 'urlId': urlId,

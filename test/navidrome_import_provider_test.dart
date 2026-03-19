@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:navidrome_player/api/models/models.dart';
-import 'package:navidrome_player/api/solara_client.dart';
+import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/providers/navidrome_import_provider.dart';
 
-class _FakeSolaraClient extends SolaraClient {
-  _FakeSolaraClient({required this.playbackUrl, required this.queueMessage});
+class _FakeBackendClient extends BackendClient {
+  _FakeBackendClient({required this.playbackUrl, required this.queueMessage});
 
   final String playbackUrl;
   final String? queueMessage;
@@ -32,6 +32,7 @@ class _FakeSolaraClient extends SolaraClient {
     required String filename,
     required Map<String, dynamic> song,
     String? picUrl,
+    String? lyric,
   }) async {
     queuedUrl = url;
     queuedFilename = filename;
@@ -135,25 +136,25 @@ void main() {
         lyricId: '1899989255',
         coverArt: '109951166681216835',
       );
-      final solaraClient = _FakeSolaraClient(
+      final backendClient = _FakeBackendClient(
         playbackUrl: 'https://cdn.example.com/song.flac?token=1',
         queueMessage: 'queued',
       );
-      final service = NavidromeImportService(solaraClient: solaraClient);
+      final service = NavidromeImportService(backendClient: backendClient);
 
       final result = await service.importOnlineSong(song);
 
       expect(result.filename, 'solara_netease_1899989255.flac');
       expect(result.message, 'queued');
       expect(
-        solaraClient.queuedUrl,
+        backendClient.queuedUrl,
         'https://cdn.example.com/song.flac?token=1',
       );
-      expect(solaraClient.queuedFilename, 'solara_netease_1899989255.flac');
-      expect(solaraClient.queuedSong['name'], '天地龙鳞');
-      expect(solaraClient.queuedSong['source'], 'netease');
+      expect(backendClient.queuedFilename, 'solara_netease_1899989255.flac');
+      expect(backendClient.queuedSong['name'], '天地龙鳞');
+      expect(backendClient.queuedSong['source'], 'netease');
       expect(
-        solaraClient.queuedPicUrl,
+        backendClient.queuedPicUrl,
         'http://solara.local/proxy?types=pic&id=109951166681216835&size=300',
       );
     });

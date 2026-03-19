@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -32,7 +33,10 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
   static const _pageSize = 50;
   static const _itemExtent = 64.0; // ListTile with padding
   final _scrollController = ScrollController();
+  final _searchController = TextEditingController();
   String _searchQuery = '';
+  Timer? _searchDebounce;
+  List<Song>? _searchResults; // null = not searching, use _songs
 
   @override
   void initState() {
@@ -54,6 +58,8 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -134,7 +140,8 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
           Padding(
             padding: EdgeInsets.fromLTRB(h, 0, h, 16),
             child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
+              controller: _searchController,
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
                 prefixIcon: const Icon(Icons.search),
@@ -175,14 +182,37 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
     );
   }
 
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchQuery = value;
+    if (value.trim().isEmpty) {
+      setState(() => _searchResults = null);
+      return;
+    }
+    // Skip if IME is still composing
+    if (_searchController.value.composing != TextRange.empty) return;
+    _searchDebounce = Timer(const Duration(milliseconds: 500), _doApiSearch);
+  }
+
+  Future<void> _doApiSearch() async {
+    final query = _searchQuery.trim();
+    if (query.isEmpty) return;
+    try {
+      final client = ref.read(subsonicClientProvider);
+      final result = await client.search3(
+        query,
+        songCount: 50,
+        songOffset: 0,
+        artistCount: 0,
+        albumCount: 0,
+      );
+      if (!mounted || _searchQuery.trim() != query) return;
+      setState(() => _searchResults = result.songs);
+    } catch (_) {}
+  }
+
   List<Song> _filteredSongs() {
-    if (_searchQuery.isEmpty) return _songs;
-    final query = _searchQuery.toLowerCase();
-    return _songs.where((s) =>
-      s.title.toLowerCase().contains(query) ||
-      s.artist.toLowerCase().contains(query) ||
-      s.album.toLowerCase().contains(query),
-    ).toList();
+    return _searchResults ?? _songs;
   }
 
   Widget _buildSongList() {

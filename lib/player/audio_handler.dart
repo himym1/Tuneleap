@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:navidrome_player/api/solara_client.dart';
+import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/api/song_media_resolver.dart';
 import 'package:navidrome_player/api/models/models.dart';
@@ -17,7 +17,7 @@ import 'audio_player_service.dart';
 class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player = AudioPlayer();
   SubsonicClient _subsonicClient;
-  SolaraClient _solaraClient;
+  BackendClient _backendClient;
   int _maxBitRate = 0;
   final SharedPreferences? _prefs;
   static const _historyKey = 'play_history';
@@ -33,7 +33,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
 
   NavidromeAudioHandler(
     this._subsonicClient,
-    this._solaraClient, {
+    this._backendClient, {
     SharedPreferences? prefs,
   }) : _prefs = prefs {
     // 加载持久化的播放历史
@@ -90,9 +90,9 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   // === Client / Quality ===
 
   /// 切换服务器时更新 client 实例
-  void updateClients(SubsonicClient newSubsonicClient, SolaraClient newSolara) {
+  void updateClients(SubsonicClient newSubsonicClient, BackendClient newBackend) {
     _subsonicClient = newSubsonicClient;
-    _solaraClient = newSolara;
+    _backendClient = newBackend;
   }
 
   /// 设置最大码率（0 = 原始音质，不限制）
@@ -107,7 +107,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
 
   SongMediaResolver get _resolver => SongMediaResolver(
     subsonicClient: _subsonicClient,
-    solaraClient: _solaraClient,
+    backendClient: _backendClient,
   );
 
   /// 设置音量 (0.0 ~ 1.0)

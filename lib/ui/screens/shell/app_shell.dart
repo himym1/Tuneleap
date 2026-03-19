@@ -663,6 +663,13 @@ class _RefreshButtonState extends ConsumerState<_RefreshButton>
     setState(() => _refreshing = true);
     _controller.repeat();
 
+    // 触发 Navidrome 扫描
+    try {
+      await ref.read(subsonicClientProvider).startScan(fullScan: true);
+      // 等待扫描完成
+      await Future.delayed(const Duration(seconds: 3));
+    } catch (_) {}
+
     // 刷新所有缓存 provider
     ref.invalidate(newestAlbumsProvider);
     ref.invalidate(dailySongsProvider);

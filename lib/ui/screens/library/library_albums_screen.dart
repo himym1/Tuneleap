@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,7 +18,44 @@ class LibraryAlbumsScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
+  final _searchController = TextEditingController();
   String _searchQuery = '';
+  Timer? _searchDebounce;
+  List<Album>? _searchResults;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchQuery = value;
+    if (value.trim().isEmpty) {
+      setState(() => _searchResults = null);
+      return;
+    }
+    if (_searchController.value.composing != TextRange.empty) return;
+    _searchDebounce = Timer(const Duration(milliseconds: 500), _doApiSearch);
+  }
+
+  Future<void> _doApiSearch() async {
+    final query = _searchQuery.trim();
+    if (query.isEmpty) return;
+    try {
+      final client = ref.read(subsonicClientProvider);
+      final result = await client.search3(
+        query,
+        albumCount: 50,
+        songCount: 0,
+        artistCount: 0,
+      );
+      if (!mounted || _searchQuery.trim() != query) return;
+      setState(() => _searchResults = result.albums);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +80,8 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
           Padding(
             padding: EdgeInsets.fromLTRB(h, 0, h, 16),
             child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
+              controller: _searchController,
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
                 prefixIcon: const Icon(Icons.search),
@@ -63,21 +102,8 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
                 ),
               ),
               data: (albums) {
-                final filtered = _searchQuery.isEmpty
-                    ? albums
-                    : albums
-                          .where(
-                            (a) =>
-                                a.name.toLowerCase().contains(
-                                  _searchQuery.toLowerCase(),
-                                ) ||
-                                (a.artist?.toLowerCase().contains(
-                                      _searchQuery.toLowerCase(),
-                                    ) ??
-                                    false),
-                          )
-                          .toList();
-                return filtered.isEmpty
+                final display = _searchResults ?? albums;
+                return display.isEmpty
                     ? Center(
                         child: Text(
                           S.of(context).libraryNoAlbums,
@@ -88,7 +114,7 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
                           ),
                         ),
                       )
-                    : _buildAlbumGrid(filtered);
+                    : _buildAlbumGrid(display);
               },
             ),
           ),

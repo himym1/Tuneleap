@@ -1,6 +1,6 @@
 import 'package:just_audio/just_audio.dart';
 import '../api/models/models.dart';
-import '../api/solara_client.dart';
+import '../api/backend_client.dart';
 import '../api/subsonic_client.dart';
 import 'audio_handler.dart';
 
@@ -113,8 +113,8 @@ class AudioPlayerService {
   }
 
   /// 更新底层 SubsonicClient（服务器切换时调用）
-  void updateClients(SubsonicClient newClient, SolaraClient newSolaraClient) {
-    _handler.updateClients(newClient, newSolaraClient);
+  void updateClients(SubsonicClient newClient, BackendClient newBackendClient) {
+    _handler.updateClients(newClient, newBackendClient);
   }
 
   /// 设置音量

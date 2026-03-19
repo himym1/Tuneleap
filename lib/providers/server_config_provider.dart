@@ -232,7 +232,6 @@ class ServerEntry {
     );
   }
 
-  /// 序列化（secure storage 不可用时包含密码）
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -247,7 +246,7 @@ class ServerEntry {
     name: json['name'] as String? ?? '',
     url: json['url'] as String? ?? '',
     username: json['username'] as String? ?? '',
-    password: json['password'] as String? ?? '', // 降级时从 JSON 读取
+    password: json['password'] as String? ?? '',
     isActive: json['isActive'] as bool? ?? false,
   );
 }

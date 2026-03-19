@@ -5,7 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'app.dart';
 import 'providers/providers.dart';
 import 'player/audio_handler.dart';
-import 'api/solara_client.dart';
+import 'api/backend_client.dart';
 import 'api/subsonic_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:navidrome_player/l10n/localization_utils.dart';
@@ -26,7 +26,7 @@ void main() async {
 
   // 创建临时 SubsonicClient 用于 AudioHandler 初始化
   final client = SubsonicClient();
-  final solaraClient = SolaraClient();
+  final backendClient = BackendClient();
   final url = prefs.getString('server_url') ?? '';
   final username = prefs.getString('server_username') ?? '';
   if (url.isNotEmpty && username.isNotEmpty) {
@@ -37,9 +37,9 @@ void main() async {
     );
   }
   if (url.isNotEmpty) {
-    final baseUrl = SolaraClient.inferBaseUrl(url);
+    final baseUrl = BackendClient.inferBaseUrl(url);
     if (baseUrl.isNotEmpty) {
-      solaraClient.configure(baseUrl: baseUrl);
+      backendClient.configure(baseUrl: baseUrl);
     }
   }
 
@@ -48,7 +48,7 @@ void main() async {
 
   // 初始化 AudioService + Handler
   final handler = await AudioService.init(
-    builder: () => NavidromeAudioHandler(client, solaraClient, prefs: prefs),
+    builder: () => NavidromeAudioHandler(client, backendClient, prefs: prefs),
     config: AudioServiceConfig(
       androidNotificationChannelId: 'com.navidrome.player.audio',
       androidNotificationChannelName: strings.appName,
