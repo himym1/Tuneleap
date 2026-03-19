@@ -1,0 +1,47 @@
+# Navidrome Player — 服务端部署
+#
+# 包含 Navidrome 音乐服务器 + navidrome-backend 在线搜索后端
+# 客户端会自动连接同 IP 的 8503 端口作为后端
+#
+# 使用方法:
+#   1. cp .env.example .env && 编辑 .env
+#   2. 修改下方 volumes 路径为你的实际目录
+#   3. docker compose up -d
+#
+# 端口说明:
+#   4533 — Navidrome Web UI + Subsonic API
+#   8503 — navidrome-backend（在线搜索/下载/歌词）
+
+services:
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    ports:
+      - "4533:4533"
+    volumes:
+      - ./data:/data
+      - /path/to/your/music:/music:ro
+    environment:
+      ND_SCANSCHEDULE: 1h
+      ND_LOGLEVEL: info
+      ND_AUTHREQUESTLIMIT: 0
+      TZ: Asia/Shanghai
+    restart: unless-stopped
+
+  navidrome-backend:
+    image: himyml/navidrome-backend:latest
+    container_name: navidrome-backend
+    ports:
+      - "8503:8000"
+    volumes:
+      # 与 navidrome 共享数据目录（读取数据库用于删除歌曲）
+      - ./data:/data:rw
+      # 与 navidrome 共享音乐目录（需要 rw 用于下载和删除）
+      - /path/to/your/music:/music:rw
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Shanghai
+    depends_on:
+      - navidrome
+    restart: unless-stopped
