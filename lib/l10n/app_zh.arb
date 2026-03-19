@@ -193,6 +193,15 @@
     "contextMenuImportedNavidrome": "已导入到 Navidrome 并触发扫描",
     "contextMenuImportedNavidromePendingScan": "已导入到 Navidrome，等待自动扫描",
     "contextMenuImportNavidromeFailed": "导入到 Navidrome 失败",
+    "importDuplicateTitle": "歌曲已存在",
+    "importDuplicateMessage": "「{title}」({artist}) 在本地库中已存在，是否仍要导入？",
+    "@importDuplicateMessage": {
+        "placeholders": {
+            "title": { "type": "String" },
+            "artist": { "type": "String" }
+        }
+    },
+    "commonContinue": "继续",
     "contextMenuQueueingNavidrome": "正在提交到 NAS 下载队列…",
     "contextMenuQueuedNavidrome": "已提交到 NAS 下载队列",
     "contextMenuAddedPlaylist": "已添加到 {name}",
@@ -471,6 +480,9 @@
     "searchBackendNetease": "网易云",
     "searchBackendKuwo": "酷我",
     "searchBackendJoox": "JOOX",
+    "searchFilterOnline": "在线",
+    "searchSectionLocal": "本地搜索结果",
+    "searchSectionOnline": "在线搜索结果",
 
     "playerShuffle": "随机播放",
     "playerRepeat": "循环播放",

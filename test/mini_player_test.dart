@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:navidrome_player/api/solara_client.dart';
+import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/player/audio_handler.dart';
@@ -20,8 +20,8 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
 
     final client = SubsonicClient();
-    final solaraClient = SolaraClient();
-    final handler = NavidromeAudioHandler(client, solaraClient, prefs: prefs);
+    final backendClient = BackendClient();
+    final handler = NavidromeAudioHandler(client, backendClient, prefs: prefs);
 
     final container = ProviderContainer(
       overrides: [

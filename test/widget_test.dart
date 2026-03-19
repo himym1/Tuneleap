@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:navidrome_player/app.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/player/audio_handler.dart';
-import 'package:navidrome_player/api/solara_client.dart';
+import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/ui/theme/app_color_loader.dart';
 
@@ -16,9 +16,9 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
 
     final client = SubsonicClient();
-    final solaraClient = SolaraClient();
+    final backendClient = BackendClient();
     // 注意：测试环境不调用 AudioService.init，直接构造 Handler
-    final handler = NavidromeAudioHandler(client, solaraClient, prefs: prefs);
+    final handler = NavidromeAudioHandler(client, backendClient, prefs: prefs);
 
     final container = ProviderContainer(
       overrides: [

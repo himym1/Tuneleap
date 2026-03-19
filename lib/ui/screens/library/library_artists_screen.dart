@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,7 +17,44 @@ class LibraryArtistsScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
+  final _searchController = TextEditingController();
   String _searchQuery = '';
+  Timer? _searchDebounce;
+  List<Artist>? _searchResults;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchQuery = value;
+    if (value.trim().isEmpty) {
+      setState(() => _searchResults = null);
+      return;
+    }
+    if (_searchController.value.composing != TextRange.empty) return;
+    _searchDebounce = Timer(const Duration(milliseconds: 500), _doApiSearch);
+  }
+
+  Future<void> _doApiSearch() async {
+    final query = _searchQuery.trim();
+    if (query.isEmpty) return;
+    try {
+      final client = ref.read(subsonicClientProvider);
+      final result = await client.search3(
+        query,
+        artistCount: 50,
+        albumCount: 0,
+        songCount: 0,
+      );
+      if (!mounted || _searchQuery.trim() != query) return;
+      setState(() => _searchResults = result.artists);
+    } catch (_) {}
+  }
 
   void _playArtist(Artist artist) async {
     try {
@@ -56,7 +94,8 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
           Padding(
             padding: EdgeInsets.fromLTRB(h, 0, h, 16),
             child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
+              controller: _searchController,
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
                 prefixIcon: const Icon(Icons.search),
@@ -77,16 +116,8 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
                 ),
               ),
               data: (artists) {
-                final filtered = _searchQuery.isEmpty
-                    ? artists
-                    : artists
-                          .where(
-                            (a) => a.name.toLowerCase().contains(
-                              _searchQuery.toLowerCase(),
-                            ),
-                          )
-                          .toList();
-                return filtered.isEmpty
+                final display = _searchResults ?? artists;
+                return display.isEmpty
                     ? Center(
                         child: Text(
                           S.of(context).libraryNoArtists,
@@ -97,7 +128,7 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
                           ),
                         ),
                       )
-                    : _buildArtistList(filtered);
+                    : _buildArtistList(display);
               },
             ),
           ),
@@ -107,35 +138,17 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
   }
 
   Widget _buildArtistList(List<Artist> artists) {
-    final client = ref.read(subsonicClientProvider);
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       itemCount: artists.length,
       itemBuilder: (context, index) {
         final artist = artists[index];
-        final coverUrl = client.coverArtUrl(artist.coverArt, size: 100);
         return Container(
           margin: const EdgeInsets.only(bottom: 2),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 4,
-            ),
-            leading: CircleAvatar(
-              radius: 22,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHigh,
-              backgroundImage: coverUrl.isNotEmpty
-                  ? NetworkImage(coverUrl)
-                  : null,
-              child: coverUrl.isEmpty
-                  ? Icon(
-                      Icons.person,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      size: 20,
-                    )
-                  : null,
             ),
             title: Text(
               artist.name,

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:navidrome_player/api/models/models.dart';
-import 'package:navidrome_player/api/solara_client.dart';
+import 'package:navidrome_player/api/backend_client.dart';
 
 class _CaptureAdapter implements HttpClientAdapter {
   _CaptureAdapter(this.onFetch);
@@ -34,17 +34,17 @@ ResponseBody _jsonBody(Object data) {
 }
 
 void main() {
-  group('SolaraClient', () {
+  group('BackendClient', () {
     test('inferBaseUrl reuses host and replaces port', () {
       expect(
-        SolaraClient.inferBaseUrl('http://192.168.1.10:4533'),
+        BackendClient.inferBaseUrl('http://192.168.1.10:4533'),
         'http://192.168.1.10:10086',
       );
       expect(
-        SolaraClient.inferBaseUrl('https://music.example.com'),
+        BackendClient.inferBaseUrl('https://music.example.com'),
         'https://music.example.com:10086',
       );
-      expect(SolaraClient.inferBaseUrl('not-a-url'), '');
+      expect(BackendClient.inferBaseUrl('not-a-url'), '');
     });
 
     test(
@@ -68,7 +68,7 @@ void main() {
               },
             ]);
           });
-        final client = SolaraClient(dio: dio)
+        final client = BackendClient(dio: dio)
           ..configure(baseUrl: 'http://nas:10086');
 
         final songs = await client.searchSongs(
@@ -92,7 +92,7 @@ void main() {
           captured = options;
           return _jsonBody({'url': 'https://cdn.example.com/song.mp3'});
         });
-      final client = SolaraClient(dio: dio)
+      final client = BackendClient(dio: dio)
         ..configure(baseUrl: 'http://nas:10086');
       const targetSong = Song(
         id: '228908',
@@ -114,7 +114,7 @@ void main() {
     });
 
     test('buildCoverProxyUrl keeps Solara proxy on same host', () {
-      final client = SolaraClient()..configure(baseUrl: 'http://nas:10086');
+      final client = BackendClient()..configure(baseUrl: 'http://nas:10086');
       const song = Song(
         id: '1',
         title: 'Track',
@@ -149,7 +149,7 @@ void main() {
           expect(options.method, 'POST');
           return _jsonBody({'success': true, 'message': 'queued'});
         });
-      final client = SolaraClient(dio: dio)
+      final client = BackendClient(dio: dio)
         ..configure(baseUrl: 'http://nas:10086');
 
       final message = await client.queueNasDownload(
@@ -173,7 +173,7 @@ void main() {
           expect(options.queryParameters['types'], 'lyric');
           return _jsonBody({'lyric': '[00:01.23]第一句\n[00:02.50]第二句\n纯文本结尾'});
         });
-      final client = SolaraClient(dio: dio)
+      final client = BackendClient(dio: dio)
         ..configure(baseUrl: 'http://nas:10086');
       const song = Song(
         id: '5257138',

@@ -1,49 +1,29 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:navidrome_player/api/subsonic_client.dart';
+import 'package:navidrome_player/api/models/song.dart';
 import 'audio_providers.dart';
 
 // ============================================================
-// 搜索状态管理
+// 搜索状态管理 — 仅在线搜索（网易云/酷我/JOOX）
 // ============================================================
 
-enum SearchBackend { local, netease, kuwo, joox }
-
-extension SearchBackendExt on SearchBackend {
-  bool get isOnline => this != SearchBackend.local;
-
-  String? get source => switch (this) {
-    SearchBackend.local => null,
-    SearchBackend.netease => 'netease',
-    SearchBackend.kuwo => 'kuwo',
-    SearchBackend.joox => 'joox',
-  };
-}
-
 class SearchState {
-  final SearchResult? result;
+  final List<Song> songs;
   final bool searching;
-  final int selectedFilter;
-  final SearchBackend selectedBackend;
 
   const SearchState({
-    this.result,
+    this.songs = const [],
     this.searching = false,
-    this.selectedFilter = 0,
-    this.selectedBackend = SearchBackend.local,
   });
 
   SearchState copyWith({
-    SearchResult? result,
+    List<Song>? songs,
     bool? searching,
-    int? selectedFilter,
-    SearchBackend? selectedBackend,
     bool clearResult = false,
   }) {
     return SearchState(
-      result: clearResult ? null : (result ?? this.result),
+      songs: clearResult ? const [] : (songs ?? this.songs),
       searching: searching ?? this.searching,
-      selectedFilter: selectedFilter ?? this.selectedFilter,
-      selectedBackend: selectedBackend ?? this.selectedBackend,
     );
   }
 }
@@ -54,51 +34,53 @@ final searchProvider =
     );
 
 class SearchNotifier extends Notifier<SearchState> {
+  CancelToken? _cancelToken;
+
   @override
   SearchState build() => const SearchState();
 
-  void setFilter(int index) {
-    state = state.copyWith(selectedFilter: index);
-  }
-
-  void setBackend(SearchBackend backend) {
-    if (state.selectedBackend == backend) return;
-    var newFilter = state.selectedFilter;
-    if (backend.isOnline && newFilter > 1) {
-      newFilter = 0;
-    }
-    state = state.copyWith(selectedBackend: backend, selectedFilter: newFilter);
-  }
-
   void clearResult() {
+    _cancelToken?.cancel();
     state = state.copyWith(clearResult: true);
   }
 
   Future<void> search(String query) async {
     if (query.trim().isEmpty) {
+      _cancelToken?.cancel();
       state = state.copyWith(clearResult: true);
       return;
     }
+
+    // Cancel previous in-flight search
+    _cancelToken?.cancel();
+    final cancelToken = CancelToken();
+    _cancelToken = cancelToken;
+
     state = state.copyWith(searching: true);
     try {
-      final backend = state.selectedBackend;
-      final result = switch (backend) {
-        SearchBackend.local => await ref
-            .read(subsonicClientProvider)
-            .search3(query, artistCount: 20, albumCount: 20, songCount: 30),
-        _ => SearchResult(
-          songs: await ref
-              .read(solaraClientProvider)
-              .searchSongs(
-                query,
-                source: backend.source!,
-                count: 30,
-                page: 1,
-              ),
-        ),
-      };
-      state = state.copyWith(result: result, searching: false);
-    } catch (_) {
+      final client = ref.read(backendClientProvider);
+      final songs = <Song>[];
+      for (final source in ['netease', 'kuwo', 'joox']) {
+        if (cancelToken.isCancelled) return;
+        try {
+          final result = await client.searchSongs(
+            query,
+            source: source,
+            count: 30,
+            page: 1,
+            cancelToken: cancelToken,
+          );
+          songs.addAll(result);
+        } catch (e) {
+          if (e is DioException && e.type == DioExceptionType.cancel) return;
+          // Individual source failure doesn't affect others
+        }
+      }
+      if (!cancelToken.isCancelled) {
+        state = state.copyWith(songs: songs, searching: false);
+      }
+    } catch (e) {
+      if (e is DioException && e.type == DioExceptionType.cancel) return;
       state = state.copyWith(searching: false);
     }
   }

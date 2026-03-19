@@ -77,15 +77,25 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (_lyricsForSongId == song.storageKey && _lyrics != null) return;
     // 优先从静态缓存恢复，避免重新打开播放器时重复请求
     if (_lyricsCache.containsKey(song.storageKey)) {
+      debugPrint('[PlayerScreen] _loadLyrics cache hit: ${song.storageKey}');
       setState(() {
         _lyrics = _lyricsCache[song.storageKey];
         _lyricsForSongId = song.storageKey;
       });
       return;
     }
+    debugPrint('[PlayerScreen] _loadLyrics loading: ${song.storageKey}, isOnline=${song.isOnline}, path=${song.path}');
     try {
       final resolver = ref.read(songMediaResolverProvider);
-      final result = await resolver.lyrics(song);
+      // 查找已下载文件的本地路径，传给 resolver 以读取本地 .lrc
+      final downloads = ref.read(downloadManagerProvider);
+      final dlTask = downloads.where(
+        (t) => t.id == song.storageKey && t.status == DownloadStatus.completed,
+      );
+      final localPath = dlTask.isNotEmpty ? dlTask.first.localPath : null;
+
+      final result = await resolver.lyrics(song, localAudioPath: localPath);
+      debugPrint('[PlayerScreen] _loadLyrics result: ${result?.lines.length ?? 0} lines, synced=${result?.synced}');
       final lines = result?.lines ?? [];
       _lyricsCache[song.storageKey] = lines;
       if (mounted) {
@@ -94,7 +104,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           _lyricsForSongId = song.storageKey;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[PlayerScreen] _loadLyrics ERROR for ${song.storageKey}: $e');
       if (mounted) {
         setState(() {
           _lyrics = [];
@@ -763,10 +774,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            if (currentSong.suffix != null || currentSong.bitRate != null) ...[
+            if (currentSong.suffix != null || currentSong.bitRate != null || currentSong.isOnline) ...[
               const SizedBox(height: 4),
               Text(
                 [
+                  if (currentSong.isOnline && currentSong.sourceLabel != null) currentSong.sourceLabel!,
                   if (currentSong.suffix != null) currentSong.suffix!.toUpperCase(),
                   if (currentSong.bitRate != null) '${currentSong.bitRate}kbps',
                 ].join(' · '),
@@ -958,10 +970,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    if (currentSong.suffix != null || currentSong.bitRate != null) ...[
+                    if (currentSong.suffix != null || currentSong.bitRate != null || currentSong.isOnline) ...[
                       const SizedBox(height: 2),
                       Text(
                         [
+                          if (currentSong.isOnline && currentSong.sourceLabel != null) currentSong.sourceLabel!,
                           if (currentSong.suffix != null) currentSong.suffix!.toUpperCase(),
                           if (currentSong.bitRate != null) '${currentSong.bitRate}kbps',
                         ].join(' · '),

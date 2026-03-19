@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/song_media_resolver.dart';
-import 'package:navidrome_player/api/solara_client.dart';
+import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
-import 'package:navidrome_player/api/tunescout_client.dart';
 import 'package:navidrome_player/player/audio_handler.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/providers/download_provider.dart';
@@ -31,19 +30,14 @@ final subsonicClientProvider = Provider<SubsonicClient>((ref) {
   return client;
 });
 
-/// TuneScout 客户端 provider — 用于删除本地歌曲文件
-final tuneScoutClientProvider = Provider<TuneScoutClient>((ref) {
-  return TuneScoutClient();
-});
-
-/// Solara 在线音乐客户端 provider
-final solaraClientProvider = Provider<SolaraClient>((ref) {
+/// navidrome-backend 客户端 provider
+final backendClientProvider = Provider<BackendClient>((ref) {
   final config = ref.watch(serverConfigProvider);
-  final client = SolaraClient();
+  final client = BackendClient();
   if (config.url.isNotEmpty) {
-    final baseUrl = SolaraClient.inferBaseUrl(config.url);
+    final baseUrl = BackendClient.inferBaseUrl(config.url);
     if (baseUrl.isNotEmpty) {
-      client.configure(baseUrl: baseUrl);
+      client.configure(baseUrl: baseUrl, apiKey: config.password);
     }
   }
   return client;
@@ -52,7 +46,7 @@ final solaraClientProvider = Provider<SolaraClient>((ref) {
 final songMediaResolverProvider = Provider<SongMediaResolver>((ref) {
   return SongMediaResolver(
     subsonicClient: ref.watch(subsonicClientProvider),
-    solaraClient: ref.watch(solaraClientProvider),
+    backendClient: ref.watch(backendClientProvider),
   );
 });
 
@@ -60,12 +54,12 @@ final songMediaResolverProvider = Provider<SongMediaResolver>((ref) {
 final audioPlayerServiceProvider = Provider<AudioPlayerService>((ref) {
   final handler = ref.watch(audioHandlerProvider);
   final client = ref.watch(subsonicClientProvider);
-  final solaraClient = ref.watch(solaraClientProvider);
+  final backendClient = ref.watch(backendClientProvider);
   final quality = ref.watch(audioQualityProvider);
   final downloads = ref.watch(downloadManagerProvider);
 
   // 服务器切换时同步 client 到 handler
-  handler.updateClients(client, solaraClient);
+  handler.updateClients(client, backendClient);
   // 音质变更时同步 maxBitRate
   handler.setMaxBitRate(quality);
   // 离线回退：查看已下载文件

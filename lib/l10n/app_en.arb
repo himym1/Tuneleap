@@ -137,6 +137,15 @@
     "contextMenuImportedNavidrome": "Imported to Navidrome and scan triggered",
     "contextMenuImportedNavidromePendingScan": "Imported to Navidrome, waiting for auto scan",
     "contextMenuImportNavidromeFailed": "Failed to import to Navidrome",
+    "importDuplicateTitle": "Song Already Exists",
+    "importDuplicateMessage": "\"{title}\" by {artist} already exists in your library. Import anyway?",
+    "@importDuplicateMessage": {
+        "placeholders": {
+            "title": { "type": "String" },
+            "artist": { "type": "String" }
+        }
+    },
+    "commonContinue": "Continue",
     "contextMenuQueueingNavidrome": "Submitting to NAS download queue...",
     "contextMenuQueuedNavidrome": "Submitted to NAS download queue",
     "contextMenuAddedPlaylist": "Added to {name}",
@@ -332,6 +341,9 @@
     "searchBackendNetease": "Netease",
     "searchBackendKuwo": "Kuwo",
     "searchBackendJoox": "JOOX",
+    "searchFilterOnline": "Online",
+    "searchSectionLocal": "Local Results",
+    "searchSectionOnline": "Online Results",
 
     "playerShuffle": "Shuffle",
     "playerRepeat": "Repeat",

@@ -424,6 +424,17 @@ class SEn extends S {
       'Failed to import to Navidrome';
 
   @override
+  String get importDuplicateTitle => 'Song Already Exists';
+
+  @override
+  String importDuplicateMessage(String title, String artist) {
+    return '\"$title\" by $artist already exists in your library. Import anyway?';
+  }
+
+  @override
+  String get commonContinue => 'Continue';
+
+  @override
   String get contextMenuQueueingNavidrome =>
       'Submitting to NAS download queue...';
 
@@ -837,6 +848,15 @@ class SEn extends S {
 
   @override
   String get searchBackendJoox => 'JOOX';
+
+  @override
+  String get searchFilterOnline => 'Online';
+
+  @override
+  String get searchSectionLocal => 'Local Results';
+
+  @override
+  String get searchSectionOnline => 'Online Results';
 
   @override
   String get playerShuffle => 'Shuffle';

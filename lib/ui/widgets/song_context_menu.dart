@@ -163,24 +163,73 @@ class SongContextMenu extends ConsumerWidget {
         messenger.showSnackBar(_snackBar(l10n.contextMenuDownloading));
         break;
       case 'import_navidrome':
-        messenger.showSnackBar(_snackBar(l10n.contextMenuQueueingNavidrome));
+        // Check for duplicates in local library
+        try {
+          final localResult = await ref
+              .read(subsonicClientProvider)
+              .search3(song.title, songCount: 10, albumCount: 0, artistCount: 0);
+          final duplicate = localResult.songs.any((s) =>
+              s.title.toLowerCase() == song.title.toLowerCase() &&
+              s.artist.toLowerCase() == song.artist.toLowerCase());
+          if (duplicate && context.mounted) {
+            final proceed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text(l10n.importDuplicateTitle),
+                content: Text(l10n.importDuplicateMessage(song.title, song.artist)),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(l10n.commonCancel),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(l10n.commonContinue),
+                  ),
+                ],
+              ),
+            );
+            if (proceed != true) return;
+          }
+        } catch (_) {
+          // Search failed — proceed with import anyway
+        }
+        if (!context.mounted) return;
+        messenger.showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text('${l10n.contextMenuQueueingNavidrome}...')),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 30),
+          ),
+        );
         try {
           final result = await importService.importOnlineSong(song);
+          // Trigger Navidrome library scan after successful import
+          try {
+            await ref.read(subsonicClientProvider).startScan();
+          } catch (_) {}
           if (!context.mounted) return;
-          messenger.showSnackBar(
-            _snackBar(
-              result.message == null || result.message!.isEmpty
-                  ? l10n.contextMenuQueuedNavidrome
-                  : '${l10n.contextMenuQueuedNavidrome}: ${result.message}',
-            ),
-          );
+          messenger.clearSnackBars();
+          messenger.showSnackBar(_snackBar(
+            result.message == null || result.message!.isEmpty
+                ? l10n.contextMenuQueuedNavidrome
+                : '${l10n.contextMenuQueuedNavidrome}: ${result.message}',
+          ));
         } catch (error) {
           if (!context.mounted) return;
-          messenger.showSnackBar(
-            _snackBar(
-              '${l10n.contextMenuImportNavidromeFailed}: ${_formatImportError(error)}',
-            ),
-          );
+          messenger.clearSnackBars();
+          messenger.showSnackBar(_snackBar(
+            '${l10n.contextMenuImportNavidromeFailed}: ${_formatImportError(error)}',
+          ));
         }
         break;
       case 'delete':
@@ -207,8 +256,8 @@ class SongContextMenu extends ConsumerWidget {
         );
         if (confirmed != true) return;
         debugPrint('[Delete] song.id: ${song.id}, song.title: ${song.title}');
-        final tuneScout = ref.read(tuneScoutClientProvider);
-        final ok = await tuneScout.deleteSongById(song.id);
+        final backend = ref.read(backendClientProvider);
+        final ok = await backend.deleteSongById(song.id);
         if (ok) {
           // 从播放队列移除该歌曲
           final queue = playerService.queue;
