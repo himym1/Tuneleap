@@ -2,11 +2,9 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-20-llm-online-recommendations",
   "lastCheckpointRef": "docs/aegis/work/2026-07-20-llm-online-recommendations/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume at Backend Task4 in the approved plan; do not repeat Tasks1-3.",
+  "resumeInstruction": "Resume at plan Task5 in both worktrees; do not start Flutter Task6 before Backend Gate.",
   "knownPartialWork": [
-    "Task 1 Backend v1 contracts",
-    "Task 2 SQLite store",
-    "Task 3 OpenAI planner"
+    "Task1 contract; Task2 store; Task3 planner; Task4 orchestration"
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-20-llm-online-recommendations/10-intent.md",
@@ -14,6 +12,6 @@
     "docs/aegis/work/2026-07-20-llm-online-recommendations/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Task4 may not resolve playback URLs or rely only on process-local refill locks."
+    "No deployment permission; no real OpenAI key; do not inspect env."
   ]
 }

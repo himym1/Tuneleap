@@ -68,3 +68,23 @@
 - Backend e03aaaf; 12 targeted and 45 full tests
 - Blocked on: none
 - Next step: Dispatch Task4 implementer, then spec and quality review.
+
+## DriftCheckDraft
+
+- Scope status: Task4 stayed in orchestration/store tests.
+- Compatibility status: MusicProxy search signature reused; no playback URL or API routes.
+- Retirement status: No retirement action.
+- New risk signals:
+- Task5 must lifecycle-manage background tasks/store/client and version recommendation errors only.
+- Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Task5 Backend API/lifecycle
+- Active slice: Batch B Task5
+- Completed todos:
+- Task1 contract; Task2 store; Task3 planner; Task4 orchestration
+- Evidence refs:
+- backend 73b0201; 39 service and 84 full tests
+- Blocked on: none
+- Next step: Implement recommendation HTTP/API/lifecycle and Backend Gate.
