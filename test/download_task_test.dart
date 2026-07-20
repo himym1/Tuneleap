@@ -16,6 +16,15 @@ void main() {
     suffix: 'flac',
   );
 
+  test('download storage segments do not collide after sanitization', () {
+    final slash = downloadStorageSegment('a/b');
+    final question = downloadStorageSegment('a?b');
+
+    expect(slash, isNot(question));
+    expect(slash, isNot(contains('/')));
+    expect(question, isNot(contains('?')));
+  });
+
   group('DownloadTask', () {
     test('toJson produces expected keys', () {
       const task = DownloadTask(

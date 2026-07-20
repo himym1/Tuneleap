@@ -72,16 +72,34 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       ],
     );
 
-    final tabContent = lib.loading
-        ? Center(child: const CircularProgressIndicator())
-        : TabBarView(
-            controller: _tabController,
-            children: [
-              _buildArtistList(lib),
-              _buildAlbumGrid(lib),
-              _buildSongList(lib),
-            ],
-          );
+    final Widget tabContent;
+    if (lib.loading) {
+      tabContent = const Center(child: CircularProgressIndicator());
+    } else if (lib.error != null) {
+      tabContent = Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(S.of(context).commonLoadFailed),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () => ref.read(libraryProvider.notifier).refresh(),
+              icon: const Icon(Icons.refresh),
+              label: Text(S.of(context).commonRetry),
+            ),
+          ],
+        ),
+      );
+    } else {
+      tabContent = TabBarView(
+        controller: _tabController,
+        children: [
+          _buildArtistList(lib),
+          _buildAlbumGrid(lib),
+          _buildSongList(lib),
+        ],
+      );
+    }
 
     if (isMobile) {
       return Scaffold(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -8,6 +9,8 @@ import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/api/song_media_resolver.dart';
 import 'package:navidrome_player/api/models/models.dart';
+import 'package:navidrome_player/utils/request_generation.dart';
+import 'package:navidrome_player/providers/server_scope.dart';
 import 'audio_player_service.dart';
 
 /// audio_service 的 Handler，处理后台播放、通知栏、锁屏控制
@@ -15,42 +18,64 @@ import 'audio_player_service.dart';
 /// 这是唯一持有 AudioPlayer 实例的类。
 /// AudioPlayerService 通过委托调用本类的方法。
 class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
-  final AudioPlayer _player = AudioPlayer();
+  final AudioPlayer _player;
   SubsonicClient _subsonicClient;
   BackendClient _backendClient;
   int _maxBitRate = 0;
   final SharedPreferences? _prefs;
-  static const _historyKey = 'play_history';
+  String _serverId;
+  String get _historyKey => scopedPreferenceKey('play_history', _serverId);
   String? Function(Song song)? _localPathLookup;
+  final RequestGeneration _loadRequests = RequestGeneration();
+  Future<void> _playerOperations = Future.value();
+  String? _loadedSongKey;
+  int? _loadedRequest;
 
   final List<Song> _queue = [];
   final List<Song> _playHistory = [];
   int _currentIndex = -1;
-  RepeatMode _repeatMode = RepeatMode.off;
+  PlaybackRepeatMode _repeatMode = PlaybackRepeatMode.off;
+  bool _shuffle = false;
 
   // Scrobble 跟踪
   String? _scrobbledSongId;
+  String? _scrobbleInFlightSongId;
 
   NavidromeAudioHandler(
     this._subsonicClient,
     this._backendClient, {
     SharedPreferences? prefs,
-  }) : _prefs = prefs {
+    String serverId = defaultServerId,
+    AudioPlayer? player,
+  }) : _player = player ?? AudioPlayer(),
+       _prefs = prefs,
+       _serverId = normalizeServerId(serverId) {
     // 加载持久化的播放历史
     _loadHistory();
 
     _player.playbackEventStream.listen(_broadcastState);
     _player.processingStateStream.listen((state) {
-      if (state == ProcessingState.completed) {
-        _onCompleted();
+      final completedSongKey = _loadedSongKey;
+      final completedRequest = _loadedRequest;
+      if (state == ProcessingState.completed &&
+          completedSongKey != null &&
+          completedRequest != null) {
+        unawaited(_onCompleted(completedSongKey, completedRequest));
       }
     });
     // 自动 scrobble：播放超过 50% 或 4 分钟
     _player.positionStream.listen(_checkScrobble);
   }
 
+  Future<void> _enqueuePlayerOperation(Future<void> Function() operation) {
+    final result = _playerOperations.then((_) => operation());
+    _playerOperations = result.catchError((Object _) {});
+    return result;
+  }
+
   /// 从 SharedPreferences 加载播放历史
   void _loadHistory() {
+    _playHistory.clear();
     final json = _prefs?.getString(_historyKey);
     if (json == null) return;
     try {
@@ -73,26 +98,75 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   void _checkScrobble(Duration position) {
     final song = currentSong;
     if (song == null) return;
-    if (_scrobbledSongId == song.storageKey) return; // 已上报
+    final songKey = scopedSongKey(_serverId, song.storageKey);
+    if (_loadedSongKey != songKey ||
+        _scrobbledSongId == songKey ||
+        _scrobbleInFlightSongId == songKey) {
+      return;
+    }
 
     final duration = _player.duration;
     if (duration == null || duration.inSeconds < 10) return;
 
     final playedRatio = position.inSeconds / duration.inSeconds;
     final playedMinutes = position.inMinutes;
-
     if (playedRatio >= 0.5 || playedMinutes >= 4) {
-      _scrobbledSongId = song.storageKey;
-      _resolver.scrobble(song).catchError((_) {});
+      _scrobbleInFlightSongId = songKey;
+      unawaited(_scrobble(song, songKey));
+    }
+  }
+
+  Future<void> _scrobble(Song song, String songKey) async {
+    try {
+      await _resolver.scrobble(song);
+      if (_loadedSongKey == songKey) {
+        _scrobbledSongId = songKey;
+      }
+    } catch (_) {
+      // Leave the song unmarked so a later position event can retry.
+    } finally {
+      if (_scrobbleInFlightSongId == songKey) {
+        _scrobbleInFlightSongId = null;
+      }
     }
   }
 
   // === Client / Quality ===
 
   /// 切换服务器时更新 client 实例
-  void updateClients(SubsonicClient newSubsonicClient, BackendClient newBackend) {
+  void updateClients(
+    SubsonicClient newSubsonicClient,
+    BackendClient newBackend, {
+    required String serverId,
+  }) {
+    final nextServerId = normalizeServerId(serverId);
+    final changedSession =
+        nextServerId != _serverId ||
+        !identical(newSubsonicClient, _subsonicClient) ||
+        !identical(newBackend, _backendClient);
     _subsonicClient = newSubsonicClient;
     _backendClient = newBackend;
+    if (!changedSession) return;
+
+    _serverId = nextServerId;
+    _loadRequests.invalidate();
+    _loadedSongKey = null;
+    _loadedRequest = null;
+    _scrobbledSongId = null;
+    _scrobbleInFlightSongId = null;
+    unawaited(
+      _enqueuePlayerOperation(() async {
+        await _player.stop();
+        await _player.setLoopMode(LoopMode.off);
+      }),
+    );
+    _queue.clear();
+    _currentIndex = -1;
+    queue.add(const []);
+    mediaItem.add(null);
+    _shuffle = false;
+    _repeatMode = PlaybackRepeatMode.off;
+    _loadHistory();
   }
 
   /// 设置最大码率（0 = 原始音质，不限制）
@@ -112,14 +186,15 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
 
   /// 设置音量 (0.0 ~ 1.0)
   void setVolume(double value) {
-    _player.setVolume(value.clamp(0.0, 1.0));
+    unawaited(
+      _enqueuePlayerOperation(() => _player.setVolume(value.clamp(0.0, 1.0))),
+    );
   }
 
   /// 设置播放速度 (0.25 ~ 3.0)
   @override
-  Future<void> setSpeed(double value) async {
-    await _player.setSpeed(value.clamp(0.25, 3.0));
-  }
+  Future<void> setSpeed(double value) =>
+      _enqueuePlayerOperation(() => _player.setSpeed(value.clamp(0.25, 3.0)));
 
   // === Getters ===
 
@@ -127,6 +202,8 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   List<Song> get songQueue => List.unmodifiable(_queue);
   List<Song> get playHistory => List.unmodifiable(_playHistory);
   int get currentIndex => _currentIndex;
+  bool get shuffle => _shuffle;
+  PlaybackRepeatMode get repeatMode => _repeatMode;
   Song? get currentSong => _currentIndex >= 0 && _currentIndex < _queue.length
       ? _queue[_currentIndex]
       : null;
@@ -138,8 +215,17 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     _queue
       ..clear()
       ..addAll(songs);
-    _currentIndex = startIndex.clamp(0, songs.length - 1);
     queue.add(songs.map(_songToMediaItem).toList());
+    if (songs.isEmpty) {
+      _loadRequests.invalidate();
+      _loadedSongKey = null;
+      _loadedRequest = null;
+      _currentIndex = -1;
+      mediaItem.add(null);
+      await _enqueuePlayerOperation(_player.stop);
+      return;
+    }
+    _currentIndex = startIndex.clamp(0, songs.length - 1);
     await _loadAndPlay();
   }
 
@@ -160,38 +246,59 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   }
 
   /// 从队列中移除
-  void removeFromQueue(int index) {
+  Future<void> removeFromQueue(int index) async {
     if (index < 0 || index >= _queue.length) return;
+    final removingCurrent = index == _currentIndex;
+    final wasPlaying = _player.playing;
+    final autoplayNext = wasPlaying || _loadedSongKey == null;
     _queue.removeAt(index);
+
     if (index < _currentIndex) {
       _currentIndex--;
-    } else if (index == _currentIndex) {
-      _currentIndex = _currentIndex.clamp(0, _queue.length - 1);
+    } else if (removingCurrent) {
+      _currentIndex = _queue.isEmpty ? -1 : index.clamp(0, _queue.length - 1);
     }
     queue.add(_queue.map(_songToMediaItem).toList());
+
+    if (!removingCurrent) return;
+    _loadRequests.invalidate();
+    _loadedSongKey = null;
+    _loadedRequest = null;
+    _scrobbledSongId = null;
+    _scrobbleInFlightSongId = null;
+    if (_queue.isEmpty) {
+      mediaItem.add(null);
+      await _enqueuePlayerOperation(_player.stop);
+    } else {
+      await _loadCurrent(autoplay: autoplayNext);
+    }
   }
 
-  /// 拖拽排序
+  /// 拖拽排序；[newIndex] 使用 Flutter `onReorderItem` 的已调整索引。
   void reorderQueue(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= _queue.length) return;
-    if (newIndex < 0 || newIndex > _queue.length) return;
+    if (newIndex < 0 || newIndex >= _queue.length) return;
     if (oldIndex == newIndex) return;
 
     final song = _queue.removeAt(oldIndex);
-    final adjustedNew = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    _queue.insert(adjustedNew, song);
+    _queue.insert(newIndex, song);
 
     // 同步 currentIndex
     if (oldIndex == _currentIndex) {
-      _currentIndex = adjustedNew;
+      _currentIndex = newIndex;
     } else {
-      if (oldIndex < _currentIndex && adjustedNew >= _currentIndex) {
+      if (oldIndex < _currentIndex && newIndex >= _currentIndex) {
         _currentIndex--;
-      } else if (oldIndex > _currentIndex && adjustedNew <= _currentIndex) {
+      } else if (oldIndex > _currentIndex && newIndex <= _currentIndex) {
         _currentIndex++;
       }
     }
     queue.add(_queue.map(_songToMediaItem).toList());
+  }
+
+  void setShuffle(bool enabled) {
+    _shuffle = enabled;
+    if (enabled) shuffleQueue();
   }
 
   /// 随机打乱队列（保持当前歌曲在首位）
@@ -207,26 +314,47 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   }
 
   /// 设置循环模式
-  void setRepeat(RepeatMode mode) {
+  void setRepeat(PlaybackRepeatMode mode) {
     _repeatMode = mode;
-    _player.setLoopMode(mode == RepeatMode.one ? LoopMode.one : LoopMode.off);
+    unawaited(
+      _enqueuePlayerOperation(
+        () => _player.setLoopMode(
+          mode == PlaybackRepeatMode.one ? LoopMode.one : LoopMode.off,
+        ),
+      ),
+    );
   }
 
   // === 播放控制 ===
 
   @override
   Future<void> play() async {
-    await _player.play();
+    final song = currentSong;
+    if (song == null) return;
+    final songKey = scopedSongKey(_serverId, song.storageKey);
+    if (_loadedSongKey != songKey) {
+      await _loadAndPlay();
+      return;
+    }
+    await _enqueuePlayerOperation(() async {
+      _loadedRequest = _loadRequests.current;
+      await _player.play();
+    });
   }
 
   @override
   Future<void> pause() async {
-    await _player.pause();
+    _loadRequests.invalidate();
+    await _enqueuePlayerOperation(_player.pause);
   }
 
   @override
   Future<void> stop() async {
-    await _player.stop();
+    _loadRequests.invalidate();
+    _loadedSongKey = null;
+    _loadedRequest = null;
+    _scrobbleInFlightSongId = null;
+    await _enqueuePlayerOperation(_player.stop);
     playbackState.add(
       playbackState.value.copyWith(
         processingState: AudioProcessingState.idle,
@@ -238,13 +366,9 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> skipToNext() async {
-    if (_queue.isEmpty) return;
-    if (_currentIndex < _queue.length - 1) {
-      _currentIndex++;
-    } else {
-      // 队列播完：循环模式回到开头，否则也回到开头继续播
-      _currentIndex = 0;
-    }
+    final nextIndex = _repeatMode.nextIndex(_currentIndex, _queue.length);
+    if (nextIndex == null) return;
+    _currentIndex = nextIndex;
     await _loadAndPlay();
   }
 
@@ -252,12 +376,12 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> skipToPrevious() async {
     if (_queue.isEmpty) return;
     if (_player.position.inSeconds > 3) {
-      await _player.seek(Duration.zero);
+      await _enqueuePlayerOperation(() => _player.seek(Duration.zero));
       return;
     }
     if (_currentIndex > 0) {
       _currentIndex--;
-    } else if (_repeatMode == RepeatMode.all) {
+    } else if (_repeatMode == PlaybackRepeatMode.all) {
       _currentIndex = _queue.length - 1;
     } else {
       return;
@@ -273,56 +397,91 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   }
 
   @override
-  Future<void> seek(Duration position) async {
-    await _player.seek(position);
-  }
+  Future<void> seek(Duration position) =>
+      _enqueuePlayerOperation(() => _player.seek(position));
 
   // === 内部方法 ===
 
-  /// 播放完成时的处理
-  ///
-  /// 注意：当 _repeatMode == RepeatMode.one 时，just_audio 的 LoopMode.one
-  /// 会自动循环，此处不再手动 seek+play 以避免双重触发。
-  void _onCompleted() {
-    if (_repeatMode == RepeatMode.one) {
-      // LoopMode.one 已由 just_audio 自动处理
+  /// 处理仍属于当前已加载 source 的完成事件。
+  Future<void> _onCompleted(String completedSongKey, int request) async {
+    if (!_loadRequests.isCurrent(request) ||
+        _loadedSongKey != completedSongKey) {
       return;
     }
-    skipToNext();
+    if (_repeatMode == PlaybackRepeatMode.one) return;
+
+    if (_repeatMode.nextIndex(_currentIndex, _queue.length) == null) {
+      await _enqueuePlayerOperation(() async {
+        if (!_loadRequests.isCurrent(request) ||
+            _loadedSongKey != completedSongKey) {
+          return;
+        }
+        await _player.pause();
+        await _player.seek(Duration.zero);
+      });
+      return;
+    }
+    if (_loadRequests.isCurrent(request) &&
+        _loadedSongKey == completedSongKey) {
+      await skipToNext();
+    }
   }
 
   /// 加载当前歌曲并播放
-  Future<void> _loadAndPlay() async {
+  Future<void> _loadAndPlay() => _loadCurrent(autoplay: true);
+
+  Future<void> _loadCurrent({required bool autoplay}) {
+    final request = _loadRequests.begin();
     final song = currentSong;
-    if (song == null) return;
-    _scrobbledSongId = null; // 重置 scrobble 跟踪
-
-    // 记录播放历史（去重后前插，最多保留 50 首）
-    _playHistory.removeWhere((s) => s.storageKey == song.storageKey);
-    _playHistory.insert(0, song);
-    if (_playHistory.length > 50) _playHistory.removeLast();
-    _persistHistory(); // 持久化
-
-    mediaItem.add(_songToMediaItem(song));
-
-    // 优先使用已下载的本地文件
+    if (song == null) return Future.value();
+    final songKey = scopedSongKey(_serverId, song.storageKey);
     final localPath = _localPathLookup?.call(song);
-    try {
-      if (localPath != null && File(localPath).existsSync()) {
-        await _player.setFilePath(localPath);
-      } else {
-        final url = await _resolver.playbackUrl(song, maxBitRate: _maxBitRate);
-        await _player.setUrl(url);
+
+    return _enqueuePlayerOperation(() async {
+      if (!_loadRequests.isCurrent(request)) return;
+      await _player.pause();
+      if (!_loadRequests.isCurrent(request)) return;
+      _loadedSongKey = null;
+      _loadedRequest = null;
+      mediaItem.add(_songToMediaItem(song));
+
+      try {
+        if (localPath != null && File(localPath).existsSync()) {
+          await _player.setFilePath(localPath);
+        } else {
+          final url = await _resolver.playbackUrl(
+            song,
+            maxBitRate: _maxBitRate,
+          );
+          if (!_loadRequests.isCurrent(request)) return;
+          await _player.setUrl(url);
+        }
+        if (!_loadRequests.isCurrent(request)) return;
+
+        _loadedSongKey = songKey;
+        _loadedRequest = request;
+        _scrobbledSongId = null;
+        _scrobbleInFlightSongId = null;
+        // 媒体源加载成功后再记录历史，避免失败播放污染历史。
+        _playHistory.removeWhere((s) => s.storageKey == song.storageKey);
+        _playHistory.insert(0, song);
+        if (_playHistory.length > 50) _playHistory.removeLast();
+        _persistHistory();
+
+        if (autoplay) await _player.play();
+      } catch (e) {
+        if (!_loadRequests.isCurrent(request)) return;
+        _loadedSongKey = null;
+        _loadedRequest = null;
+        debugPrint('Failed to play ${song.storageKey}: ${e.runtimeType}');
+        playbackState.add(
+          playbackState.value.copyWith(
+            processingState: AudioProcessingState.idle,
+            playing: false,
+          ),
+        );
       }
-      await _player.play();
-    } catch (e) {
-      playbackState.add(
-        playbackState.value.copyWith(
-          processingState: AudioProcessingState.idle,
-          playing: false,
-        ),
-      );
-    }
+    });
   }
 
   /// 广播播放状态到系统通知栏/锁屏

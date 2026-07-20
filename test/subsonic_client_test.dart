@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
@@ -71,6 +73,24 @@ class _CaptureAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+class _CancellationAdapter implements HttpClientAdapter {
+  final started = Completer<void>();
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    started.complete();
+    await cancelFuture;
+    throw DioException(requestOptions: options, type: DioExceptionType.cancel);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 SubsonicClient _createClient(
   Map<String, dynamic> Function(String endpoint) responseFactory,
 ) {
@@ -86,6 +106,33 @@ SubsonicClient _createClient(
 }
 
 void main() {
+  test('downloadFile forwards cancellation to Dio', () async {
+    final adapter = _CancellationAdapter();
+    final dio = Dio()..httpClientAdapter = adapter;
+    final client = SubsonicClient(dio: dio);
+    final token = CancelToken();
+    final path = '${Directory.systemTemp.path}/navidrome-cancel-test';
+
+    final download = client.downloadFile(
+      'http://localhost/file',
+      path,
+      cancelToken: token,
+    );
+    await adapter.started.future;
+    token.cancel('server switched');
+
+    await expectLater(
+      download,
+      throwsA(
+        isA<DioException>().having(
+          (error) => error.type,
+          'type',
+          DioExceptionType.cancel,
+        ),
+      ),
+    );
+  });
+
   group('SubsonicClient', () {
     group('configure', () {
       test('strips trailing slash from server URL', () {

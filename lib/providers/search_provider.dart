@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'audio_providers.dart';
+import 'server_config_provider.dart';
 
 // ============================================================
 // 搜索状态管理 — 仅在线搜索（网易云/酷我/JOOX）
@@ -23,7 +24,7 @@ class SearchState {
   }) {
     return SearchState(
       songs: clearResult ? const [] : (songs ?? this.songs),
-      searching: searching ?? this.searching,
+      searching: clearResult ? false : (searching ?? this.searching),
     );
   }
 }
@@ -37,7 +38,13 @@ class SearchNotifier extends Notifier<SearchState> {
   CancelToken? _cancelToken;
 
   @override
-  SearchState build() => const SearchState();
+  SearchState build() {
+    ref.watch(serverConfigProvider.select((config) => config.serverId));
+    _cancelToken?.cancel();
+    _cancelToken = null;
+    ref.onDispose(() => _cancelToken?.cancel());
+    return const SearchState();
+  }
 
   void clearResult() {
     _cancelToken?.cancel();

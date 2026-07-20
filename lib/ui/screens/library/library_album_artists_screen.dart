@@ -23,6 +23,7 @@ class _LibraryAlbumArtistsScreenState
   String _searchQuery = '';
   Timer? _searchDebounce;
   List<Artist>? _searchResults;
+  String? _searchResultsServerId;
 
   @override
   void dispose() {
@@ -35,7 +36,10 @@ class _LibraryAlbumArtistsScreenState
     _searchDebounce?.cancel();
     _searchQuery = value;
     if (value.trim().isEmpty) {
-      setState(() => _searchResults = null);
+      setState(() {
+        _searchResults = null;
+        _searchResultsServerId = null;
+      });
       return;
     }
     if (_searchController.value.composing != TextRange.empty) return;
@@ -45,6 +49,7 @@ class _LibraryAlbumArtistsScreenState
   Future<void> _doApiSearch() async {
     final query = _searchQuery.trim();
     if (query.isEmpty) return;
+    final serverId = ref.read(serverConfigProvider).serverId;
     try {
       final client = ref.read(subsonicClientProvider);
       final result = await client.search3(
@@ -53,16 +58,27 @@ class _LibraryAlbumArtistsScreenState
         albumCount: 0,
         songCount: 0,
       );
-      if (!mounted || _searchQuery.trim() != query) return;
+      if (!mounted ||
+          _searchQuery.trim() != query ||
+          ref.read(serverConfigProvider).serverId != serverId) {
+        return;
+      }
       // Filter to album artists only
-      setState(() => _searchResults =
-          result.artists.where((a) => (a.albumCount ?? 0) > 0).toList());
+      setState(() {
+        _searchResults = result.artists
+            .where((artist) => (artist.albumCount ?? 0) > 0)
+            .toList();
+        _searchResultsServerId = serverId;
+      });
     } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     final artistsAsync = ref.watch(artistsProvider);
+    final serverId = ref.watch(
+      serverConfigProvider.select((config) => config.serverId),
+    );
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
 
@@ -105,8 +121,12 @@ class _LibraryAlbumArtistsScreenState
                 ),
               ),
               data: (artists) {
-                final display = _searchResults ??
-                    artists.where((a) => (a.albumCount ?? 0) > 0).toList();
+                final filteredArtists = artists
+                    .where((artist) => (artist.albumCount ?? 0) > 0)
+                    .toList();
+                final display = _searchResultsServerId == serverId
+                    ? (_searchResults ?? filteredArtists)
+                    : filteredArtists;
                 return display.isEmpty
                     ? Center(
                         child: Text(

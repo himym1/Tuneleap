@@ -38,13 +38,24 @@ void main() {
     test('inferBaseUrl reuses host and replaces port', () {
       expect(
         BackendClient.inferBaseUrl('http://192.168.1.10:4533'),
-        'http://192.168.1.10:10086',
+        'http://192.168.1.10:8503',
       );
       expect(
         BackendClient.inferBaseUrl('https://music.example.com'),
-        'https://music.example.com:10086',
+        'https://music.example.com:8503',
       );
       expect(BackendClient.inferBaseUrl('not-a-url'), '');
+    });
+
+    test('configure clears a previously set backend API key', () {
+      final dio = Dio();
+      final client = BackendClient(dio: dio);
+
+      client.configure(baseUrl: 'http://backend', apiKey: 'secret');
+      expect(dio.options.headers['X-API-Key'], 'secret');
+
+      client.configure(baseUrl: 'http://backend');
+      expect(dio.options.headers.containsKey('X-API-Key'), isFalse);
     });
 
     test(

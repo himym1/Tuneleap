@@ -12,6 +12,8 @@ import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/api/subsonic_client.dart' show LyricsLine;
 import 'package:navidrome_player/utils/duration_format.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/utils/request_generation.dart';
+import 'package:navidrome_player/providers/server_scope.dart';
 
 /// 响应式播放器页面 — 移动端单栏 / PC 端双栏布局
 class PlayerScreen extends ConsumerStatefulWidget {
@@ -24,6 +26,7 @@ class PlayerScreen extends ConsumerStatefulWidget {
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   // 跨 widget 实例保留的静态状态
   static final Map<String, List<LyricsLine>> _lyricsCache = {};
+  static const int _lyricsCacheLimit = 100;
   static bool _lastShowLyrics = false;
   static bool _lastShowQueue = false;
   static int _lastDesktopPage = 0;
@@ -32,6 +35,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool _showLyrics = _lastShowLyrics;
   List<LyricsLine>? _lyrics;
   String? _lyricsForSongId;
+  final RequestGeneration _lyricsRequests = RequestGeneration();
   final _lyricsScrollController = ScrollController();
   bool _userScrolling = false;
   Timer? _userScrollTimer;
@@ -46,6 +50,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     super.initState();
     // 监听歌曲变化，在生命周期方法中触发歌词加载，避免在 build 中调用 setState
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final playerService = ref.read(audioPlayerServiceProvider);
       _songChangeSub = playerService.currentSongStream.listen((song) {
         if (song != null) {
@@ -68,26 +73,34 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   void dispose() {
     _songChangeSub?.cancel();
     _userScrollTimer?.cancel();
+    _lyricsRequests.invalidate();
     _lyricsScrollController.dispose();
     _desktopPageController.dispose();
     super.dispose();
   }
 
+  String _lyricsKey(Song song) => scopedSongKey(
+    ref.read(serverConfigProvider).serverId,
+    song.storageKey,
+  );
+
   Future<void> _loadLyrics(Song song) async {
-    if (_lyricsForSongId == song.storageKey && _lyrics != null) return;
-    // 优先从静态缓存恢复，避免重新打开播放器时重复请求
-    if (_lyricsCache.containsKey(song.storageKey)) {
-      debugPrint('[PlayerScreen] _loadLyrics cache hit: ${song.storageKey}');
+    final request = _lyricsRequests.begin();
+    final cacheKey = _lyricsKey(song);
+    if (_lyricsForSongId == cacheKey && _lyrics != null) return;
+    if (_lyricsCache.containsKey(cacheKey)) {
+      debugPrint('[PlayerScreen] lyrics cache hit');
       setState(() {
-        _lyrics = _lyricsCache[song.storageKey];
-        _lyricsForSongId = song.storageKey;
+        _lyrics = _lyricsCache[cacheKey];
+        _lyricsForSongId = cacheKey;
       });
       return;
     }
-    debugPrint('[PlayerScreen] _loadLyrics loading: ${song.storageKey}, isOnline=${song.isOnline}, path=${song.path}');
+    debugPrint(
+      '[PlayerScreen] loading lyrics: backend=${song.backend.name}',
+    );
     try {
       final resolver = ref.read(songMediaResolverProvider);
-      // 查找已下载文件的本地路径，传给 resolver 以读取本地 .lrc
       final downloads = ref.read(downloadManagerProvider);
       final dlTask = downloads.where(
         (t) => t.id == song.storageKey && t.status == DownloadStatus.completed,
@@ -95,23 +108,34 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       final localPath = dlTask.isNotEmpty ? dlTask.first.localPath : null;
 
       final result = await resolver.lyrics(song, localAudioPath: localPath);
+      if (!_lyricsRequests.isCurrent(request) || !mounted) return;
+      if (_lyricsKey(song) != cacheKey) return;
+      final currentSong = ref.read(audioPlayerServiceProvider).currentSong;
+      if (currentSong?.storageKey != song.storageKey) return;
+
       debugPrint('[PlayerScreen] _loadLyrics result: ${result?.lines.length ?? 0} lines, synced=${result?.synced}');
       final lines = result?.lines ?? [];
-      _lyricsCache[song.storageKey] = lines;
-      if (mounted) {
-        setState(() {
-          _lyrics = lines;
-          _lyricsForSongId = song.storageKey;
-        });
+      if (!_lyricsCache.containsKey(cacheKey) &&
+          _lyricsCache.length >= _lyricsCacheLimit) {
+        _lyricsCache.remove(_lyricsCache.keys.first);
       }
+      _lyricsCache[cacheKey] = lines;
+      setState(() {
+        _lyrics = lines;
+        _lyricsForSongId = cacheKey;
+      });
     } catch (e) {
-      debugPrint('[PlayerScreen] _loadLyrics ERROR for ${song.storageKey}: $e');
-      if (mounted) {
-        setState(() {
-          _lyrics = [];
-          _lyricsForSongId = song.storageKey;
-        });
-      }
+      debugPrint(
+        '[PlayerScreen] lyrics load failed: ${e.runtimeType}',
+      );
+      if (!_lyricsRequests.isCurrent(request) || !mounted) return;
+      if (_lyricsKey(song) != cacheKey) return;
+      final currentSong = ref.read(audioPlayerServiceProvider).currentSong;
+      if (currentSong?.storageKey != song.storageKey) return;
+      setState(() {
+        _lyrics = [];
+        _lyricsForSongId = cacheKey;
+      });
     }
   }
 
@@ -266,7 +290,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Widget _buildLyricsPanel(Song currentSong, AudioPlayerService playerService,
       {Color? activeFg, Color? inactiveFg}) {
     final lyrics = _lyrics;
-    if (lyrics == null || _lyricsForSongId != currentSong.storageKey) {
+    if (lyrics == null || _lyricsForSongId != _lyricsKey(currentSong)) {
       // 歌词尚未加载：不在 build 中直接调用 _loadLyrics（会触发 setState during build）。
       // 加载由 initState 中的 stream 监听 / onPageChanged / lyrics 按钮回调统一触发。
       return Center(child: CircularProgressIndicator());
@@ -356,7 +380,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           _userScrollTimer = Timer(
                             const Duration(seconds: 3),
                             () {
-                              if (mounted) setState(() => _userScrolling = false);
+                              if (mounted) {
+                                setState(() => _userScrolling = false);
+                              }
                             },
                           );
                         }
@@ -600,7 +626,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                   child: Image.network(
                                     coverUrl,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
                                   ),
                                 ),
                               ),
@@ -1092,7 +1118,7 @@ class _QueuePanelState extends State<_QueuePanel> {
                   )
                 : ReorderableListView.builder(
                     itemCount: ps.queue.length,
-                    onReorder: (oldIndex, newIndex) {
+                    onReorderItem: (oldIndex, newIndex) {
                       setState(() {
                         ps.reorderQueue(oldIndex, newIndex);
                       });
@@ -1296,7 +1322,7 @@ class _PlaybackControlsState extends State<_PlaybackControls>
   late AnimationController _playPauseController;
   StreamSubscription<bool>? _playingSub;
   bool _playing = false;
-  RepeatMode _repeatMode = RepeatMode.off;
+  PlaybackRepeatMode _repeatMode = PlaybackRepeatMode.off;
 
   @override
   void initState() {
@@ -1387,9 +1413,9 @@ class _PlaybackControlsState extends State<_PlaybackControls>
         const SizedBox(width: 12),
         IconButton(
           icon: Icon(
-            _repeatMode == RepeatMode.one ? Icons.repeat_one : Icons.repeat,
+            _repeatMode == PlaybackRepeatMode.one ? Icons.repeat_one : Icons.repeat,
             size: 22,
-            color: _repeatMode != RepeatMode.off
+            color: _repeatMode != PlaybackRepeatMode.off
                 ? btnColor
                 : Theme.of(context).colorScheme.onSurface,
           ),

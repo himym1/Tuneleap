@@ -10,14 +10,16 @@ import 'api/subsonic_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:navidrome_player/l10n/localization_utils.dart';
 import 'package:navidrome_player/ui/theme/app_color_loader.dart';
+import 'package:navidrome_player/providers/server_scope.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeAppColors();
   final prefs = await SharedPreferences.getInstance();
 
-  // ── 密码安全迁移：明文 → flutter_secure_storage ──
+  // ── 安全存储与服务器命名空间兼容迁移 ──
   await migratePasswordsToSecureStorage(prefs);
+  final serverId = await migrateLegacyServerScopedData(prefs);
   var serverPassword = await preloadServerPassword();
   // 降级：secure storage 不可用时从 SharedPreferences 读取
   if (serverPassword.isEmpty) {
@@ -29,6 +31,14 @@ void main() async {
   final backendClient = BackendClient();
   final url = prefs.getString('server_url') ?? '';
   final username = prefs.getString('server_username') ?? '';
+  await migrateActiveBackendConfiguration(
+    prefs,
+    serverId: serverId,
+    serverUrl: url,
+    serverPassword: serverPassword,
+  );
+  final backendUrl = prefs.getString(backendUrlPreferenceKey(serverId)) ?? '';
+  final backendApiKey = await preloadServerBackendApiKey(prefs, serverId);
   if (url.isNotEmpty && username.isNotEmpty) {
     client.configure(
       serverUrl: url,
@@ -36,11 +46,8 @@ void main() async {
       password: serverPassword,
     );
   }
-  if (url.isNotEmpty) {
-    final baseUrl = BackendClient.inferBaseUrl(url);
-    if (baseUrl.isNotEmpty) {
-      backendClient.configure(baseUrl: baseUrl);
-    }
+  if (backendUrl.isNotEmpty) {
+    backendClient.configure(baseUrl: backendUrl, apiKey: backendApiKey);
   }
 
   final strings = systemLocalizations();
@@ -48,7 +55,12 @@ void main() async {
 
   // 初始化 AudioService + Handler
   final handler = await AudioService.init(
-    builder: () => NavidromeAudioHandler(client, backendClient, prefs: prefs),
+    builder: () => NavidromeAudioHandler(
+      client,
+      backendClient,
+      prefs: prefs,
+      serverId: serverId,
+    ),
     config: AudioServiceConfig(
       androidNotificationChannelId: 'com.navidrome.player.audio',
       androidNotificationChannelName: strings.appName,
@@ -68,6 +80,7 @@ void main() async {
 
   // 预设密码到内存缓存
   container.read(cachedPasswordProvider.notifier).set(serverPassword);
+  container.read(cachedBackendApiKeyProvider.notifier).set(backendApiKey);
 
   // 加载多服务器密码
   await container.read(serversListProvider.notifier).loadPasswords();

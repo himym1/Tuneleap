@@ -1207,6 +1207,30 @@ abstract class S {
   /// **'密码'**
   String get multiServerPassword;
 
+  /// No description provided for @backendUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线后端地址'**
+  String get backendUrl;
+
+  /// No description provided for @backendUrlHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'可选，默认使用 Navidrome 主机的 8503 端口'**
+  String get backendUrlHint;
+
+  /// No description provided for @backendApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线后端 API Key'**
+  String get backendApiKey;
+
+  /// No description provided for @backendApiKeyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'与 Navidrome 密码分开保存'**
+  String get backendApiKeyHint;
+
   /// No description provided for @serverUrlExample.
   ///
   /// In zh, this message translates to:

@@ -25,11 +25,13 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
   // 静态缓存：跨 widget 实例保留歌曲列表和滚动位置
   static List<Song> _cachedSongs = [];
   static bool _cachedHasMore = true;
+  static String? _cachedServerId;
 
   List<Song> _songs = [];
   bool _loading = true;
   bool _loadingMore = false;
   bool _hasMore = true;
+  Object? _error;
   static const _pageSize = 50;
   static const _itemExtent = 64.0; // ListTile with padding
   final _scrollController = ScrollController();
@@ -37,10 +39,22 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
   String _searchQuery = '';
   Timer? _searchDebounce;
   List<Song>? _searchResults; // null = not searching, use _songs
+  late String _serverId;
+  ProviderSubscription<String>? _serverSubscription;
 
   @override
   void initState() {
     super.initState();
+    _serverId = ref.read(serverConfigProvider).serverId;
+    if (_cachedServerId != _serverId) {
+      _cachedSongs = [];
+      _cachedHasMore = true;
+      _cachedServerId = _serverId;
+    }
+    _serverSubscription = ref.listenManual(
+      serverConfigProvider.select((config) => config.serverId),
+      (_, next) => _handleServerChanged(next),
+    );
     _scrollController.addListener(_onScroll);
     // 从静态缓存恢复
     if (_cachedSongs.isNotEmpty) {
@@ -57,13 +71,35 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
 
   @override
   void dispose() {
+    _serverSubscription?.close();
     _scrollController.dispose();
     _searchController.dispose();
     _searchDebounce?.cancel();
     super.dispose();
   }
 
+  void _handleServerChanged(String serverId) {
+    if (serverId == _serverId || !mounted) return;
+    _serverId = serverId;
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    _searchQuery = '';
+    _cachedSongs = [];
+    _cachedHasMore = true;
+    _cachedServerId = serverId;
+    setState(() {
+      _songs = [];
+      _searchResults = null;
+      _loading = true;
+      _loadingMore = false;
+      _hasMore = true;
+      _error = null;
+    });
+    _loadData();
+  }
+
   Future<void> _loadData() async {
+    final requestServerId = _serverId;
     try {
       final client = ref.read(subsonicClientProvider);
       final result = await client.search3(
@@ -73,16 +109,29 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
         artistCount: 0,
         albumCount: 0,
       );
-      if (!mounted) return;
+      if (!mounted ||
+          ref.read(serverConfigProvider).serverId != requestServerId ||
+          _serverId != requestServerId) {
+        return;
+      }
       setState(() {
         _songs = result.songs;
         _hasMore = result.songs.length >= _pageSize;
         _loading = false;
+        _error = null;
         _cachedSongs = List.of(_songs);
         _cachedHasMore = _hasMore;
+        _cachedServerId = _serverId;
       });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted &&
+          ref.read(serverConfigProvider).serverId == requestServerId &&
+          _serverId == requestServerId) {
+        setState(() {
+          _loading = false;
+          _error = e;
+        });
+      }
     }
   }
 
@@ -95,6 +144,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
   }
 
   Future<void> _loadMore() async {
+    final requestServerId = _serverId;
     _loadingMore = true;
     try {
       final client = ref.read(subsonicClientProvider);
@@ -105,17 +155,31 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
         artistCount: 0,
         albumCount: 0,
       );
-      if (!mounted) return;
+      if (!mounted ||
+          ref.read(serverConfigProvider).serverId != requestServerId ||
+          _serverId != requestServerId) {
+        return;
+      }
       setState(() {
         _songs.addAll(result.songs);
         _hasMore = result.songs.length >= _pageSize;
         _cachedSongs = List.of(_songs);
         _cachedHasMore = _hasMore;
+        _cachedServerId = _serverId;
       });
     } catch (e) {
-      debugPrint('Failed to load more songs: $e');
+      if (mounted &&
+          ref.read(serverConfigProvider).serverId == requestServerId &&
+          _serverId == requestServerId) {
+        debugPrint('Failed to load more songs: ${e.runtimeType}');
+      }
+    } finally {
+      if (mounted &&
+          ref.read(serverConfigProvider).serverId == requestServerId &&
+          _serverId == requestServerId) {
+        _loadingMore = false;
+      }
     }
-    _loadingMore = false;
   }
 
   @override
@@ -151,6 +215,27 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(S.of(context).commonLoadFailed),
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _loading = true;
+                              _error = null;
+                            });
+                            _loadData();
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: Text(S.of(context).commonRetry),
+                        ),
+                      ],
+                    ),
+                  )
                 : _songs.isEmpty
                 ? Center(
                     child: Text(
@@ -195,6 +280,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
   }
 
   Future<void> _doApiSearch() async {
+    final requestServerId = _serverId;
     final query = _searchQuery.trim();
     if (query.isEmpty) return;
     try {
@@ -206,7 +292,12 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
         artistCount: 0,
         albumCount: 0,
       );
-      if (!mounted || _searchQuery.trim() != query) return;
+      if (!mounted ||
+          _searchQuery.trim() != query ||
+          ref.read(serverConfigProvider).serverId != requestServerId ||
+          _serverId != requestServerId) {
+        return;
+      }
       setState(() => _searchResults = result.songs);
     } catch (_) {}
   }

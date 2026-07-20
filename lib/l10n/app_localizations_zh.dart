@@ -604,6 +604,18 @@ class SZh extends S {
   String get multiServerPassword => '密码';
 
   @override
+  String get backendUrl => '在线后端地址';
+
+  @override
+  String get backendUrlHint => '可选，默认使用 Navidrome 主机的 8503 端口';
+
+  @override
+  String get backendApiKey => '在线后端 API Key';
+
+  @override
+  String get backendApiKeyHint => '与 Navidrome 密码分开保存';
+
+  @override
   String get serverUrlExample => 'https://music.example.com';
 
   @override

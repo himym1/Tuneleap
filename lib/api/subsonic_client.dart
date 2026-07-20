@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'models/models.dart';
 
 /// Subsonic API 客户端，对接 Navidrome 服务端
@@ -387,9 +386,7 @@ class SubsonicClient {
   Future<LyricsList?> getLyricsBySongId(String id) async {
     try {
       final response = await _request('getLyricsBySongId', params: {'id': id});
-      debugPrint('[Subsonic] getLyricsBySongId($id) response keys: ${response.keys}');
       final lyricsList = response['lyricsList'] as Map<String, dynamic>?;
-      debugPrint('[Subsonic] lyricsList: $lyricsList');
       if (lyricsList == null) return null;
       final structured = lyricsList['structuredLyrics'] as List<dynamic>?;
       if (structured == null || structured.isEmpty) return null;
@@ -419,8 +416,14 @@ class SubsonicClient {
     String url,
     String savePath, {
     void Function(int received, int total)? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async {
-    await _dio.download(url, savePath, onReceiveProgress: onReceiveProgress);
+    await _dio.download(
+      url,
+      savePath,
+      cancelToken: cancelToken,
+      onReceiveProgress: onReceiveProgress,
+    );
   }
 }
 

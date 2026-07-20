@@ -17,6 +17,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _urlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _backendUrlController = TextEditingController();
+  final _backendApiKeyController = TextEditingController();
   bool _loading = false;
   String? _error;
 
@@ -27,6 +29,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _urlController.text = config.url;
     _usernameController.text = config.username;
     _passwordController.text = config.password;
+    _backendUrlController.text = config.backendUrl;
+    _backendApiKeyController.text = config.backendApiKey;
   }
 
   @override
@@ -34,6 +38,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _urlController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _backendUrlController.dispose();
+    _backendApiKeyController.dispose();
     super.dispose();
   }
 
@@ -48,15 +54,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final url = _urlController.text.trim();
       final username = _usernameController.text.trim();
       final password = _passwordController.text.trim();
+      final backendUrl = _backendUrlController.text.trim();
+      final backendApiKey = _backendApiKeyController.text;
 
       if (url.isEmpty || username.isEmpty || password.isEmpty) {
         setState(() => _error = s.loginFieldsRequired);
         return;
       }
 
-      await ref
-          .read(serverConfigProvider.notifier)
-          .save(url: url, username: username, password: password);
+      await ref.read(serverConfigProvider.notifier).save(
+        url: url,
+        username: username,
+        password: password,
+        backendUrl: backendUrl,
+        backendApiKey: backendApiKey,
+      );
 
       final client = ref.read(subsonicClientProvider);
       final ok = await client.ping();
@@ -133,6 +145,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   decoration: InputDecoration(
                     labelText: s.multiServerPassword,
                     prefixIcon: const Icon(Icons.lock),
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _backendUrlController,
+                  decoration: InputDecoration(
+                    labelText: s.backendUrl,
+                    hintText: s.backendUrlHint,
+                    prefixIcon: const Icon(Icons.cloud_outlined),
+                  ),
+                  keyboardType: TextInputType.url,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _backendApiKeyController,
+                  decoration: InputDecoration(
+                    labelText: s.backendApiKey,
+                    hintText: s.backendApiKeyHint,
+                    prefixIcon: const Icon(Icons.key_outlined),
                   ),
                   obscureText: true,
                 ),
