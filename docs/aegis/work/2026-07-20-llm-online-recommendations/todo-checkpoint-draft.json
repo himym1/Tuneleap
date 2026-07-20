@@ -1,17 +1,15 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-20-llm-online-recommendations",
-  "currentTodo": "Task 4 recommendation orchestration and source recall",
+  "currentTodo": "Task5 Backend API/lifecycle",
   "completedTodos": [
-    "Task 1 Backend v1 contracts",
-    "Task 2 SQLite store",
-    "Task 3 OpenAI planner"
+    "Task1 contract; Task2 store; Task3 planner; Task4 orchestration"
   ],
-  "activeSlice": "Batch B Task 4",
+  "activeSlice": "Batch B Task5",
   "evidenceRefs": [
-    "Backend e03aaaf; 12 targeted and 45 full tests"
+    "backend 73b0201; 39 service and 84 full tests"
   ],
   "blockedOn": null,
-  "nextStep": "Dispatch Task4 implementer, then spec and quality review.",
+  "nextStep": "Implement recommendation HTTP/API/lifecycle and Backend Gate.",
   "updatedAt": "2026-07-20"
 }

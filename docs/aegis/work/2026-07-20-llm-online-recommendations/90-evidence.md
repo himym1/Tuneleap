@@ -25,3 +25,11 @@ No evidence has been recorded yet.
 - Source: backend commit e03aaaf
 - Summary: Planner 12 targeted and 45 full unittest passed; strict schema/input caps/redaction verified; two-stage review approved.
 - Verifier: main agent fresh commands and independent reviewers
+
+## EvidenceBundleDraft
+
+- Artifact key: backend-task4-service
+- Type: test
+- Source: backend commit 73b0201
+- Summary: Service 39 targeted and Backend 84 full unittest passed; real SQLite lease/five-page/dynamic pool covered; two-stage reviews approved.
+- Verifier: main fresh commands and independent reviewers

@@ -3,13 +3,13 @@
   "taskId": "2026-07-20-llm-online-recommendations",
   "taskIntentRef": "docs/aegis/work/2026-07-20-llm-online-recommendations/task-intent-draft.json",
   "baselineRefs": [
-    "approved plan Task3"
+    "approved plan Task4"
   ],
-  "scopeStatus": "Task3 limited to planner and unittest.",
-  "compatStatus": "No existing Backend endpoint/client lifecycle changed.",
+  "scopeStatus": "Task4 stayed in orchestration/store tests.",
+  "compatStatus": "MusicProxy search signature reused; no playback URL or API routes.",
   "retirementStatus": "No retirement action.",
   "newRiskSignals": [
-    "Task4 must use existing MusicProxyService.search direct list and SQLite lease for refill."
+    "Task5 must lifecycle-manage background tasks/store/client and version recommendation errors only."
   ],
   "decision": "continue"
 }
