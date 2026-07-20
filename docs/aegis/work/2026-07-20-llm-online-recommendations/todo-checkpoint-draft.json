@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-20-llm-online-recommendations",
+  "currentTodo": "Task 2: generation-safe SQLite recommendation store",
+  "completedTodos": [
+    "Task 1: bounded Backend configuration and v1 contract models (backend commit 3fb8b5b)"
+  ],
+  "activeSlice": "Batch A Task 2",
+  "evidenceRefs": [
+    "backend 3fb8b5b; 12 unittest passed; compileall/json.tool/diff-check passed; spec and quality reviews approved"
+  ],
+  "blockedOn": null,
+  "nextStep": "Dispatch fresh Backend Task 2 implementer, then spec and quality review.",
+  "updatedAt": "2026-07-20"
+}
