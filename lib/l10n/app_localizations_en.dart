@@ -613,6 +613,20 @@ class SEn extends S {
   String get multiServerPassword => 'Password';
 
   @override
+  String get backendUrl => 'Online backend URL';
+
+  @override
+  String get backendUrlHint =>
+      'Optional; defaults to the Navidrome host on port 8503';
+
+  @override
+  String get backendApiKey => 'Online backend API key';
+
+  @override
+  String get backendApiKeyHint =>
+      'Stored separately from the Navidrome password';
+
+  @override
   String get serverUrlExample => 'https://music.example.com';
 
   @override

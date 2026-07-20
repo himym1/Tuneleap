@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'audio_providers.dart';
+import 'server_config_provider.dart';
+import 'package:navidrome_player/utils/request_generation.dart';
 
 // ============================================================
 // 音乐库页面状态管理
@@ -15,6 +17,7 @@ class LibraryState {
   final bool loadingMore;
   final bool hasMoreAlbums;
   final bool hasMoreSongs;
+  final Object? error;
 
   const LibraryState({
     this.artists = const [],
@@ -24,6 +27,7 @@ class LibraryState {
     this.loadingMore = false,
     this.hasMoreAlbums = true,
     this.hasMoreSongs = true,
+    this.error,
   });
 
   LibraryState copyWith({
@@ -34,6 +38,8 @@ class LibraryState {
     bool? loadingMore,
     bool? hasMoreAlbums,
     bool? hasMoreSongs,
+    Object? error,
+    bool clearError = false,
   }) {
     return LibraryState(
       artists: artists ?? this.artists,
@@ -43,32 +49,45 @@ class LibraryState {
       loadingMore: loadingMore ?? this.loadingMore,
       hasMoreAlbums: hasMoreAlbums ?? this.hasMoreAlbums,
       hasMoreSongs: hasMoreSongs ?? this.hasMoreSongs,
+      error: clearError ? null : (error ?? this.error),
     );
   }
 }
 
-final libraryProvider =
-    NotifierProvider<LibraryNotifier, LibraryState>(
-      LibraryNotifier.new,
-    );
+final libraryProvider = NotifierProvider<LibraryNotifier, LibraryState>(
+  LibraryNotifier.new,
+);
 
 class LibraryNotifier extends Notifier<LibraryState> {
   static const _pageSize = 50;
+  final RequestGeneration _requests = RequestGeneration();
 
   @override
   LibraryState build() {
-    _loadInitialData();
+    ref.watch(serverConfigProvider.select((config) => config.serverId));
+    final request = _requests.begin();
+    ref.onDispose(_requests.invalidate);
+    _loadInitialData(request);
     return const LibraryState();
   }
 
-  Future<void> _loadInitialData() async {
+  Future<void> _loadInitialData(int request) async {
     try {
       final client = ref.read(subsonicClientProvider);
       final results = await Future.wait([
         client.getArtists(),
         client.getAlbumList2(type: 'newest', size: _pageSize, offset: 0),
-        client.search3('', songCount: _pageSize, songOffset: 0, artistCount: 0, albumCount: 0).then((r) => r.songs),
+        client
+            .search3(
+              '',
+              songCount: _pageSize,
+              songOffset: 0,
+              artistCount: 0,
+              albumCount: 0,
+            )
+            .then((r) => r.songs),
       ]);
+      if (!_requests.isCurrent(request)) return;
       final albums = results[1] as List<Album>;
       final songs = results[2] as List<Song>;
       state = state.copyWith(
@@ -78,9 +97,12 @@ class LibraryNotifier extends Notifier<LibraryState> {
         hasMoreAlbums: albums.length >= _pageSize,
         hasMoreSongs: songs.length >= _pageSize,
         loading: false,
+        clearError: true,
       );
     } catch (e) {
-      state = state.copyWith(loading: false);
+      if (_requests.isCurrent(request)) {
+        state = state.copyWith(loading: false, error: e);
+      }
     }
   }
 
@@ -88,6 +110,7 @@ class LibraryNotifier extends Notifier<LibraryState> {
     if (state.loadingMore || !state.hasMoreAlbums) {
       return;
     }
+    final request = _requests.current;
     state = state.copyWith(loadingMore: true);
     try {
       final client = ref.read(subsonicClientProvider);
@@ -96,14 +119,17 @@ class LibraryNotifier extends Notifier<LibraryState> {
         size: _pageSize,
         offset: state.albums.length,
       );
+      if (!_requests.isCurrent(request)) return;
       state = state.copyWith(
         albums: [...state.albums, ...more],
         hasMoreAlbums: more.length >= _pageSize,
         loadingMore: false,
       );
     } catch (e) {
-      debugPrint('Failed to load more albums: $e');
-      state = state.copyWith(loadingMore: false);
+      if (_requests.isCurrent(request)) {
+        debugPrint('Failed to load more albums: ${e.runtimeType}');
+        state = state.copyWith(loadingMore: false);
+      }
     }
   }
 
@@ -111,6 +137,7 @@ class LibraryNotifier extends Notifier<LibraryState> {
     if (state.loadingMore || !state.hasMoreSongs) {
       return;
     }
+    final request = _requests.current;
     state = state.copyWith(loadingMore: true);
     try {
       final client = ref.read(subsonicClientProvider);
@@ -121,6 +148,7 @@ class LibraryNotifier extends Notifier<LibraryState> {
         artistCount: 0,
         albumCount: 0,
       );
+      if (!_requests.isCurrent(request)) return;
       final more = result.songs;
       state = state.copyWith(
         songs: [...state.songs, ...more],
@@ -128,29 +156,39 @@ class LibraryNotifier extends Notifier<LibraryState> {
         loadingMore: false,
       );
     } catch (e) {
-      debugPrint('Failed to load more songs: $e');
-      state = state.copyWith(loadingMore: false);
+      if (_requests.isCurrent(request)) {
+        debugPrint('Failed to load more songs: ${e.runtimeType}');
+        state = state.copyWith(loadingMore: false);
+      }
     }
   }
 
   /// 刷新所有库数据
   Future<void> refresh() async {
-    state = state.copyWith(loading: true, hasMoreAlbums: true, hasMoreSongs: true);
-    await _loadInitialData();
+    state = state.copyWith(
+      loading: true,
+      hasMoreAlbums: true,
+      hasMoreSongs: true,
+      clearError: true,
+    );
+    await _loadInitialData(_requests.begin());
   }
 
   Future<void> playArtist(Artist artist) async {
+    final serverId = ref.read(serverConfigProvider).serverId;
     try {
       final client = ref.read(subsonicClientProvider);
       final detail = await client.getArtist(artist.id);
+      if (ref.read(serverConfigProvider).serverId != serverId) return;
       if (detail.albums.isNotEmpty) {
         final album = await client.getAlbum(detail.albums.first.id);
+        if (ref.read(serverConfigProvider).serverId != serverId) return;
         if (album.songs.isNotEmpty) {
           ref.read(audioPlayerServiceProvider).playAll(album.songs);
         }
       }
     } catch (e) {
-      debugPrint('Failed to play artist: $e');
+      debugPrint('Failed to play artist: ${e.runtimeType}');
     }
   }
 }

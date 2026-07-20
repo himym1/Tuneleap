@@ -22,7 +22,7 @@ class _FakeBackendClient extends BackendClient {
   }
 
   @override
-  String buildCoverProxyUrl(Song song, {int size = 300}) {
+  Future<String> resolveCoverArtUrl(Song song, {int size = 300}) async {
     return 'http://solara.local/proxy?types=pic&id=${song.coverArt}&size=$size';
   }
 

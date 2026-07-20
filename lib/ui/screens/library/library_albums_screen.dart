@@ -22,6 +22,7 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
   String _searchQuery = '';
   Timer? _searchDebounce;
   List<Album>? _searchResults;
+  String? _searchResultsServerId;
 
   @override
   void dispose() {
@@ -34,7 +35,10 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
     _searchDebounce?.cancel();
     _searchQuery = value;
     if (value.trim().isEmpty) {
-      setState(() => _searchResults = null);
+      setState(() {
+        _searchResults = null;
+        _searchResultsServerId = null;
+      });
       return;
     }
     if (_searchController.value.composing != TextRange.empty) return;
@@ -44,6 +48,7 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
   Future<void> _doApiSearch() async {
     final query = _searchQuery.trim();
     if (query.isEmpty) return;
+    final serverId = ref.read(serverConfigProvider).serverId;
     try {
       final client = ref.read(subsonicClientProvider);
       final result = await client.search3(
@@ -52,14 +57,24 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
         songCount: 0,
         artistCount: 0,
       );
-      if (!mounted || _searchQuery.trim() != query) return;
-      setState(() => _searchResults = result.albums);
+      if (!mounted ||
+          _searchQuery.trim() != query ||
+          ref.read(serverConfigProvider).serverId != serverId) {
+        return;
+      }
+      setState(() {
+        _searchResults = result.albums;
+        _searchResultsServerId = serverId;
+      });
     } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     final albumsAsync = ref.watch(newestAlbumsProvider);
+    final serverId = ref.watch(
+      serverConfigProvider.select((config) => config.serverId),
+    );
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
 
@@ -102,7 +117,9 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
                 ),
               ),
               data: (albums) {
-                final display = _searchResults ?? albums;
+                final display = _searchResultsServerId == serverId
+                    ? (_searchResults ?? albums)
+                    : albums;
                 return display.isEmpty
                     ? Center(
                         child: Text(

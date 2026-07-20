@@ -28,11 +28,15 @@ class SongMediaResolver {
   }
 
   Future<LyricsList?> lyrics(Song song, {String? localAudioPath}) async {
-    debugPrint('[Resolver] lyrics: id=${song.id}, isOnline=${song.isOnline}, path=${song.path}, localAudioPath=$localAudioPath');
+    debugPrint(
+      '[Resolver] lyrics: backend=${song.backend.name}, local=${localAudioPath != null}',
+    );
     // 1. 优先读取本地 .lrc 歌词文件（下载歌曲附带）
     final localLyrics = await _loadLocalLrc(localAudioPath);
     if (localLyrics != null) {
-      debugPrint('[Resolver] lyrics: got local .lrc, ${localLyrics.lines.length} lines');
+      debugPrint(
+        '[Resolver] lyrics: got local .lrc, ${localLyrics.lines.length} lines',
+      );
       return localLyrics;
     }
 
@@ -44,7 +48,9 @@ class SongMediaResolver {
 
     // 3. 本地歌曲 → Subsonic API，失败则尝试从文件路径解析在线源回退
     final result = await subsonicClient.getLyricsBySongId(song.id);
-    debugPrint('[Resolver] lyrics: subsonic result=${result?.lines.length ?? 0} lines');
+    debugPrint(
+      '[Resolver] lyrics: subsonic result=${result?.lines.length ?? 0} lines',
+    );
     if (result != null && result.lines.isNotEmpty) return result;
 
     // Subsonic 无歌词 → 检查是否为导入的在线歌曲，回退到 Backend API
@@ -52,22 +58,23 @@ class SongMediaResolver {
     final solaraInfo = _parseSolaraInfo(song);
     if (solaraInfo == null) return result;
 
-    debugPrint('[Resolver] Subsonic lyrics empty, fallback to backend: '
-        'source=${solaraInfo.source}, lyricId=${solaraInfo.lyricId}');
+    debugPrint('[Resolver] Subsonic lyrics empty; trying backend fallback');
     try {
-      return await backendClient.getLyrics(Song(
-        id: solaraInfo.lyricId,
-        title: song.title,
-        artist: song.artist,
-        artistId: song.artistId,
-        album: song.album,
-        albumId: song.albumId,
-        backend: SongBackend.solara,
-        onlineSource: solaraInfo.source,
-        lyricId: solaraInfo.lyricId,
-      ));
+      return await backendClient.getLyrics(
+        Song(
+          id: solaraInfo.lyricId,
+          title: song.title,
+          artist: song.artist,
+          artistId: song.artistId,
+          album: song.album,
+          albumId: song.albumId,
+          backend: SongBackend.solara,
+          onlineSource: solaraInfo.source,
+          lyricId: solaraInfo.lyricId,
+        ),
+      );
     } catch (e) {
-      debugPrint('[Resolver] Backend lyrics fallback failed: $e');
+      debugPrint('[Resolver] Backend lyrics fallback failed: ${e.runtimeType}');
       return result;
     }
   }
@@ -91,7 +98,9 @@ class SongMediaResolver {
       if (content.trim().isEmpty) return null;
       return parseLrc(content);
     } catch (e) {
-      debugPrint('[Resolver] Failed to read local lrc: $e');
+      debugPrint(
+        '[Resolver] Failed to read local lrc: ${e.runtimeType}',
+      );
       return null;
     }
   }

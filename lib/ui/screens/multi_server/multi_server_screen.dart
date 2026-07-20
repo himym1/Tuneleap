@@ -93,7 +93,9 @@ class MultiServerScreen extends ConsumerWidget {
                 child: _ServerCard(
                   server: server,
                   onEdit: () => _showServerDialog(context, ref, server),
-                  onDelete: () => _confirmDelete(context, ref, server),
+                  onDelete: server.isActive
+                      ? null
+                      : () => _confirmDelete(context, ref, server),
                   onSwitch: () => ref
                       .read(serversListProvider.notifier)
                       .setActive(server.id),
@@ -115,7 +117,14 @@ class MultiServerScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => _ServerDialog(
         existing: existing,
-        onSave: (name, url, username, password) async {
+        onSave: (
+          name,
+          url,
+          username,
+          password,
+          backendUrl,
+          backendApiKey,
+        ) async {
           final notifier = ref.read(serversListProvider.notifier);
           if (existing == null) {
             await notifier.addServer(
@@ -123,6 +132,8 @@ class MultiServerScreen extends ConsumerWidget {
               url: url,
               username: username,
               password: password,
+              backendUrl: backendUrl,
+              backendApiKey: backendApiKey,
             );
           } else {
             await notifier.updateServer(
@@ -131,6 +142,8 @@ class MultiServerScreen extends ConsumerWidget {
               url: url,
               username: username,
               password: password,
+              backendUrl: backendUrl,
+              backendApiKey: backendApiKey,
             );
           }
         },
@@ -172,6 +185,8 @@ class _ServerDialog extends StatefulWidget {
     String url,
     String username,
     String password,
+    String backendUrl,
+    String backendApiKey,
   )
   onSave;
 
@@ -186,6 +201,8 @@ class _ServerDialogState extends State<_ServerDialog> {
   late final TextEditingController _url;
   late final TextEditingController _username;
   late final TextEditingController _password;
+  late final TextEditingController _backendUrl;
+  late final TextEditingController _backendApiKey;
   bool _saving = false;
 
   @override
@@ -195,6 +212,12 @@ class _ServerDialogState extends State<_ServerDialog> {
     _url = TextEditingController(text: widget.existing?.url ?? '');
     _username = TextEditingController(text: widget.existing?.username ?? '');
     _password = TextEditingController(text: widget.existing?.password ?? '');
+    _backendUrl = TextEditingController(
+      text: widget.existing?.backendUrl ?? '',
+    );
+    _backendApiKey = TextEditingController(
+      text: widget.existing?.backendApiKey ?? '',
+    );
   }
 
   @override
@@ -203,12 +226,15 @@ class _ServerDialogState extends State<_ServerDialog> {
     _url.dispose();
     _username.dispose();
     _password.dispose();
+    _backendUrl.dispose();
+    _backendApiKey.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: Text(
         widget.existing == null
             ? S.of(context).multiServerAdd
@@ -250,6 +276,24 @@ class _ServerDialogState extends State<_ServerDialog> {
               ),
               obscureText: true,
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _backendUrl,
+              decoration: InputDecoration(
+                labelText: S.of(context).backendUrl,
+                hintText: S.of(context).backendUrlHint,
+              ),
+              keyboardType: TextInputType.url,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _backendApiKey,
+              decoration: InputDecoration(
+                labelText: S.of(context).backendApiKey,
+                hintText: S.of(context).backendApiKeyHint,
+              ),
+              obscureText: true,
+            ),
           ],
         ),
       ),
@@ -280,10 +324,19 @@ class _ServerDialogState extends State<_ServerDialog> {
     final url = _url.text.trim();
     final username = _username.text.trim();
     final password = _password.text;
+    final backendUrl = _backendUrl.text.trim();
+    final backendApiKey = _backendApiKey.text;
     if (name.isEmpty || url.isEmpty || username.isEmpty) return;
     setState(() => _saving = true);
     try {
-      await widget.onSave(name, url, username, password);
+      await widget.onSave(
+        name,
+        url,
+        username,
+        password,
+        backendUrl,
+        backendApiKey,
+      );
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -296,7 +349,7 @@ class _ServerDialogState extends State<_ServerDialog> {
 class _ServerCard extends StatelessWidget {
   final ServerEntry server;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
   final VoidCallback onSwitch;
 
   const _ServerCard({

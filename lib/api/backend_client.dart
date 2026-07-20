@@ -3,7 +3,8 @@ import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:navidrome_player/api/models/models.dart';
-import 'package:navidrome_player/api/subsonic_client.dart' show LyricsList, LyricsLine;
+import 'package:navidrome_player/api/subsonic_client.dart'
+    show LyricsList, LyricsLine;
 
 class BackendClient {
   final Dio _dio;
@@ -18,9 +19,11 @@ class BackendClient {
   void configure({required String baseUrl, String apiKey = ''}) {
     _baseUrl = _normalizeBaseUrl(baseUrl);
     _apiKey = apiKey;
-    debugPrint('[Backend] configured: $_baseUrl, apiKey=${_apiKey.isNotEmpty}');
+    debugPrint('[Backend] configured: apiKey=${_apiKey.isNotEmpty}');
     // 统一设置 API Key header
-    if (_apiKey.isNotEmpty) {
+    if (_apiKey.isEmpty) {
+      _dio.options.headers.remove('X-API-Key');
+    } else {
       _dio.options.headers['X-API-Key'] = _apiKey;
     }
   }
@@ -43,7 +46,7 @@ class BackendClient {
     int page = 1,
     CancelToken? cancelToken,
   }) async {
-    debugPrint('[Backend] searchSongs: query=$query, source=$source, baseUrl=$_baseUrl');
+    debugPrint('[Backend] searchSongs: source=$source');
     try {
       final response = await _dio.get(
         '$_baseUrl/proxy',
@@ -58,7 +61,9 @@ class BackendClient {
         cancelToken: cancelToken,
       );
 
-      debugPrint('[Backend] searchSongs response: ${response.statusCode}, data type: ${response.data.runtimeType}');
+      debugPrint(
+        '[Backend] searchSongs response: ${response.statusCode}, data type: ${response.data.runtimeType}',
+      );
       final data = response.data;
       if (data is! List) {
         throw const FormatException('Backend search response must be a list');
@@ -68,7 +73,7 @@ class BackendClient {
           .map((item) => Song.fromSolaraJson(item as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      debugPrint('[Backend] searchSongs ERROR: $e');
+      debugPrint('[Backend] searchSongs ERROR: ${e.runtimeType}');
       rethrow;
     }
   }
@@ -208,7 +213,7 @@ class BackendClient {
 
   Future<LyricsList?> getLyrics(Song song) async {
     final lyricId = song.lyricId ?? song.id;
-    debugPrint('[Backend] getLyrics: id=$lyricId, source=${song.onlineSource}, lyricId=${song.lyricId}');
+    debugPrint('[Backend] getLyrics: source=${song.onlineSource ?? 'unknown'}');
     final response = await _dio.get(
       '$_baseUrl/proxy',
       queryParameters: {
@@ -221,12 +226,16 @@ class BackendClient {
 
     final data = response.data;
     if (data is! Map<String, dynamic>) {
-      debugPrint('[Backend] getLyrics ERROR: response is not a map: ${data.runtimeType}');
+      debugPrint(
+        '[Backend] getLyrics ERROR: response is not a map: ${data.runtimeType}',
+      );
       throw const FormatException('Solara lyric response must be an object');
     }
 
     final lyric = data['lyric']?.toString() ?? '';
-    debugPrint('[Backend] getLyrics: lyric length=${lyric.length}, empty=${lyric.isEmpty}');
+    debugPrint(
+      '[Backend] getLyrics: lyric length=${lyric.length}, empty=${lyric.isEmpty}',
+    );
     if (lyric.isEmpty) return null;
 
     final lines = lyric
@@ -246,7 +255,7 @@ class BackendClient {
 
   /// 按 Navidrome song ID 删除本地歌曲文件
   Future<bool> deleteSongById(String navidromeId) async {
-    debugPrint('[Backend] DELETE by ID: $navidromeId');
+    debugPrint('[Backend] deleting song');
     try {
       final response = await _dio.post(
         '$_baseUrl/v1/songs/delete',
@@ -260,7 +269,7 @@ class BackendClient {
       }
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('[Backend]   ERROR: $e');
+      debugPrint('[Backend] delete ERROR: ${e.runtimeType}');
       return false;
     }
   }

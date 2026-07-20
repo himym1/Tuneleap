@@ -12,6 +12,7 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/mini_player.dart';
 import 'package:navidrome_player/ui/widgets/update_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/utils/request_generation.dart';
 
 /// 响应式外壳 — 移动端 BottomNavigationBar / 桌面端侧边栏
 class AppShell extends ConsumerStatefulWidget {
@@ -25,30 +26,33 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   StreamSubscription<Song?>? _songSub;
+  final RequestGeneration _accentRequests = RequestGeneration();
 
   @override
   void initState() {
     super.initState();
     // 监听当前歌曲变化，更新全局主题色
     final playerService = ref.read(audioPlayerServiceProvider);
-    _songSub = playerService.currentSongStream.listen((song) {
-      if (song != null && mounted) {
-        final resolver = ref.read(songMediaResolverProvider);
-        resolver
-            .coverArtUrl(song, size: 300)
-            .then((coverUrl) {
-              if (!mounted || coverUrl.isEmpty) return;
-              ref.read(coverColorProvider(coverUrl).future).then((color) {
-                if (mounted) {
-                  ref.read(globalAccentColorProvider.notifier).setColor(color);
-                }
-              });
-            })
-            .catchError((_) {});
-      }
-    });
+    _songSub = playerService.currentSongStream.listen(_updateAccentColor);
     // 启动时静默检查更新
     _checkUpdateOnStartup();
+  }
+
+  Future<void> _updateAccentColor(Song? song) async {
+    final request = _accentRequests.begin();
+    if (song == null) return;
+    try {
+      final resolver = ref.read(songMediaResolverProvider);
+      final coverUrl = await resolver.coverArtUrl(song, size: 300);
+      if (!mounted ||
+          !_accentRequests.isCurrent(request) ||
+          coverUrl.isEmpty) {
+        return;
+      }
+      final color = await ref.read(coverColorProvider(coverUrl).future);
+      if (!mounted || !_accentRequests.isCurrent(request)) return;
+      ref.read(globalAccentColorProvider.notifier).setColor(color);
+    } catch (_) {}
   }
 
   Future<void> _checkUpdateOnStartup() async {
@@ -64,6 +68,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   void dispose() {
     _songSub?.cancel();
+    _accentRequests.invalidate();
     super.dispose();
   }
 
@@ -666,10 +671,13 @@ class _RefreshButtonState extends ConsumerState<_RefreshButton>
     // 触发 Navidrome 扫描
     try {
       await ref.read(subsonicClientProvider).startScan(fullScan: true);
+      if (!mounted) return;
       // 等待扫描完成
       await Future.delayed(const Duration(seconds: 3));
+      if (!mounted) return;
     } catch (_) {}
 
+    if (!mounted) return;
     // 刷新所有缓存 provider
     ref.invalidate(newestAlbumsProvider);
     ref.invalidate(dailySongsProvider);
@@ -691,6 +699,7 @@ class _RefreshButtonState extends ConsumerState<_RefreshButton>
       // 刷新失败时静默处理
     }
 
+    if (!mounted) return;
     _controller.stop();
     _controller.reset();
     if (mounted) setState(() => _refreshing = false);

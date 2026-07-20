@@ -21,6 +21,7 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
   String _searchQuery = '';
   Timer? _searchDebounce;
   List<Artist>? _searchResults;
+  String? _searchResultsServerId;
 
   @override
   void dispose() {
@@ -33,7 +34,10 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
     _searchDebounce?.cancel();
     _searchQuery = value;
     if (value.trim().isEmpty) {
-      setState(() => _searchResults = null);
+      setState(() {
+        _searchResults = null;
+        _searchResultsServerId = null;
+      });
       return;
     }
     if (_searchController.value.composing != TextRange.empty) return;
@@ -43,6 +47,7 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
   Future<void> _doApiSearch() async {
     final query = _searchQuery.trim();
     if (query.isEmpty) return;
+    final serverId = ref.read(serverConfigProvider).serverId;
     try {
       final client = ref.read(subsonicClientProvider);
       final result = await client.search3(
@@ -51,29 +56,28 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
         albumCount: 0,
         songCount: 0,
       );
-      if (!mounted || _searchQuery.trim() != query) return;
-      setState(() => _searchResults = result.artists);
+      if (!mounted ||
+          _searchQuery.trim() != query ||
+          ref.read(serverConfigProvider).serverId != serverId) {
+        return;
+      }
+      setState(() {
+        _searchResults = result.artists;
+        _searchResultsServerId = serverId;
+      });
     } catch (_) {}
   }
 
-  void _playArtist(Artist artist) async {
-    try {
-      final client = ref.read(subsonicClientProvider);
-      final detail = await client.getArtist(artist.id);
-      if (detail.albums.isNotEmpty) {
-        final album = await client.getAlbum(detail.albums.first.id);
-        if (album.songs.isNotEmpty) {
-          ref.read(audioPlayerServiceProvider).playAll(album.songs);
-        }
-      }
-    } catch (e) {
-      debugPrint('Failed to play artist: $e');
-    }
+  void _playArtist(Artist artist) {
+    ref.read(libraryProvider.notifier).playArtist(artist);
   }
 
   @override
   Widget build(BuildContext context) {
     final artistsAsync = ref.watch(artistsProvider);
+    final serverId = ref.watch(
+      serverConfigProvider.select((config) => config.serverId),
+    );
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
 
@@ -116,7 +120,9 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
                 ),
               ),
               data: (artists) {
-                final display = _searchResults ?? artists;
+                final display = _searchResultsServerId == serverId
+                    ? (_searchResults ?? artists)
+                    : artists;
                 return display.isEmpty
                     ? Center(
                         child: Text(

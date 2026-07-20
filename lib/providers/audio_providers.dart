@@ -34,11 +34,8 @@ final subsonicClientProvider = Provider<SubsonicClient>((ref) {
 final backendClientProvider = Provider<BackendClient>((ref) {
   final config = ref.watch(serverConfigProvider);
   final client = BackendClient();
-  if (config.url.isNotEmpty) {
-    final baseUrl = BackendClient.inferBaseUrl(config.url);
-    if (baseUrl.isNotEmpty) {
-      client.configure(baseUrl: baseUrl, apiKey: config.password);
-    }
+  if (config.backendUrl.isNotEmpty) {
+    client.configure(baseUrl: config.backendUrl, apiKey: config.backendApiKey);
   }
   return client;
 });
@@ -53,13 +50,14 @@ final songMediaResolverProvider = Provider<SongMediaResolver>((ref) {
 /// 播放服务 provider — 委托 AudioHandler，并同步 client / 音质设置
 final audioPlayerServiceProvider = Provider<AudioPlayerService>((ref) {
   final handler = ref.watch(audioHandlerProvider);
+  final config = ref.watch(serverConfigProvider);
   final client = ref.watch(subsonicClientProvider);
   final backendClient = ref.watch(backendClientProvider);
   final quality = ref.watch(audioQualityProvider);
   final downloads = ref.watch(downloadManagerProvider);
 
   // 服务器切换时同步 client 到 handler
-  handler.updateClients(client, backendClient);
+  handler.updateClients(client, backendClient, serverId: config.serverId);
   // 音质变更时同步 maxBitRate
   handler.setMaxBitRate(quality);
   // 离线回退：查看已下载文件

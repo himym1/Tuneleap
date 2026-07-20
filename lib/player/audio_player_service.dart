@@ -4,7 +4,19 @@ import '../api/backend_client.dart';
 import '../api/subsonic_client.dart';
 import 'audio_handler.dart';
 
-enum RepeatMode { off, all, one }
+enum PlaybackRepeatMode {
+  off,
+  all,
+  one;
+
+  int? nextIndex(int currentIndex, int queueLength) {
+    if (queueLength <= 0 || currentIndex < 0 || currentIndex >= queueLength) {
+      return null;
+    }
+    if (currentIndex < queueLength - 1) return currentIndex + 1;
+    return this == all ? 0 : null;
+  }
+}
 
 /// 音频播放服务 — UI 层使用的轻量封装，内部委托 NavidromeAudioHandler
 ///
@@ -12,9 +24,6 @@ enum RepeatMode { off, all, one }
 /// 本类在其之上提供 shuffle / repeat / queue 编辑等高层逻辑。
 class AudioPlayerService {
   final NavidromeAudioHandler _handler;
-
-  bool _shuffle = false;
-  RepeatMode _repeatMode = RepeatMode.off;
 
   AudioPlayerService(this._handler);
 
@@ -25,8 +34,8 @@ class AudioPlayerService {
   List<Song> get playHistory => _handler.playHistory;
   int get currentIndex => _handler.currentIndex;
   Song? get currentSong => _handler.currentSong;
-  bool get shuffle => _shuffle;
-  RepeatMode get repeatMode => _repeatMode;
+  bool get shuffle => _handler.shuffle;
+  PlaybackRepeatMode get repeatMode => _handler.repeatMode;
 
   // === Streams (从 handler 的 AudioPlayer 透传) ===
 
@@ -45,13 +54,14 @@ class AudioPlayerService {
 
   /// 播放单首歌曲
   Future<void> playSong(Song song) async {
-    _shuffle = false;
+    _handler.setShuffle(false);
     await _handler.setQueue([song], startIndex: 0);
   }
 
   /// 播放歌曲列表
   Future<void> playAll(List<Song> songs, {int startIndex = 0}) async {
     if (songs.isEmpty) return;
+    _handler.setShuffle(false);
     await _handler.setQueue(songs, startIndex: startIndex);
   }
 
@@ -74,28 +84,20 @@ class AudioPlayerService {
   Future<void> previous() => _handler.skipToPrevious();
 
   void toggleShuffle() {
-    _shuffle = !_shuffle;
-    if (_shuffle) {
-      _handler.shuffleQueue();
-    }
+    _handler.setShuffle(!_handler.shuffle);
   }
 
   void cycleRepeatMode() {
-    switch (_repeatMode) {
-      case RepeatMode.off:
-        _repeatMode = RepeatMode.all;
-      case RepeatMode.all:
-        _repeatMode = RepeatMode.one;
-      case RepeatMode.one:
-        _repeatMode = RepeatMode.off;
-    }
-    _handler.setRepeat(_repeatMode);
+    final nextMode = switch (_handler.repeatMode) {
+      PlaybackRepeatMode.off => PlaybackRepeatMode.all,
+      PlaybackRepeatMode.all => PlaybackRepeatMode.one,
+      PlaybackRepeatMode.one => PlaybackRepeatMode.off,
+    };
+    _handler.setRepeat(nextMode);
   }
 
   /// 从队列中移除
-  void removeFromQueue(int index) {
-    _handler.removeFromQueue(index);
-  }
+  Future<void> removeFromQueue(int index) => _handler.removeFromQueue(index);
 
   /// 移动队列中的歌曲（拖拽排序）
   void reorderQueue(int oldIndex, int newIndex) {
@@ -113,8 +115,12 @@ class AudioPlayerService {
   }
 
   /// 更新底层 SubsonicClient（服务器切换时调用）
-  void updateClients(SubsonicClient newClient, BackendClient newBackendClient) {
-    _handler.updateClients(newClient, newBackendClient);
+  void updateClients(
+    SubsonicClient newClient,
+    BackendClient newBackendClient, {
+    required String serverId,
+  }) {
+    _handler.updateClients(newClient, newBackendClient, serverId: serverId);
   }
 
   /// 设置音量

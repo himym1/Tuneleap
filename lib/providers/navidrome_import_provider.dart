@@ -13,7 +13,9 @@ class NavidromeImportResult {
 }
 
 final navidromeImportServiceProvider = Provider<NavidromeImportService>((ref) {
-  return NavidromeImportService(backendClient: ref.watch(backendClientProvider));
+  return NavidromeImportService(
+    backendClient: ref.watch(backendClientProvider),
+  );
 });
 
 class NavidromeImportService {
@@ -29,12 +31,11 @@ class NavidromeImportService {
       throw StateError('Backend client is not configured');
     }
 
-    debugPrint('[Import] 开始导入: ${song.title} - ${song.artist}');
-    debugPrint('[Import] source=${song.onlineSource}, urlId=${song.urlId}');
+    debugPrint('[Import] started: source=${song.onlineSource ?? 'unknown'}');
 
     try {
       final playbackUrl = await backendClient.getPlaybackUrl(song);
-      debugPrint('[Import] 获取播放URL: ${playbackUrl.substring(0, playbackUrl.length.clamp(0, 80))}...');
+      debugPrint('[Import] playback URL resolved');
 
       final extension = inferFileExtension(playbackUrl, song);
       final filename = buildFileName(song, extension: extension);
@@ -47,9 +48,13 @@ class NavidromeImportService {
       String? lrcText;
       try {
         lrcText = await backendClient.getRawLyrics(song);
-        debugPrint('[Import] 歌词: ${lrcText != null ? '${lrcText.length} chars' : 'none'}');
+        debugPrint(
+          '[Import] 歌词: ${lrcText != null ? '${lrcText.length} chars' : 'none'}',
+        );
       } catch (_) {}
-      debugPrint('[Import] filename=$filename, picUrl=${picUrl.isNotEmpty}');
+      debugPrint(
+        '[Import] metadata ready: lyrics=${lrcText != null}, cover=${picUrl.isNotEmpty}',
+      );
 
       final message = await backendClient.queueNasDownload(
         url: playbackUrl,
@@ -58,12 +63,11 @@ class NavidromeImportService {
         picUrl: picUrl,
         lyric: lrcText,
       );
-      debugPrint('[Import] 导入成功: $message');
+      debugPrint('[Import] queued successfully');
 
       return NavidromeImportResult(filename: filename, message: message);
-    } catch (e, stack) {
-      debugPrint('[Import] 导入失败: $e');
-      debugPrint('[Import] Stack: $stack');
+    } catch (e) {
+      debugPrint('[Import] failed: ${e.runtimeType}');
       rethrow;
     }
   }

@@ -1,0 +1,130 @@
+import 'dart:convert';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:navidrome_player/providers/server_config_provider.dart';
+import 'package:navidrome_player/providers/server_scope.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'concurrent server additions are serialized without losing entries',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(serversListProvider.notifier);
+
+      await Future.wait([
+        notifier.addServer(
+          name: 'A',
+          url: 'http://a',
+          username: 'a',
+          password: 'a',
+          backendUrl: '',
+          backendApiKey: '',
+        ),
+        notifier.addServer(
+          name: 'B',
+          url: 'http://b',
+          username: 'b',
+          password: 'b',
+          backendUrl: '',
+          backendApiKey: '',
+        ),
+      ]);
+
+      final servers = container.read(serversListProvider);
+      expect(servers.map((server) => server.name).toSet(), {'A', 'B'});
+      expect(servers.map((server) => server.id).toSet(), hasLength(2));
+    },
+  );
+
+  test('queued removal cannot delete the server being activated', () async {
+    SharedPreferences.setMockInitialValues({
+      'servers_list': jsonEncode([
+        {
+          'id': 'a',
+          'name': 'A',
+          'url': 'http://a',
+          'username': 'a',
+          'password': 'a',
+          'isActive': true,
+        },
+        {
+          'id': 'b',
+          'name': 'B',
+          'url': 'http://b',
+          'username': 'b',
+          'password': 'b',
+          'isActive': false,
+        },
+      ]),
+      activeServerIdPreferenceKey: 'a',
+      'server_url': 'http://a',
+      'server_username': 'a',
+      'server_password': 'a',
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(serversListProvider.notifier);
+
+    final activate = notifier.setActive('b');
+    final remove = notifier.removeServer('b');
+    await Future.wait([activate, remove]);
+
+    final servers = container.read(serversListProvider);
+    expect(
+      servers.any((server) => server.id == 'b' && server.isActive),
+      isTrue,
+    );
+    expect(prefs.getString(activeServerIdPreferenceKey), 'b');
+  });
+
+  test(
+    'logout forgets the active server credentials but keeps the entry',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'servers_list': jsonEncode([
+          {
+            'id': 'a',
+            'name': 'A',
+            'url': 'http://a',
+            'username': 'a',
+            'password': 'secret',
+            'backendUrl': 'http://backend',
+            'backendApiKey': 'backend-secret',
+            'isActive': true,
+          },
+        ]),
+        activeServerIdPreferenceKey: 'a',
+        'server_url': 'http://a',
+        'server_username': 'a',
+        'server_password': 'secret',
+        backendApiKeyPreferenceKey('a'): 'backend-secret',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(serverConfigProvider.notifier).clear();
+
+      final server = container.read(serversListProvider).single;
+      expect(server.id, 'a');
+      expect(server.password, isEmpty);
+      expect(server.backendApiKey, isEmpty);
+      expect(prefs.getString('server_password'), isNull);
+      expect(prefs.getString(backendApiKeyPreferenceKey('a')), isNull);
+    },
+  );
+}

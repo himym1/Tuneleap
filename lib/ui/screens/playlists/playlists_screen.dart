@@ -487,8 +487,7 @@ class PlaylistsScreen extends ConsumerWidget {
                         : ReorderableListView.builder(
                             shrinkWrap: true,
                             itemCount: songs.length,
-                            onReorder: (oldIndex, newIndex) async {
-                              if (newIndex > oldIndex) newIndex--;
+                            onReorderItem: (oldIndex, newIndex) async {
                               final song = songs.removeAt(oldIndex);
                               songs.insert(newIndex, song);
                               setDialogState(() {});
