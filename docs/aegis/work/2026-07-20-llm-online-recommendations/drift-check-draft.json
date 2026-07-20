@@ -3,13 +3,13 @@
   "taskId": "2026-07-20-llm-online-recommendations",
   "taskIntentRef": "docs/aegis/work/2026-07-20-llm-online-recommendations/task-intent-draft.json",
   "baselineRefs": [
-    "approved plan Task2"
+    "approved plan Task3"
   ],
-  "scopeStatus": "Task2 limited to recommendation Store and tests.",
-  "compatStatus": "Dedicated SQLite only; no Navidrome DB/API changes.",
+  "scopeStatus": "Task3 limited to planner and unittest.",
+  "compatStatus": "No existing Backend endpoint/client lifecycle changed.",
   "retirementStatus": "No retirement action.",
   "newRiskSignals": [
-    "Task3 must unwrap SecretStr only for Authorization and never log prompt/key/body."
+    "Task4 must use existing MusicProxyService.search direct list and SQLite lease for refill."
   ],
   "decision": "continue"
 }

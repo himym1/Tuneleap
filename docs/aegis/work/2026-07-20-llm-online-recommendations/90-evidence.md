@@ -17,3 +17,11 @@ No evidence has been recorded yet.
 - Source: backend commit 89492c9
 - Summary: Store 21 targeted and 33 full unittest passed; compileall/diff check passed; spec and quality reviewers approved.
 - Verifier: main agent fresh commands and independent reviewers
+
+## EvidenceBundleDraft
+
+- Artifact key: backend-task3-planner
+- Type: test
+- Source: backend commit e03aaaf
+- Summary: Planner 12 targeted and 45 full unittest passed; strict schema/input caps/redaction verified; two-stage review approved.
+- Verifier: main agent fresh commands and independent reviewers

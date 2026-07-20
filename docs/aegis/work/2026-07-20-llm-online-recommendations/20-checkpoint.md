@@ -46,3 +46,25 @@
 - Backend Task2 fresh: 21 targeted, 33 full unittest, compileall/diff check; spec+quality approved
 - Blocked on: none
 - Next step: Implement OpenAIPlanner only, then two-stage review.
+
+## DriftCheckDraft
+
+- Scope status: Task3 limited to planner and unittest.
+- Compatibility status: No existing Backend endpoint/client lifecycle changed.
+- Retirement status: No retirement action.
+- New risk signals:
+- Task4 must use existing MusicProxyService.search direct list and SQLite lease for refill.
+- Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Task 4 recommendation orchestration and source recall
+- Active slice: Batch B Task 4
+- Completed todos:
+- Task 1 Backend v1 contracts
+- Task 2 SQLite store
+- Task 3 OpenAI planner
+- Evidence refs:
+- Backend e03aaaf; 12 targeted and 45 full tests
+- Blocked on: none
+- Next step: Dispatch Task4 implementer, then spec and quality review.
