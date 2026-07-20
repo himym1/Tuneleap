@@ -33,3 +33,11 @@ No evidence has been recorded yet.
 - Source: backend commit 73b0201
 - Summary: Service 39 targeted and Backend 84 full unittest passed; real SQLite lease/five-page/dynamic pool covered; two-stage reviews approved.
 - Verifier: main fresh commands and independent reviewers
+
+## EvidenceBundleDraft
+
+- Artifact key: backend-gate
+- Type: test
+- Source: backend commit e46725e and prior Task1-4 commits
+- Summary: Backend Gate: 106 unittest passed; compileall, fixture json parse, diff check passed; Task1-5 two-stage reviews approved.
+- Verifier: main fresh Backend Gate commands

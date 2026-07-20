@@ -1,15 +1,15 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-20-llm-online-recommendations",
-  "currentTodo": "Task5 Backend API/lifecycle",
+  "currentTodo": "Task6 Flutter contract/client",
   "completedTodos": [
-    "Task1 contract; Task2 store; Task3 planner; Task4 orchestration"
+    "Backend Tasks1-5 Gate passed"
   ],
-  "activeSlice": "Batch B Task5",
+  "activeSlice": "Batch C Task6",
   "evidenceRefs": [
-    "backend 73b0201; 39 service and 84 full tests"
+    "Backend e46725e; 106 tests"
   ],
   "blockedOn": null,
-  "nextStep": "Implement recommendation HTTP/API/lifecycle and Backend Gate.",
+  "nextStep": "Implement Flutter v1 models, fixture, BackendClient APIs.",
   "updatedAt": "2026-07-20"
 }

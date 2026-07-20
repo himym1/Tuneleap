@@ -88,3 +88,23 @@
 - backend 73b0201; 39 service and 84 full tests
 - Blocked on: none
 - Next step: Implement recommendation HTTP/API/lifecycle and Backend Gate.
+
+## DriftCheckDraft
+
+- Scope status: Backend Tasks1-5 complete; enter Flutter contract only.
+- Compatibility status: Existing Backend endpoints retained and non-recommendation errors default.
+- Retirement status: No Flutter random-provider retirement before Task11.
+- New risk signals:
+- Flutter fixture must exactly match Backend canonical fixture and reject contractVersion !=1.
+- Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Task6 Flutter contract/client
+- Active slice: Batch C Task6
+- Completed todos:
+- Backend Tasks1-5 Gate passed
+- Evidence refs:
+- Backend e46725e; 106 tests
+- Blocked on: none
+- Next step: Implement Flutter v1 models, fixture, BackendClient APIs.

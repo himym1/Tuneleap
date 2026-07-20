@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "backend-gate",
+  "type": "test",
+  "source": "backend commit e46725e and prior Task1-4 commits",
+  "summary": "Backend Gate: 106 unittest passed; compileall, fixture json parse, diff check passed; Task1-5 two-stage reviews approved.",
+  "verifier": "main fresh Backend Gate commands"
+}

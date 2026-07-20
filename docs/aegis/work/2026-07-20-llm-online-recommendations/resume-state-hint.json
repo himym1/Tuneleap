@@ -2,9 +2,9 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-20-llm-online-recommendations",
   "lastCheckpointRef": "docs/aegis/work/2026-07-20-llm-online-recommendations/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume at plan Task5 in both worktrees; do not start Flutter Task6 before Backend Gate.",
+  "resumeInstruction": "Resume Task6 in Flutter worktree; Backend Gate complete.",
   "knownPartialWork": [
-    "Task1 contract; Task2 store; Task3 planner; Task4 orchestration"
+    "Backend Tasks1-5 Gate passed"
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-20-llm-online-recommendations/10-intent.md",
@@ -12,6 +12,6 @@
     "docs/aegis/work/2026-07-20-llm-online-recommendations/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "No deployment permission; no real OpenAI key; do not inspect env."
+    "No Flutter UI/provider yet; no contract drift allowed."
   ]
 }
