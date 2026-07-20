@@ -2,10 +2,11 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-20-llm-online-recommendations",
   "lastCheckpointRef": "docs/aegis/work/2026-07-20-llm-online-recommendations/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume at plan Task3 in Backend worktree; do not start service/router.",
+  "resumeInstruction": "Resume at Backend Task4 in the approved plan; do not repeat Tasks1-3.",
   "knownPartialWork": [
-    "Task 1: Backend configuration and v1 contracts (3fb8b5b)",
-    "Task 2: generation-safe SQLite store (89492c9)"
+    "Task 1 Backend v1 contracts",
+    "Task 2 SQLite store",
+    "Task 3 OpenAI planner"
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-20-llm-online-recommendations/10-intent.md",
@@ -13,6 +14,6 @@
     "docs/aegis/work/2026-07-20-llm-online-recommendations/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Real OpenAI is available; tests must use MockTransport."
+    "Task4 may not resolve playback URLs or rely only on process-local refill locks."
   ]
 }
