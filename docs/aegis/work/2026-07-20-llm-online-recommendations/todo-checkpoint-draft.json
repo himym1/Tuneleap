@@ -1,15 +1,16 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-20-llm-online-recommendations",
-  "currentTodo": "Task 2: generation-safe SQLite recommendation store",
+  "currentTodo": "Task 3: bounded OpenAI planner",
   "completedTodos": [
-    "Task 1: bounded Backend configuration and v1 contract models (backend commit 3fb8b5b)"
+    "Task 1: Backend configuration and v1 contracts (3fb8b5b)",
+    "Task 2: generation-safe SQLite store (89492c9)"
   ],
-  "activeSlice": "Batch A Task 2",
+  "activeSlice": "Batch B Task 3",
   "evidenceRefs": [
-    "backend 3fb8b5b; 12 unittest passed; compileall/json.tool/diff-check passed; spec and quality reviews approved"
+    "Backend Task2 fresh: 21 targeted, 33 full unittest, compileall/diff check; spec+quality approved"
   ],
   "blockedOn": null,
-  "nextStep": "Dispatch fresh Backend Task 2 implementer, then spec and quality review.",
+  "nextStep": "Implement OpenAIPlanner only, then two-stage review.",
   "updatedAt": "2026-07-20"
 }
