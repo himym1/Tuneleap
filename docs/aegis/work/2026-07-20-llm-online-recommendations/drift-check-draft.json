@@ -3,13 +3,13 @@
   "taskId": "2026-07-20-llm-online-recommendations",
   "taskIntentRef": "docs/aegis/work/2026-07-20-llm-online-recommendations/task-intent-draft.json",
   "baselineRefs": [
-    "approved recommendation spec and implementation plan Task 1"
+    "approved plan Task2"
   ],
-  "scopeStatus": "Task 1 stayed within config/models/fixture/tests; no store/router/planner/Flutter implementation.",
-  "compatStatus": "Existing required API_KEY and Backend endpoints unchanged; OpenAI key now SecretStr.",
-  "retirementStatus": "No retirement action in Task 1.",
+  "scopeStatus": "Task2 limited to recommendation Store and tests.",
+  "compatStatus": "Dedicated SQLite only; no Navidrome DB/API changes.",
+  "retirementStatus": "No retirement action.",
   "newRiskSignals": [
-    "None blocking; Task 2 must enforce generation and SQLite refill lease."
+    "Task3 must unwrap SecretStr only for Authorization and never log prompt/key/body."
   ],
   "decision": "continue"
 }
