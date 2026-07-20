@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-20-llm-online-recommendations",
+  "taskIntentRef": "docs/aegis/work/2026-07-20-llm-online-recommendations/task-intent-draft.json",
+  "baselineRefs": [
+    "approved recommendation spec and implementation plan Task 1"
+  ],
+  "scopeStatus": "Task 1 stayed within config/models/fixture/tests; no store/router/planner/Flutter implementation.",
+  "compatStatus": "Existing required API_KEY and Backend endpoints unchanged; OpenAI key now SecretStr.",
+  "retirementStatus": "No retirement action in Task 1.",
+  "newRiskSignals": [
+    "None blocking; Task 2 must enforce generation and SQLite refill lease."
+  ],
+  "decision": "continue"
+}

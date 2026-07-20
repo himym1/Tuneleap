@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-20-llm-online-recommendations",
+  "lastCheckpointRef": "docs/aegis/work/2026-07-20-llm-online-recommendations/todo-checkpoint-draft.json",
+  "resumeInstruction": "Resume at implementation plan Batch A Task 2 in the Backend online-recommendations worktree; do not redo Task 1.",
+  "knownPartialWork": [
+    "Task 1: bounded Backend configuration and v1 contract models (backend commit 3fb8b5b)"
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-07-20-llm-online-recommendations/10-intent.md",
+    "docs/aegis/work/2026-07-20-llm-online-recommendations/20-checkpoint.md",
+    "docs/aegis/work/2026-07-20-llm-online-recommendations/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "Do not assume in-process locks provide cross-worker refill correctness; SQLite lease and generation predicates are required."
+  ]
+}
