@@ -12,6 +12,7 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/utils/request_generation.dart';
 import 'package:navidrome_player/providers/server_scope.dart';
 import 'audio_player_service.dart';
+import 'playback_origin.dart';
 
 /// audio_service 的 Handler，处理后台播放、通知栏、锁屏控制
 ///
@@ -32,7 +33,12 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   int? _loadedRequest;
 
   final List<Song> _queue = [];
+  final List<PlaybackOrigin?> _origins = [];
   final List<Song> _playHistory = [];
+  final StreamController<PlaybackOrigin?> _currentOriginController =
+      StreamController<PlaybackOrigin?>.broadcast();
+  final StreamController<PlaybackFailure> _playbackFailureController =
+      StreamController<PlaybackFailure>.broadcast();
   int _currentIndex = -1;
   PlaybackRepeatMode _repeatMode = PlaybackRepeatMode.off;
   bool _shuffle = false;
@@ -161,6 +167,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       }),
     );
     _queue.clear();
+    _clearOrigins();
     _currentIndex = -1;
     queue.add(const []);
     mediaItem.add(null);
@@ -207,14 +214,52 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   Song? get currentSong => _currentIndex >= 0 && _currentIndex < _queue.length
       ? _queue[_currentIndex]
       : null;
+  PlaybackOrigin? get currentPlaybackOrigin =>
+      _currentIndex >= 0 && _currentIndex < _origins.length
+      ? _origins[_currentIndex]
+      : null;
+  Stream<PlaybackOrigin?> get currentPlaybackOriginStream =>
+      _currentOriginController.stream;
+  Stream<PlaybackFailure> get playbackFailureStream =>
+      _playbackFailureController.stream;
+
+  void _publishCurrentOrigin() {
+    if (!_currentOriginController.isClosed) {
+      _currentOriginController.add(currentPlaybackOrigin);
+    }
+  }
+
+  void _clearOrigins() {
+    _origins.clear();
+    _publishCurrentOrigin();
+  }
+
+  void _replaceOrigins(List<Song> songs, List<PlaybackOrigin?>? origins) {
+    if (origins != null && origins.length != songs.length) {
+      throw ArgumentError.value(
+        origins.length,
+        'origins',
+        'must match songs length (${songs.length})',
+      );
+    }
+    _origins
+      ..clear()
+      ..addAll(origins ?? List<PlaybackOrigin?>.filled(songs.length, null));
+    _publishCurrentOrigin();
+  }
 
   // === 队列管理 ===
 
   /// 设置播放队列
-  Future<void> setQueue(List<Song> songs, {int startIndex = 0}) async {
+  Future<void> setQueue(
+    List<Song> songs, {
+    int startIndex = 0,
+    List<PlaybackOrigin?>? origins,
+  }) async {
     _queue
       ..clear()
       ..addAll(songs);
+    _replaceOrigins(songs, origins);
     queue.add(songs.map(_songToMediaItem).toList());
     if (songs.isEmpty) {
       _loadRequests.invalidate();
@@ -226,21 +271,25 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       return;
     }
     _currentIndex = startIndex.clamp(0, songs.length - 1);
+    _publishCurrentOrigin();
     await _loadAndPlay();
   }
 
   /// 添加到队列末尾
-  void addToQueue(Song song) {
+  void addToQueue(Song song, {PlaybackOrigin? origin}) {
     _queue.add(song);
+    _origins.add(origin);
     queue.add(_queue.map(_songToMediaItem).toList());
   }
 
   /// 在当前歌曲后面插入
-  void insertNext(Song song) {
+  void insertNext(Song song, {PlaybackOrigin? origin}) {
     if (_currentIndex < _queue.length - 1) {
       _queue.insert(_currentIndex + 1, song);
+      _origins.insert(_currentIndex + 1, origin);
     } else {
       _queue.add(song);
+      _origins.add(origin);
     }
     queue.add(_queue.map(_songToMediaItem).toList());
   }
@@ -252,6 +301,9 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     final wasPlaying = _player.playing;
     final autoplayNext = wasPlaying || _loadedSongKey == null;
     _queue.removeAt(index);
+    if (index < _origins.length) {
+      _origins.removeAt(index);
+    }
 
     if (index < _currentIndex) {
       _currentIndex--;
@@ -259,6 +311,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       _currentIndex = _queue.isEmpty ? -1 : index.clamp(0, _queue.length - 1);
     }
     queue.add(_queue.map(_songToMediaItem).toList());
+    _publishCurrentOrigin();
 
     if (!removingCurrent) return;
     _loadRequests.invalidate();
@@ -268,6 +321,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     _scrobbleInFlightSongId = null;
     if (_queue.isEmpty) {
       mediaItem.add(null);
+      _publishCurrentOrigin();
       await _enqueuePlayerOperation(_player.stop);
     } else {
       await _loadCurrent(autoplay: autoplayNext);
@@ -281,7 +335,11 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     if (oldIndex == newIndex) return;
 
     final song = _queue.removeAt(oldIndex);
+    final origin = oldIndex < _origins.length
+        ? _origins.removeAt(oldIndex)
+        : null;
     _queue.insert(newIndex, song);
+    _origins.insert(newIndex, origin);
 
     // 同步 currentIndex
     if (oldIndex == _currentIndex) {
@@ -294,6 +352,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       }
     }
     queue.add(_queue.map(_songToMediaItem).toList());
+    _publishCurrentOrigin();
   }
 
   void setShuffle(bool enabled) {
@@ -304,13 +363,36 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   /// 随机打乱队列（保持当前歌曲在首位）
   void shuffleQueue() {
     final current = currentSong;
-    _queue.shuffle();
+    final currentOrigin = currentPlaybackOrigin;
+    final paired = [
+      for (var i = 0; i < _queue.length; i++)
+        (song: _queue[i], origin: i < _origins.length ? _origins[i] : null),
+    ]..shuffle();
+    _queue
+      ..clear()
+      ..addAll(paired.map((e) => e.song));
+    _origins
+      ..clear()
+      ..addAll(paired.map((e) => e.origin));
     if (current != null) {
-      _queue.remove(current);
-      _queue.insert(0, current);
+      final idx = _queue.indexWhere(
+        (s) => identical(s, current) || s.storageKey == current.storageKey,
+      );
+      if (idx >= 0) {
+        final song = _queue.removeAt(idx);
+        final origin = idx < _origins.length
+            ? _origins.removeAt(idx)
+            : currentOrigin;
+        _queue.insert(0, song);
+        _origins.insert(0, origin);
+      } else {
+        _queue.insert(0, current);
+        _origins.insert(0, currentOrigin);
+      }
       _currentIndex = 0;
     }
     queue.add(_queue.map(_songToMediaItem).toList());
+    _publishCurrentOrigin();
   }
 
   /// 设置循环模式
@@ -354,6 +436,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     _loadedSongKey = null;
     _loadedRequest = null;
     _scrobbleInFlightSongId = null;
+    _publishCurrentOrigin();
     await _enqueuePlayerOperation(_player.stop);
     playbackState.add(
       playbackState.value.copyWith(
@@ -369,6 +452,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     final nextIndex = _repeatMode.nextIndex(_currentIndex, _queue.length);
     if (nextIndex == null) return;
     _currentIndex = nextIndex;
+    _publishCurrentOrigin();
     await _loadAndPlay();
   }
 
@@ -386,6 +470,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     } else {
       return;
     }
+    _publishCurrentOrigin();
     await _loadAndPlay();
   }
 
@@ -393,6 +478,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> skipToQueueItem(int index) async {
     if (index < 0 || index >= _queue.length) return;
     _currentIndex = index;
+    _publishCurrentOrigin();
     await _loadAndPlay();
   }
 
@@ -445,6 +531,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       _loadedRequest = null;
       mediaItem.add(_songToMediaItem(song));
 
+      final origin = currentPlaybackOrigin;
       try {
         if (localPath != null && File(localPath).existsSync()) {
           await _player.setFilePath(localPath);
@@ -467,6 +554,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
         _playHistory.insert(0, song);
         if (_playHistory.length > 50) _playHistory.removeLast();
         _persistHistory();
+        _publishCurrentOrigin();
 
         if (autoplay) await _player.play();
       } catch (e) {
@@ -480,6 +568,17 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
             playing: false,
           ),
         );
+        final failure = _classifyPlaybackFailure(
+          error: e,
+          song: song,
+          request: request,
+          origin: origin,
+        );
+        if (_loadRequests.isCurrent(request) &&
+            currentSong?.storageKey == song.storageKey &&
+            !_playbackFailureController.isClosed) {
+          _playbackFailureController.add(failure);
+        }
       }
     });
   }
@@ -513,6 +612,48 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
         speed: _player.speed,
         queueIndex: _currentIndex,
       ),
+    );
+  }
+
+  PlaybackFailure _classifyPlaybackFailure({
+    required Object error,
+    required Song song,
+    required int request,
+    required PlaybackOrigin? origin,
+  }) {
+    final typeName = error.runtimeType.toString().toLowerCase();
+    final message = error.toString().toLowerCase();
+    final PlaybackFailureKind kind;
+    if (typeName.contains('timeout') || message.contains('timeout')) {
+      kind = PlaybackFailureKind.timeout;
+    } else if (typeName.contains('socket') ||
+        typeName.contains('handshake') ||
+        typeName.contains('connection') ||
+        message.contains('socket') ||
+        message.contains('network') ||
+        message.contains('connection')) {
+      kind = PlaybackFailureKind.network;
+    } else if (typeName.contains('http') ||
+        typeName.contains('format') ||
+        typeName.contains('stateerror') ||
+        message.contains('404') ||
+        message.contains('403') ||
+        message.contains('source') ||
+        message.contains('url')) {
+      kind = PlaybackFailureKind.sourceUnavailable;
+    } else {
+      kind = PlaybackFailureKind.unknown;
+    }
+    final retryable =
+        kind == PlaybackFailureKind.network ||
+        kind == PlaybackFailureKind.timeout;
+    return PlaybackFailure(
+      serverId: _serverId,
+      songStorageKey: song.storageKey,
+      requestGeneration: request,
+      kind: kind,
+      retryable: retryable,
+      origin: origin,
     );
   }
 
