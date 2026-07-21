@@ -23,3 +23,13 @@
 | 2026-07-20 | artifact | docs/aegis/work/2026-07-20-llm-online-recommendations/drift-check-draft.json | LLM Online Recommendations Implementation drift check draft |
 | 2026-07-20 | artifact | docs/aegis/work/2026-07-20-llm-online-recommendations/evidence-bundle-draft-backend-task1-contract.json | 2026-07-20-llm-online-recommendations evidence backend-task1-contract |
 | 2026-07-20 | artifact | docs/aegis/work/2026-07-20-llm-online-recommendations/resume-state-hint.json | 2026-07-20-llm-online-recommendations resume state hint |
+| 2026-07-20 | artifact | docs/aegis/work/2026-07-20-llm-online-recommendations/evidence-bundle-draft-backend-task2-store.json | 2026-07-20-llm-online-recommendations evidence backend-task2-store |
+| 2026-07-20 | artifact | docs/aegis/work/2026-07-20-llm-online-recommendations/evidence-bundle-draft-backend-task3-planner.json | 2026-07-20-llm-online-recommendations evidence backend-task3-planner |
+| 2026-07-20 | artifact | docs/aegis/work/2026-07-20-llm-online-recommendations/evidence-bundle-draft-backend-task4-service.json | 2026-07-20-llm-online-recommendations evidence backend-task4-service |
+| 2026-07-20 | artifact | docs/aegis/work/2026-07-20-llm-online-recommendations/evidence-bundle-draft-backend-gate.json | 2026-07-20-llm-online-recommendations evidence backend-gate |
+| 2026-07-21 | artifact | docs/aegis/work/2026-07-20-llm-online-recommendations/evidence-bundle-draft-flutter-task6-contract.json | 2026-07-20-llm-online-recommendations evidence flutter-task6-contract |
+| 2026-07-21 | artifact | docs/aegis/work/2026-07-20-llm-online-recommendations/evidence-bundle-draft-flutter-task7-notifier.json | 2026-07-20-llm-online-recommendations evidence flutter-task7-notifier |
+
+## Architecture decisions
+
+- [ADR 0002 Verified Online Recommendation Pipeline](../adr/0002-verified-online-recommendation-pipeline.md)
