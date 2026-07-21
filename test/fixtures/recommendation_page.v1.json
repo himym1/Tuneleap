@@ -1,0 +1,80 @@
+{
+  "ai": {
+    "contractVersion": 1,
+    "sessionId": "session-ai-001",
+    "mode": "ai",
+    "items": [
+      {
+        "candidateId": "candidate-ai-001",
+        "recommendationType": "similar",
+        "song": {
+          "id": "netease-track-001",
+          "title": "Northern Lights",
+          "album": "Night Signals",
+          "albumId": "netease-album-001",
+          "artist": "Harbor Lines",
+          "artistId": "netease-artist-001",
+          "track": 3,
+          "year": 2025,
+          "duration": 247,
+          "bitRate": 320,
+          "coverArt": "netease-cover-001",
+          "suffix": "mp3",
+          "backend": "solara",
+          "onlineSource": "netease",
+          "urlId": "netease-url-001",
+          "lyricId": "netease-lyric-001"
+        }
+      },
+      {
+        "candidateId": "candidate-ai-002",
+        "recommendationType": "explore",
+        "song": {
+          "id": "migu-track-002",
+          "title": "Paper Satellites",
+          "album": "Open Frequencies",
+          "albumId": "migu-album-002",
+          "artist": "Static Coast",
+          "artistId": "migu-artist-002",
+          "duration": 198,
+          "coverArt": "migu-cover-002",
+          "suffix": "flac",
+          "backend": "solara",
+          "onlineSource": "migu",
+          "urlId": "migu-url-002"
+        }
+      }
+    ],
+    "nextCursor": "cursor-ai-002",
+    "hasMore": true
+  },
+  "fallback": {
+    "contractVersion": 1,
+    "sessionId": "session-fallback-001",
+    "mode": "fallback",
+    "items": [
+      {
+        "candidateId": "candidate-fallback-001",
+        "recommendationType": "explore",
+        "song": {
+          "id": "joox-track-001",
+          "title": "City After Rain",
+          "album": "Glass Streets",
+          "albumId": "joox-album-001",
+          "artist": "Signal Bloom",
+          "artistId": "joox-artist-001",
+          "year": 2024,
+          "duration": 221,
+          "coverArt": "joox-cover-001",
+          "suffix": "m4a",
+          "backend": "solara",
+          "onlineSource": "joox",
+          "urlId": "joox-url-001",
+          "lyricId": "joox-lyric-001"
+        }
+      }
+    ],
+    "nextCursor": null,
+    "hasMore": false
+  }
+}
