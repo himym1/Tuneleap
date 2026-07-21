@@ -274,6 +274,162 @@ class BackendClient {
     }
   }
 
+  Future<RecommendationPage> createRecommendationSession(
+    List<Song> recent, {
+    bool refresh = false,
+    int pageSize = 20,
+    CancelToken? cancelToken,
+  }) async {
+    _validateRecommendationPageSize(pageSize);
+    return _recommendationRequest(() async {
+      final response = await _dio.post(
+        '$_baseUrl/v1/recommendations/sessions',
+        data: {
+          'refresh': refresh,
+          'pageSize': pageSize,
+          'recent': recent
+              .take(30)
+              .map(
+                (song) =>
+                    RecentRecommendationSongSummary.fromSong(song).toJson(),
+              )
+              .toList(),
+        },
+        cancelToken: cancelToken,
+      );
+      return _parseRecommendationPage(response);
+    });
+  }
+
+  Future<RecommendationPage> getRecommendationItems(
+    String sessionId, {
+    String? cursor,
+    int limit = 20,
+    CancelToken? cancelToken,
+  }) async {
+    _validateRecommendationPageSize(limit);
+    return _recommendationRequest(() async {
+      final encodedSessionId = Uri.encodeComponent(sessionId);
+      final response = await _dio.get(
+        '$_baseUrl/v1/recommendations/sessions/$encodedSessionId/items',
+        queryParameters: {
+          'limit': limit,
+          ...?cursor == null ? null : {'cursor': cursor},
+        },
+        cancelToken: cancelToken,
+      );
+      return _parseRecommendationPage(response);
+    });
+  }
+
+  Future<RecommendationFeedbackResponse> sendRecommendationFeedback({
+    required String idempotencyKey,
+    required String sessionId,
+    required String candidateId,
+    required RecommendationFeedbackEvent event,
+    CancelToken? cancelToken,
+  }) async {
+    return _recommendationRequest(() async {
+      final response = await _dio.post(
+        '$_baseUrl/v1/recommendations/feedback',
+        data: {
+          'idempotencyKey': idempotencyKey,
+          'sessionId': sessionId,
+          'candidateId': candidateId,
+          'event': event.name,
+        },
+        cancelToken: cancelToken,
+      );
+      return RecommendationFeedbackResponse.fromJson(
+        _requireRecommendationEnvelope(response),
+      );
+    });
+  }
+
+  Future<void> resetRecommendationProfile({CancelToken? cancelToken}) async {
+    await _recommendationRequest(() async {
+      final response = await _dio.delete(
+        '$_baseUrl/v1/recommendations/profile',
+        cancelToken: cancelToken,
+      );
+      final data = _requireRecommendationEnvelope(response);
+      if (data['reset'] != true) {
+        throw const FormatException(
+          'Recommendation profile reset was not confirmed',
+        );
+      }
+    });
+  }
+
+  RecommendationPage _parseRecommendationPage(Response<dynamic> response) {
+    final data = _requireRecommendationEnvelope(response);
+    return RecommendationPage.fromJson(data);
+  }
+
+  Map<String, dynamic> _requireRecommendationEnvelope(
+    Response<dynamic> response,
+  ) {
+    final data = response.data;
+    if (data is! Map) {
+      throw const FormatException('Recommendation response must be an object');
+    }
+    final map = Map<String, dynamic>.from(data);
+    if (map['contractVersion'] != 1) {
+      throw RecommendationApiException(
+        code: 'recommendation_unsupported_contract',
+        detail: 'Unsupported recommendation contract',
+        retryable: false,
+        statusCode: response.statusCode,
+      );
+    }
+    final code = map['code'];
+    final detail = map['detail'];
+    final retryable = map['retryable'];
+    if (code != null || detail != null || retryable != null) {
+      if (code is String && detail is String && retryable is bool) {
+        throw RecommendationApiException(
+          code: code,
+          detail: detail,
+          retryable: retryable,
+          statusCode: response.statusCode,
+        );
+      }
+      throw const FormatException('Invalid recommendation error response');
+    }
+    return map;
+  }
+
+  Future<T> _recommendationRequest<T>(Future<T> Function() request) async {
+    try {
+      return await request();
+    } on DioException catch (error) {
+      if (error.type == DioExceptionType.cancel) rethrow;
+      final response = error.response;
+      final data = response?.data;
+      if (response != null && data is Map) {
+        final map = Map<String, dynamic>.from(data);
+        if (map['contractVersion'] == 1 &&
+            map['code'] is String &&
+            map['detail'] is String &&
+            map['retryable'] is bool) {
+          throw RecommendationApiException(
+            code: map['code'] as String,
+            detail: map['detail'] as String,
+            retryable: map['retryable'] as bool,
+            statusCode: response.statusCode,
+          );
+        }
+      }
+      rethrow;
+    }
+  }
+
+  static void _validateRecommendationPageSize(int value) {
+    if (value < 1 || value > 20) {
+      throw ArgumentError.value(value, 'pageSize', 'must be between 1 and 20');
+    }
+  }
+
   static String _normalizeBaseUrl(String raw) {
     return raw.endsWith('/') ? raw.substring(0, raw.length - 1) : raw;
   }
