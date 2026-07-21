@@ -3,6 +3,7 @@ import '../api/models/models.dart';
 import '../api/backend_client.dart';
 import '../api/subsonic_client.dart';
 import 'audio_handler.dart';
+import 'playback_origin.dart';
 
 enum PlaybackRepeatMode {
   off,
@@ -36,6 +37,7 @@ class AudioPlayerService {
   Song? get currentSong => _handler.currentSong;
   bool get shuffle => _handler.shuffle;
   PlaybackRepeatMode get repeatMode => _handler.repeatMode;
+  PlaybackOrigin? get currentPlaybackOrigin => _handler.currentPlaybackOrigin;
 
   // === Streams (从 handler 的 AudioPlayer 透传) ===
 
@@ -50,29 +52,39 @@ class AudioPlayerService {
       .map((_) => _handler.currentSong)
       .distinct((a, b) => a?.storageKey == b?.storageKey);
 
+  Stream<PlaybackOrigin?> get currentPlaybackOriginStream =>
+      _handler.currentPlaybackOriginStream;
+
+  Stream<PlaybackFailure> get playbackFailureStream =>
+      _handler.playbackFailureStream;
+
   // === 播放控制 ===
 
   /// 播放单首歌曲
-  Future<void> playSong(Song song) async {
+  Future<void> playSong(Song song, {PlaybackOrigin? origin}) async {
     _handler.setShuffle(false);
-    await _handler.setQueue([song], startIndex: 0);
+    await _handler.setQueue([song], startIndex: 0, origins: [origin]);
   }
 
   /// 播放歌曲列表
-  Future<void> playAll(List<Song> songs, {int startIndex = 0}) async {
+  Future<void> playAll(
+    List<Song> songs, {
+    int startIndex = 0,
+    List<PlaybackOrigin?>? origins,
+  }) async {
     if (songs.isEmpty) return;
     _handler.setShuffle(false);
-    await _handler.setQueue(songs, startIndex: startIndex);
+    await _handler.setQueue(songs, startIndex: startIndex, origins: origins);
   }
 
   /// 添加到队列末尾
-  void addToQueue(Song song) {
-    _handler.addToQueue(song);
+  void addToQueue(Song song, {PlaybackOrigin? origin}) {
+    _handler.addToQueue(song, origin: origin);
   }
 
   /// 播放下一首后插入
-  void playNext(Song song) {
-    _handler.insertNext(song);
+  void playNext(Song song, {PlaybackOrigin? origin}) {
+    _handler.insertNext(song, origin: origin);
   }
 
   Future<void> play() => _handler.play();

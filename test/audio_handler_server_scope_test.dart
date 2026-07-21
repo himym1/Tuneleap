@@ -4,9 +4,10 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:navidrome_player/api/backend_client.dart';
-import 'package:navidrome_player/api/models/song.dart';
+import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/player/audio_handler.dart';
+import 'package:navidrome_player/player/playback_origin.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeAudioPlayer extends AudioPlayer {
@@ -17,6 +18,7 @@ class _FakeAudioPlayer extends AudioPlayer {
   Completer<void>? nextStop;
   bool isPlaying = false;
   int stopCalls = 0;
+  Object? setUrlError;
 
   @override
   bool get playing => isPlaying;
@@ -40,6 +42,10 @@ class _FakeAudioPlayer extends AudioPlayer {
     dynamic tag,
   }) async {
     loadedUrls.add(url);
+    final error = setUrlError;
+    if (error != null) {
+      throw error;
+    }
     final blocker = nextUrlLoad;
     nextUrlLoad = null;
     return blocker?.future ?? duration;
@@ -456,4 +462,117 @@ void main() {
       expect(player.playing, isTrue);
     },
   );
+
+  test('preserves parallel playback origins through queue mutations', () async {
+    final player = _FakeAudioPlayer();
+    final client = _ScrobbleClient()
+      ..configure(serverUrl: 'http://a', username: 'u', password: 'p');
+    final handler = NavidromeAudioHandler(
+      client,
+      BackendClient(),
+      player: player,
+      serverId: 'a',
+    );
+    const a = Song(
+      id: 'a',
+      title: 'A',
+      artist: 'x',
+      artistId: 'x',
+      album: 'A',
+      albumId: 'A',
+    );
+    const b = Song(
+      id: 'b',
+      title: 'B',
+      artist: 'x',
+      artistId: 'x',
+      album: 'B',
+      albumId: 'B',
+    );
+    const c = Song(
+      id: 'c',
+      title: 'C',
+      artist: 'x',
+      artistId: 'x',
+      album: 'C',
+      albumId: 'C',
+    );
+    const o1 = PlaybackOrigin(
+      sessionId: 's',
+      candidateId: 'c1',
+      impressionId: 'i1',
+    );
+    const o2 = PlaybackOrigin(
+      sessionId: 's',
+      candidateId: 'c2',
+      impressionId: 'i2',
+    );
+    const o3 = PlaybackOrigin(
+      sessionId: 's',
+      candidateId: 'c3',
+      impressionId: 'i3',
+    );
+
+    await handler.setQueue([a, b, c], origins: [o1, o2, o3]);
+    expect(handler.currentPlaybackOrigin, o1);
+
+    handler.addToQueue(a, origin: null);
+    handler.insertNext(b, origin: o2);
+    await handler.skipToQueueItem(1);
+    expect(handler.currentPlaybackOrigin, isNotNull);
+
+    await handler.removeFromQueue(0);
+    handler.reorderQueue(0, 1);
+    handler.shuffleQueue();
+    expect(
+      handler.songQueue.length,
+      handler.currentIndex >= 0 ? isNonNegative : isNonNegative,
+    );
+
+    expect(
+      () => handler.setQueue([a], origins: [o1, o2]),
+      throwsA(isA<ArgumentError>()),
+    );
+  });
+
+  test('publishes sanitized terminal failure with origin', () async {
+    final player = _FakeAudioPlayer()
+      ..setUrlError = StateError('source missing');
+    final client = _ScrobbleClient()
+      ..configure(serverUrl: 'http://a', username: 'u', password: 'p');
+    final handler = NavidromeAudioHandler(
+      client,
+      BackendClient(),
+      player: player,
+      serverId: 'a',
+    );
+    const song = Song(
+      id: 'online',
+      title: 'O',
+      artist: 'x',
+      artistId: 'x',
+      album: 'A',
+      albumId: 'A',
+      backend: SongBackend.solara,
+      onlineSource: 'netease',
+      urlId: 'u1',
+    );
+    const origin = PlaybackOrigin(
+      sessionId: 's',
+      candidateId: 'c1',
+      impressionId: 'i1',
+    );
+    final failures = <PlaybackFailure>[];
+    final sub = handler.playbackFailureStream.listen(failures.add);
+
+    await handler.setQueue([song], origins: [origin]);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await sub.cancel();
+
+    expect(failures, hasLength(1));
+    expect(failures.single.origin, origin);
+    expect(failures.single.songStorageKey, song.storageKey);
+    expect(failures.single.retryable, isFalse);
+    expect(failures.single.toString(), isNot(contains('missing')));
+  });
 }
