@@ -258,10 +258,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  PlaybackOrigin? _homeOrigin(RecommendationItem item, String? sessionId) {
+    if (sessionId == null || sessionId.isEmpty) return null;
+    return PlaybackOrigin(
+      sessionId: sessionId,
+      candidateId: item.candidateId,
+      impressionId: 'home-${item.candidateId}',
+    );
+  }
+
+  Future<void> _playRecommendations(
+    List<RecommendationItem> items,
+    int index,
+  ) async {
+    final sessionId = ref.read(recommendationProvider).sessionId;
+    if (sessionId == null || items.isEmpty) return;
+    final songs = items.map((e) => e.song).toList();
+    final origins = [for (final item in items) _homeOrigin(item, sessionId)];
+    await ref
+        .read(audioPlayerServiceProvider)
+        .playAll(songs, startIndex: index, origins: origins);
+    if (mounted) context.push('/player');
+  }
+
   Widget _buildRecommendationGrid(List<RecommendationItem> items) {
     if (items.isEmpty) return const SizedBox.shrink();
     final backend = ref.read(backendClientProvider);
-    final sessionId = ref.read(recommendationProvider).sessionId ?? '';
+    final sessionId = ref.read(recommendationProvider).sessionId;
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = (constraints.maxWidth / 300).floor().clamp(1, 3);
@@ -277,42 +300,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           itemCount: items.length,
           itemBuilder: (context, index) {
             final item = items[index];
-            final origin = sessionId.isEmpty
-                ? null
-                : PlaybackOrigin(
-                    sessionId: sessionId,
-                    candidateId: item.candidateId,
-                    impressionId: 'home-${item.candidateId}-$index',
-                  );
-            final songs = items.map((e) => e.song).toList();
-            final origins = [
-              for (final entry in items)
-                sessionId.isEmpty
-                    ? null
-                    : PlaybackOrigin(
-                        sessionId: sessionId,
-                        candidateId: entry.candidateId,
-                        impressionId: 'home-${entry.candidateId}',
-                      ),
-            ];
+            final origin = _homeOrigin(item, sessionId);
             return SongContextMenu(
               song: item.song,
               playbackOrigin: origin,
-              onPlay: () {
+              onImported: () {
                 ref
-                    .read(audioPlayerServiceProvider)
-                    .playAll(songs, startIndex: index, origins: origins);
-                context.push('/player');
+                    .read(recommendationProvider.notifier)
+                    .recordFeedback(item, RecommendationFeedbackEvent.imported);
               },
+              onPlay: () => _playRecommendations(items, index),
               child: _DailyRecommendTile(
                 song: item.song,
                 coverUrl: backend.buildCoverProxyUrl(item.song, size: 80),
-                onTap: () {
-                  ref
-                      .read(audioPlayerServiceProvider)
-                      .playAll(songs, startIndex: index, origins: origins);
-                  context.push('/player');
-                },
+                onTap: () => _playRecommendations(items, index),
               ),
             );
           },

@@ -383,8 +383,9 @@ class _CacheTileState extends State<_CacheTile> {
         }
       });
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() => _cacheSize = S.of(context).settingsCacheUnknown);
+      }
     }
   }
 

@@ -430,6 +430,15 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     await _enqueuePlayerOperation(_player.pause);
   }
 
+  Future<void> disposePlaybackStreams() async {
+    if (!_currentOriginController.isClosed) {
+      await _currentOriginController.close();
+    }
+    if (!_playbackFailureController.isClosed) {
+      await _playbackFailureController.close();
+    }
+  }
+
   @override
   Future<void> stop() async {
     _loadRequests.invalidate();

@@ -157,5 +157,6 @@ class AudioPlayerService {
 
   Future<void> dispose() async {
     await _handler.stop();
+    await _handler.disposePlaybackStreams();
   }
 }
