@@ -165,9 +165,6 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                 }
                 final item = visible[index];
                 final origin = _originFor(item, state.sessionId);
-                final coverUrl = ref
-                    .read(backendClientProvider)
-                    .buildCoverProxyUrl(item.song, size: 120);
                 return SongContextMenu(
                   song: item.song,
                   playbackOrigin: origin,
@@ -183,7 +180,11 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                   onPlay: () => _playAll(visible, index),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                    leading: CoverArt(url: coverUrl, size: 52, borderRadius: 8),
+                    leading: ResolvedSongCoverArt(
+                      song: item.song,
+                      size: 52,
+                      borderRadius: 8,
+                    ),
                     title: Text(
                       item.song.title,
                       maxLines: 1,

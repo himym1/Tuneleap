@@ -14,11 +14,13 @@ class _FakeAudioPlayer extends AudioPlayer {
   final positionController = StreamController<Duration>.broadcast();
   final processingController = StreamController<ProcessingState>.broadcast();
   final loadedUrls = <String>[];
+  final loadedHeaders = <Map<String, String>?>[];
   Completer<Duration?>? nextUrlLoad;
   Completer<void>? nextStop;
   bool isPlaying = false;
   int stopCalls = 0;
   Object? setUrlError;
+  int setUrlFailuresRemaining = -1;
 
   @override
   bool get playing => isPlaying;
@@ -42,8 +44,10 @@ class _FakeAudioPlayer extends AudioPlayer {
     dynamic tag,
   }) async {
     loadedUrls.add(url);
+    loadedHeaders.add(headers);
     final error = setUrlError;
-    if (error != null) {
+    if (error != null && setUrlFailuresRemaining != 0) {
+      if (setUrlFailuresRemaining > 0) setUrlFailuresRemaining--;
       throw error;
     }
     final blocker = nextUrlLoad;
@@ -83,6 +87,15 @@ class _ScrobbleClient extends SubsonicClient {
       throw StateError('temporary failure');
     }
     scrobbledIds.add(id);
+  }
+}
+
+class _OnlineBackendClient extends BackendClient {
+  int playbackUrlCalls = 0;
+  @override
+  Future<String> getPlaybackUrl(Song song, {int? maxBitRate}) async {
+    playbackUrlCalls++;
+    return 'https://music.126.net/test-$playbackUrlCalls.mp3';
   }
 }
 
@@ -574,5 +587,37 @@ void main() {
     expect(failures.single.songStorageKey, song.storageKey);
     expect(failures.single.retryable, isFalse);
     expect(failures.single.toString(), isNot(contains('missing')));
+  });
+
+  test('online playback retries a fresh URL with compatible headers', () async {
+    final player = _FakeAudioPlayer()
+      ..setUrlError = StateError('stale URL')
+      ..setUrlFailuresRemaining = 1;
+    final backend = _OnlineBackendClient();
+    final handler = NavidromeAudioHandler(
+      SubsonicClient(),
+      backend,
+      player: player,
+    );
+    const song = Song(
+      id: 'online',
+      title: 'Online',
+      artist: 'Artist',
+      artistId: 'artist',
+      album: 'Album',
+      albumId: 'album',
+      backend: SongBackend.solara,
+      onlineSource: 'netease',
+      urlId: 'source-id',
+    );
+
+    await handler.setQueue([song]);
+
+    expect(backend.playbackUrlCalls, 2);
+    expect(player.loadedUrls, hasLength(2));
+    expect(player.loadedHeaders, hasLength(2));
+    expect(player.loadedHeaders.last?['User-Agent'], isNotEmpty);
+    expect(player.loadedHeaders.last?['Referer'], 'https://music.163.com/');
+    expect(player.playing, isTrue);
   });
 }

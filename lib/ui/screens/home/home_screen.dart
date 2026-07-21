@@ -283,7 +283,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildRecommendationGrid(List<RecommendationItem> items) {
     if (items.isEmpty) return const SizedBox.shrink();
-    final backend = ref.read(backendClientProvider);
     final sessionId = ref.read(recommendationProvider).sessionId;
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -312,7 +311,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onPlay: () => _playRecommendations(items, index),
               child: _DailyRecommendTile(
                 song: item.song,
-                coverUrl: backend.buildCoverProxyUrl(item.song, size: 80),
                 onTap: () => _playRecommendations(items, index),
               ),
             );
@@ -325,14 +323,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 class _DailyRecommendTile extends StatefulWidget {
   final Song song;
-  final String coverUrl;
   final VoidCallback onTap;
 
-  const _DailyRecommendTile({
-    required this.song,
-    required this.coverUrl,
-    required this.onTap,
-  });
+  const _DailyRecommendTile({required this.song, required this.onTap});
 
   @override
   State<_DailyRecommendTile> createState() => _DailyRecommendTileState();
@@ -365,7 +358,11 @@ class _DailyRecommendTileState extends State<_DailyRecommendTile> {
               padding: const EdgeInsets.all(8),
               child: Row(
                 children: [
-                  CoverArt(url: widget.coverUrl, size: 44, borderRadius: 6),
+                  ResolvedSongCoverArt(
+                    song: widget.song,
+                    size: 44,
+                    borderRadius: 6,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
