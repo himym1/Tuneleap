@@ -200,6 +200,8 @@ class BackendClient {
         'types': 'lyric',
         'id': lyricId,
         'source': song.onlineSource ?? 'netease',
+        'name': song.title,
+        'artist': song.artist,
         's': _signature(),
       },
     );
@@ -220,6 +222,8 @@ class BackendClient {
         'types': 'lyric',
         'id': lyricId,
         'source': song.onlineSource ?? 'netease',
+        'name': song.title,
+        'artist': song.artist,
         's': _signature(),
       },
     );

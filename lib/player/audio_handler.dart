@@ -419,9 +419,16 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       await _loadAndPlay();
       return;
     }
+    final request = _loadRequests.current;
+    final origin = currentPlaybackOrigin;
     await _enqueuePlayerOperation(() async {
-      _loadedRequest = _loadRequests.current;
-      await _player.play();
+      if (!_loadRequests.isCurrent(request) ||
+          currentSong?.storageKey != song.storageKey ||
+          _loadedSongKey != songKey) {
+        return;
+      }
+      _loadedRequest = request;
+      _startPlayback(song, request, origin);
     });
   }
 
@@ -585,31 +592,48 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
         _persistHistory();
         _publishCurrentOrigin();
 
-        if (autoplay) await _player.play();
-      } catch (e) {
-        if (!_loadRequests.isCurrent(request)) return;
-        _loadedSongKey = null;
-        _loadedRequest = null;
-        debugPrint('Failed to play ${song.storageKey}: ${e.runtimeType}');
-        playbackState.add(
-          playbackState.value.copyWith(
-            processingState: AudioProcessingState.idle,
-            playing: false,
-          ),
-        );
-        final failure = _classifyPlaybackFailure(
-          error: e,
-          song: song,
-          request: request,
-          origin: origin,
-        );
-        if (_loadRequests.isCurrent(request) &&
-            currentSong?.storageKey == song.storageKey &&
-            !_playbackFailureController.isClosed) {
-          _playbackFailureController.add(failure);
-        }
+        if (autoplay) _startPlayback(song, request, origin);
+      } catch (error) {
+        _handlePlaybackError(error, song, request, origin);
       }
     });
+  }
+
+  void _startPlayback(Song song, int request, PlaybackOrigin? origin) {
+    unawaited(
+      _player.play().catchError((Object error) {
+        _handlePlaybackError(error, song, request, origin);
+      }),
+    );
+  }
+
+  void _handlePlaybackError(
+    Object error,
+    Song song,
+    int request,
+    PlaybackOrigin? origin,
+  ) {
+    if (!_loadRequests.isCurrent(request)) return;
+    _loadedSongKey = null;
+    _loadedRequest = null;
+    debugPrint('Failed to play ${song.storageKey}: ${error.runtimeType}');
+    playbackState.add(
+      playbackState.value.copyWith(
+        processingState: AudioProcessingState.idle,
+        playing: false,
+      ),
+    );
+    final failure = _classifyPlaybackFailure(
+      error: error,
+      song: song,
+      request: request,
+      origin: origin,
+    );
+    if (_loadRequests.isCurrent(request) &&
+        currentSong?.storageKey == song.storageKey &&
+        !_playbackFailureController.isClosed) {
+      _playbackFailureController.add(failure);
+    }
   }
 
   /// 广播播放状态到系统通知栏/锁屏

@@ -234,10 +234,36 @@ void main() {
       expect(captured.data['picUrl'], 'http://nas:10086/proxy?types=pic&id=1');
     });
 
+    test('getRawLyrics sends fallback song context', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          expect(options.queryParameters['types'], 'lyric');
+          expect(options.queryParameters['name'], '屋顶');
+          expect(options.queryParameters['artist'], '周杰伦');
+          return _jsonBody({'lyric': '[00:01]第一句'});
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(baseUrl: 'http://nas:10086');
+      const song = Song(
+        id: '5257138',
+        title: '屋顶',
+        album: '',
+        albumId: '',
+        artist: '周杰伦',
+        artistId: '',
+        backend: SongBackend.solara,
+        onlineSource: 'joox',
+      );
+
+      expect(await client.getRawLyrics(song), '[00:01]第一句');
+    });
+
     test('getLyrics parses lrc timestamps into LyricsList', () async {
       final dio = Dio()
         ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
           expect(options.queryParameters['types'], 'lyric');
+          expect(options.queryParameters['name'], '屋顶');
+          expect(options.queryParameters['artist'], '周杰伦');
           return _jsonBody({'lyric': '[00:01.23]第一句\n[00:02.50]第二句\n纯文本结尾'});
         });
       final client = BackendClient(dio: dio)

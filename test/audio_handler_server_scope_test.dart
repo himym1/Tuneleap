@@ -17,6 +17,9 @@ class _FakeAudioPlayer extends AudioPlayer {
   final loadedHeaders = <Map<String, String>?>[];
   Completer<Duration?>? nextUrlLoad;
   Completer<void>? nextStop;
+  Completer<void>? nextPlay;
+  Object? playError;
+  int playCalls = 0;
   bool isPlaying = false;
   int stopCalls = 0;
   Object? setUrlError;
@@ -56,10 +59,22 @@ class _FakeAudioPlayer extends AudioPlayer {
   }
 
   @override
-  Future<void> play() async => isPlaying = true;
+  Future<void> play() async {
+    playCalls++;
+    isPlaying = true;
+    await nextPlay?.future;
+    final error = playError;
+    playError = null;
+    if (error != null) throw error;
+  }
 
   @override
-  Future<void> pause() async => isPlaying = false;
+  Future<void> pause() async {
+    isPlaying = false;
+    final blocker = nextPlay;
+    nextPlay = null;
+    if (blocker != null && !blocker.isCompleted) blocker.complete();
+  }
 
   @override
   Future<void> stop() async {
@@ -619,5 +634,91 @@ void main() {
     expect(player.loadedHeaders.last?['User-Agent'], isNotEmpty);
     expect(player.loadedHeaders.last?['Referer'], 'https://music.163.com/');
     expect(player.playing, isTrue);
+  });
+
+  test('long-running play future does not block playback controls', () async {
+    const songA = Song(
+      id: 'a',
+      title: 'A',
+      artist: 'Artist',
+      artistId: 'artist',
+      album: 'Album',
+      albumId: 'album',
+    );
+    const songB = Song(
+      id: 'b',
+      title: 'B',
+      artist: 'Artist',
+      artistId: 'artist',
+      album: 'Album',
+      albumId: 'album',
+    );
+    final player = _FakeAudioPlayer()..nextPlay = Completer<void>();
+    final client = _ScrobbleClient()
+      ..configure(serverUrl: 'http://server', username: 'u', password: 'p');
+    final handler = NavidromeAudioHandler(
+      client,
+      BackendClient(),
+      player: player,
+    );
+
+    await handler
+        .setQueue([songA, songB])
+        .timeout(const Duration(milliseconds: 100));
+    await handler.pause().timeout(const Duration(milliseconds: 100));
+
+    player.nextPlay = Completer<void>();
+    await handler.play().timeout(const Duration(milliseconds: 100));
+    await handler.pause().timeout(const Duration(milliseconds: 100));
+
+    player.nextPlay = Completer<void>();
+    await handler.skipToNext().timeout(const Duration(milliseconds: 100));
+    expect(handler.currentSong, songB);
+    await handler.pause().timeout(const Duration(milliseconds: 100));
+  });
+
+  test('stale play failure cannot clear the next loaded song', () async {
+    const songA = Song(
+      id: 'a',
+      title: 'A',
+      artist: 'Artist',
+      artistId: 'artist',
+      album: 'Album',
+      albumId: 'album',
+    );
+    const songB = Song(
+      id: 'b',
+      title: 'B',
+      artist: 'Artist',
+      artistId: 'artist',
+      album: 'Album',
+      albumId: 'album',
+    );
+    final player = _FakeAudioPlayer();
+    final client = _ScrobbleClient()
+      ..configure(serverUrl: 'http://server', username: 'u', password: 'p');
+    final handler = NavidromeAudioHandler(
+      client,
+      BackendClient(),
+      player: player,
+    );
+    await handler.setQueue([songA, songB]);
+    await handler.pause();
+    player
+      ..nextPlay = Completer<void>()
+      ..playError = StateError('stale play failure');
+
+    final resume = handler.play();
+    while (player.playCalls < 2) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    final next = handler.skipToNext();
+    await Future.wait([resume, next]);
+
+    expect(handler.currentSong, songB);
+    expect(player.loadedUrls, hasLength(2));
+    await handler.pause();
+    await handler.play();
+    expect(player.loadedUrls, hasLength(2));
   });
 }
