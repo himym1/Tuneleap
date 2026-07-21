@@ -6,6 +6,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:navidrome_player/api/backend_client.dart';
+import 'package:navidrome_player/api/media_request_headers.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/api/song_media_resolver.dart';
 import 'package:navidrome_player/api/models/models.dart';
@@ -550,7 +551,26 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
             maxBitRate: _maxBitRate,
           );
           if (!_loadRequests.isCurrent(request)) return;
-          await _player.setUrl(url);
+          try {
+            await _player.setUrl(
+              url,
+              headers: mediaRequestHeaders(url, kind: MediaRequestKind.audio),
+            );
+          } catch (_) {
+            if (!song.isOnline || !_loadRequests.isCurrent(request)) rethrow;
+            final retryUrl = await _resolver.playbackUrl(
+              song,
+              maxBitRate: _maxBitRate,
+            );
+            if (!_loadRequests.isCurrent(request)) return;
+            await _player.setUrl(
+              retryUrl,
+              headers: mediaRequestHeaders(
+                retryUrl,
+                kind: MediaRequestKind.audio,
+              ),
+            );
+          }
         }
         if (!_loadRequests.isCurrent(request)) return;
 
