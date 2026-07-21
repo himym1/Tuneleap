@@ -514,6 +514,7 @@
     "updateDownload": "下载更新",
     "updateLatest": "已是最新版本",
     "updateFailed": "检查更新失败，请稍后重试",
+    "updateMacInstallHint": "DMG 已打开，请将音跃拖入“应用程序”文件夹完成更新。",
 
     "contextMenuDelete": "删除歌曲",
     "contextMenuDeleteTitle": "确认删除",

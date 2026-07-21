@@ -19,6 +19,7 @@ class SettingsScreen extends ConsumerWidget {
     final config = ref.watch(serverConfigProvider);
     final themeMode = ref.watch(themeModeProvider);
     final appVersion = ref.watch(appVersionProvider);
+    final appBuild = ref.watch(appBuildProvider);
     final padding = AppBreakpoints.isMobile(MediaQuery.of(context).size.width)
         ? 16.0
         : 32.0;
@@ -193,7 +194,11 @@ class SettingsScreen extends ConsumerWidget {
                             ),
                       ),
                       const Divider(height: 1, indent: 54),
-                      _UpdateTile(currentVersion: appVersion),
+                      _UpdateTile(
+                        currentVersion: appVersion,
+                        currentBuild: appBuild,
+                        apiKey: config.backendApiKey,
+                      ),
                     ],
                   ),
 
@@ -458,7 +463,14 @@ class _CacheTileState extends State<_CacheTile> {
 
 class _UpdateTile extends StatefulWidget {
   final String currentVersion;
-  const _UpdateTile({required this.currentVersion});
+  final int currentBuild;
+  final String apiKey;
+
+  const _UpdateTile({
+    required this.currentVersion,
+    required this.currentBuild,
+    required this.apiKey,
+  });
 
   @override
   State<_UpdateTile> createState() => _UpdateTileState();
@@ -473,7 +485,7 @@ class _UpdateTileState extends State<_UpdateTile> {
       _checking = true;
       _result = null;
     });
-    final info = await checkForUpdate();
+    final info = await checkForUpdate(apiKey: widget.apiKey);
     if (!mounted) return;
     if (info == null) {
       setState(() {
@@ -482,12 +494,17 @@ class _UpdateTileState extends State<_UpdateTile> {
       });
       return;
     }
-    final hasNew = isNewerVersion(info.version, widget.currentVersion);
+    final hasNew = isNewerVersion(
+      info.version,
+      widget.currentVersion,
+      remoteBuild: info.build,
+      localBuild: widget.currentBuild,
+    );
     setState(() {
       _checking = false;
       _result = hasNew ? info.version : 'latest';
     });
-    if (hasNew) UpdateDialog.show(context, info);
+    if (hasNew) UpdateDialog.show(context, info, apiKey: widget.apiKey);
   }
 
   @override

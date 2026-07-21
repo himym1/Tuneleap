@@ -917,6 +917,9 @@ class SZh extends S {
   String get updateFailed => '检查更新失败，请稍后重试';
 
   @override
+  String get updateMacInstallHint => 'DMG 已打开，请将音跃拖入“应用程序”文件夹完成更新。';
+
+  @override
   String get contextMenuDeleteTitle => '确认删除';
 
   @override

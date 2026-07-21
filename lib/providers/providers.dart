@@ -24,6 +24,10 @@ final appVersionProvider = Provider<String>(
   (ref) => throw UnimplementedError('Must be overridden in ProviderScope'),
 );
 
+final appBuildProvider = Provider<int>(
+  (ref) => throw UnimplementedError('Must be overridden in ProviderScope'),
+);
+
 // ============================================================
 // 全局主题色 — 跟随当前播放歌曲的封面色
 // ============================================================

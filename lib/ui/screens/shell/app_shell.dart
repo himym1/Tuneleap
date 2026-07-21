@@ -56,11 +56,20 @@ class _AppShellState extends ConsumerState<AppShell> {
   Future<void> _checkUpdateOnStartup() async {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
-    final info = await checkForUpdate();
+    final config = ref.read(serverConfigProvider);
+    final info = await checkForUpdate(apiKey: config.backendApiKey);
     if (info == null || !mounted) return;
     final currentVersion = ref.read(appVersionProvider);
-    if (!isNewerVersion(info.version, currentVersion)) return;
-    UpdateDialog.show(context, info);
+    final currentBuild = ref.read(appBuildProvider);
+    if (!isNewerVersion(
+      info.version,
+      currentVersion,
+      remoteBuild: info.build,
+      localBuild: currentBuild,
+    )) {
+      return;
+    }
+    UpdateDialog.show(context, info, apiKey: config.backendApiKey);
   }
 
   @override

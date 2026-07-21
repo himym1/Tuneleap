@@ -375,6 +375,7 @@
     "updateDownload": "Download Update",
     "updateLatest": "You're up to date",
     "updateFailed": "Update check failed, please try again",
+    "updateMacInstallHint": "The DMG is open. Drag YinYue to Applications to finish updating.",
 
     "contextMenuDelete": "Delete Song",
     "contextMenuDeleteTitle": "Confirm Delete",

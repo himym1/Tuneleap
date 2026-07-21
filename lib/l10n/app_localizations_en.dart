@@ -929,6 +929,10 @@ class SEn extends S {
   String get updateFailed => 'Update check failed, please try again';
 
   @override
+  String get updateMacInstallHint =>
+      'The DMG is open. Drag YinYue to Applications to finish updating.';
+
+  @override
   String get contextMenuDeleteTitle => 'Confirm Delete';
 
   @override
