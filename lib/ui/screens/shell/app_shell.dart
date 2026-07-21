@@ -44,9 +44,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     try {
       final resolver = ref.read(songMediaResolverProvider);
       final coverUrl = await resolver.coverArtUrl(song, size: 300);
-      if (!mounted ||
-          !_accentRequests.isCurrent(request) ||
-          coverUrl.isEmpty) {
+      if (!mounted || !_accentRequests.isCurrent(request) || coverUrl.isEmpty) {
         return;
       }
       final color = await ref.read(coverColorProvider(coverUrl).future);
@@ -257,7 +255,9 @@ class _AppShellState extends ConsumerState<AppShell> {
                   )!.withValues(alpha: 0.95),
                   border: Border(
                     top: BorderSide(
-                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.25),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withValues(alpha: 0.25),
                       width: 0.5,
                     ),
                   ),
@@ -298,31 +298,31 @@ class _AppShellState extends ConsumerState<AppShell> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              selected ? item.activeIcon : item.icon,
-              size: 20,
-              color: selected
-                  ? context.colors.primary
-                  : context.colors.onSurfaceVariant,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  selected ? item.activeIcon : item.icon,
+                  size: 20,
+                  color: selected
+                      ? context.colors.primary
+                      : context.colors.onSurfaceVariant,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item.labelOf(context),
+                  style: Theme.of(context).textTheme.chipLabel.copyWith(
+                    fontSize: 10,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    color: selected
+                        ? context.colors.primary
+                        : context.colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              item.labelOf(context),
-              style: Theme.of(context).textTheme.chipLabel.copyWith(
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected
-                    ? context.colors.primary
-                    : context.colors.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
         ),
       ),
     );
@@ -338,7 +338,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           final focus = FocusManager.instance.primaryFocus;
           if (focus != null) {
             final ctx = focus.context;
-            if (ctx != null && ctx.findAncestorWidgetOfExactType<EditableText>() != null) {
+            if (ctx != null &&
+                ctx.findAncestorWidgetOfExactType<EditableText>() != null) {
               return;
             }
           }
@@ -384,9 +385,9 @@ class _AppShellState extends ConsumerState<AppShell> {
             ),
           ),
           bottomNavigationBar: const MiniPlayer(
-                  key: ValueKey('desktop-mini'),
-                  alwaysVisible: true,
-                ),
+            key: ValueKey('desktop-mini'),
+            alwaysVisible: true,
+          ),
         ),
       ),
     );
@@ -397,7 +398,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     final accentColor = ref.watch(globalAccentColorProvider);
     final baseColor = context.colors.surfaceContainer;
     // 将 accent color 以 8% 的比例混入侧边栏背景
-    final sidebarColor = Color.lerp(baseColor, accentColor, 0.08)!.withValues(alpha: 0.92);
+    final sidebarColor = Color.lerp(
+      baseColor,
+      accentColor,
+      0.08,
+    )!.withValues(alpha: 0.92);
 
     return ClipRect(
       child: BackdropFilter(
@@ -409,7 +414,9 @@ class _AppShellState extends ConsumerState<AppShell> {
             color: sidebarColor,
             border: Border(
               right: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.3),
                 width: 0.5,
               ),
             ),
@@ -419,7 +426,9 @@ class _AppShellState extends ConsumerState<AppShell> {
               // 可滚动的导航区域
               Expanded(
                 child: ScrollConfiguration(
-                  behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                  behavior: ScrollConfiguration.of(
+                    context,
+                  ).copyWith(scrollbars: false),
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,7 +689,6 @@ class _RefreshButtonState extends ConsumerState<_RefreshButton>
     if (!mounted) return;
     // 刷新所有缓存 provider
     ref.invalidate(newestAlbumsProvider);
-    ref.invalidate(dailySongsProvider);
     ref.invalidate(recentAlbumsProvider);
     ref.invalidate(artistsProvider);
     ref.invalidate(genresProvider);

@@ -4,6 +4,7 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/player/playback_origin.dart';
 
 /// 通用歌曲右键/长按上下文菜单
 ///
@@ -19,6 +20,8 @@ class SongContextMenu extends ConsumerWidget {
   final Widget child;
   final VoidCallback? onPlay;
   final VoidCallback? onDeleted;
+  final PlaybackOrigin? playbackOrigin;
+  final VoidCallback? onImported;
 
   const SongContextMenu({
     super.key,
@@ -26,6 +29,8 @@ class SongContextMenu extends ConsumerWidget {
     required this.child,
     this.onPlay,
     this.onDeleted,
+    this.playbackOrigin,
+    this.onImported,
   });
 
   @override
@@ -140,15 +145,15 @@ class SongContextMenu extends ConsumerWidget {
         if (onPlay != null) {
           onPlay!();
         } else {
-          await playerService.playSong(song);
+          await playerService.playSong(song, origin: playbackOrigin);
         }
         break;
       case 'play_next':
-        playerService.playNext(song);
+        playerService.playNext(song, origin: playbackOrigin);
         messenger.showSnackBar(_snackBar(l10n.contextMenuAddedNext));
         break;
       case 'add_queue':
-        playerService.addToQueue(song);
+        playerService.addToQueue(song, origin: playbackOrigin);
         messenger.showSnackBar(_snackBar(l10n.contextMenuAddedQueue));
         break;
       case 'add_playlist':
@@ -167,16 +172,25 @@ class SongContextMenu extends ConsumerWidget {
         try {
           final localResult = await ref
               .read(subsonicClientProvider)
-              .search3(song.title, songCount: 10, albumCount: 0, artistCount: 0);
-          final duplicate = localResult.songs.any((s) =>
-              s.title.toLowerCase() == song.title.toLowerCase() &&
-              s.artist.toLowerCase() == song.artist.toLowerCase());
+              .search3(
+                song.title,
+                songCount: 10,
+                albumCount: 0,
+                artistCount: 0,
+              );
+          final duplicate = localResult.songs.any(
+            (s) =>
+                s.title.toLowerCase() == song.title.toLowerCase() &&
+                s.artist.toLowerCase() == song.artist.toLowerCase(),
+          );
           if (duplicate && context.mounted) {
             final proceed = await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
                 title: Text(l10n.importDuplicateTitle),
-                content: Text(l10n.importDuplicateMessage(song.title, song.artist)),
+                content: Text(
+                  l10n.importDuplicateMessage(song.title, song.artist),
+                ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, false),
@@ -200,11 +214,14 @@ class SongContextMenu extends ConsumerWidget {
             content: Row(
               children: [
                 const SizedBox(
-                  width: 16, height: 16,
+                  width: 16,
+                  height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 const SizedBox(width: 12),
-                Expanded(child: Text('${l10n.contextMenuQueueingNavidrome}...')),
+                Expanded(
+                  child: Text('${l10n.contextMenuQueueingNavidrome}...'),
+                ),
               ],
             ),
             behavior: SnackBarBehavior.floating,
@@ -213,23 +230,28 @@ class SongContextMenu extends ConsumerWidget {
         );
         try {
           final result = await importService.importOnlineSong(song);
+          onImported?.call();
           // Trigger Navidrome library scan after successful import
           try {
             await ref.read(subsonicClientProvider).startScan();
           } catch (_) {}
           if (!context.mounted) return;
           messenger.clearSnackBars();
-          messenger.showSnackBar(_snackBar(
-            result.message == null || result.message!.isEmpty
-                ? l10n.contextMenuQueuedNavidrome
-                : '${l10n.contextMenuQueuedNavidrome}: ${result.message}',
-          ));
+          messenger.showSnackBar(
+            _snackBar(
+              result.message == null || result.message!.isEmpty
+                  ? l10n.contextMenuQueuedNavidrome
+                  : '${l10n.contextMenuQueuedNavidrome}: ${result.message}',
+            ),
+          );
         } catch (error) {
           if (!context.mounted) return;
           messenger.clearSnackBars();
-          messenger.showSnackBar(_snackBar(
-            '${l10n.contextMenuImportNavidromeFailed}: ${_formatImportError(error)}',
-          ));
+          messenger.showSnackBar(
+            _snackBar(
+              '${l10n.contextMenuImportNavidromeFailed}: ${_formatImportError(error)}',
+            ),
+          );
         }
         break;
       case 'delete':
@@ -238,7 +260,9 @@ class SongContextMenu extends ConsumerWidget {
           context: context,
           builder: (ctx) => AlertDialog(
             title: Text(l10n.contextMenuDeleteTitle),
-            content: Text(l10n.contextMenuDeleteConfirm(song.title, song.artist)),
+            content: Text(
+              l10n.contextMenuDeleteConfirm(song.title, song.artist),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -265,7 +289,6 @@ class SongContextMenu extends ConsumerWidget {
           if (idx >= 0) playerService.removeFromQueue(idx);
           // 刷新所有歌曲列表数据源
           ref.invalidate(newestAlbumsProvider);
-          ref.invalidate(dailySongsProvider);
           ref.invalidate(recentAlbumsProvider);
           ref.read(libraryProvider.notifier).refresh();
           onDeleted?.call();
@@ -312,17 +335,13 @@ class SongContextMenu extends ConsumerWidget {
       height: 40,
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 18,
-            color: color,
-          ),
+          Icon(icon, size: 18, color: color),
           const SizedBox(width: 12),
           Text(
             label,
-            style: Theme.of(context).textTheme.chipLabel.copyWith(
-              color: textColor,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.chipLabel.copyWith(color: textColor),
           ),
         ],
       ),

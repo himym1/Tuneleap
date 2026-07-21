@@ -19,7 +19,9 @@ class SettingsScreen extends ConsumerWidget {
     final config = ref.watch(serverConfigProvider);
     final themeMode = ref.watch(themeModeProvider);
     final appVersion = ref.watch(appVersionProvider);
-    final padding = AppBreakpoints.isMobile(MediaQuery.of(context).size.width) ? 16.0 : 32.0;
+    final padding = AppBreakpoints.isMobile(MediaQuery.of(context).size.width)
+        ? 16.0
+        : 32.0;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -56,39 +58,109 @@ class SettingsScreen extends ConsumerWidget {
 
                   const SizedBox(height: 24),
 
+                  _SectionLabel(S.of(context).recommendationsTitle),
+                  _SettingsCard(
+                    children: [
+                      _SettingsTile(
+                        icon: Icons.tune,
+                        title: S.of(context).settingsResetRecommendations,
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () async {
+                          final l10n = S.of(context);
+                          final ok = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: Text(l10n.settingsResetRecommendations),
+                              content: Text(
+                                l10n.settingsResetRecommendationsConfirm,
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: Text(l10n.commonCancel),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: Text(l10n.commonConfirm),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (ok != true) return;
+                          await ref
+                              .read(recommendationProvider.notifier)
+                              .reset();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.settingsResetRecommendationsDone,
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
                   // ── 外观 ──
                   _SectionLabel(S.of(context).settingsTheme),
                   _SettingsCard(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: Row(
                           children: [
-                            Icon(Icons.palette_outlined, size: 22,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            Icon(
+                              Icons.palette_outlined,
+                              size: 22,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: SegmentedButton<ThemeMode>(
                                 segments: [
                                   ButtonSegment(
                                     value: ThemeMode.system,
-                                    label: Text(S.of(context).settingsThemeSystem,
-                                        style: Theme.of(context).textTheme.segmentLabel),
+                                    label: Text(
+                                      S.of(context).settingsThemeSystem,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.segmentLabel,
+                                    ),
                                   ),
                                   ButtonSegment(
                                     value: ThemeMode.light,
-                                    label: Text(S.of(context).settingsThemeLight,
-                                        style: Theme.of(context).textTheme.segmentLabel),
+                                    label: Text(
+                                      S.of(context).settingsThemeLight,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.segmentLabel,
+                                    ),
                                   ),
                                   ButtonSegment(
                                     value: ThemeMode.dark,
-                                    label: Text(S.of(context).settingsThemeDark,
-                                        style: Theme.of(context).textTheme.segmentLabel),
+                                    label: Text(
+                                      S.of(context).settingsThemeDark,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.segmentLabel,
+                                    ),
                                   ),
                                 ],
                                 selected: {themeMode},
                                 onSelectionChanged: (value) {
-                                  ref.read(themeModeProvider.notifier).setMode(value.first);
+                                  ref
+                                      .read(themeModeProvider.notifier)
+                                      .setMode(value.first);
                                 },
                               ),
                             ),
@@ -113,8 +185,12 @@ class SettingsScreen extends ConsumerWidget {
                       _SettingsTile(
                         icon: Icons.info_outline,
                         title: '${S.of(context).appName} v$appVersion',
-                        subtitle: S.of(context).settingsAboutText(
-                            S.of(context).appName, appVersion),
+                        subtitle: S
+                            .of(context)
+                            .settingsAboutText(
+                              S.of(context).appName,
+                              appVersion,
+                            ),
                       ),
                       const Divider(height: 1, indent: 54),
                       _UpdateTile(currentVersion: appVersion),
@@ -127,7 +203,11 @@ class SettingsScreen extends ConsumerWidget {
                   Center(
                     child: TextButton.icon(
                       onPressed: () => _confirmLogout(context, ref),
-                      icon: Icon(Icons.logout, size: 18, color: context.colors.error),
+                      icon: Icon(
+                        Icons.logout,
+                        size: 18,
+                        color: context.colors.error,
+                      ),
                       label: Text(
                         S.of(context).settingsLogout,
                         style: TextStyle(color: context.colors.error),
@@ -203,13 +283,12 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: children,
-      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: children),
     );
   }
 }
@@ -234,14 +313,19 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, size: 22,
-          color: Theme.of(context).colorScheme.onSurfaceVariant),
+      leading: Icon(
+        icon,
+        size: 22,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
       title: Text(title, style: Theme.of(context).textTheme.bodyMedium),
       subtitle: subtitle != null
-          ? Text(subtitle!,
+          ? Text(
+              subtitle!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ))
+              ),
+            )
           : null,
       trailing: trailing,
       onTap: onTap,
@@ -277,7 +361,10 @@ class _CacheTileState extends State<_CacheTile> {
     try {
       final dir = await getTemporaryDirectory();
       int total = 0;
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity in dir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         if (entity is File) total += await entity.length();
       }
       if (!mounted) return;
@@ -286,13 +373,18 @@ class _CacheTileState extends State<_CacheTile> {
         if (total < 1024 * 1024) {
           _cacheSize = s.commonSizeKb((total / 1024).toStringAsFixed(1));
         } else if (total < 1024 * 1024 * 1024) {
-          _cacheSize = s.commonSizeMb((total / (1024 * 1024)).toStringAsFixed(1));
+          _cacheSize = s.commonSizeMb(
+            (total / (1024 * 1024)).toStringAsFixed(1),
+          );
         } else {
-          _cacheSize = s.commonSizeGb((total / (1024 * 1024 * 1024)).toStringAsFixed(1));
+          _cacheSize = s.commonSizeGb(
+            (total / (1024 * 1024 * 1024)).toStringAsFixed(1),
+          );
         }
       });
     } catch (_) {
-      if (mounted) setState(() => _cacheSize = S.of(context).settingsCacheUnknown);
+      if (mounted)
+        setState(() => _cacheSize = S.of(context).settingsCacheUnknown);
     }
   }
 
@@ -314,15 +406,19 @@ class _CacheTileState extends State<_CacheTile> {
       await _calculateCacheSize();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).settingsCacheCleared),
-              duration: const Duration(seconds: 1)),
+          SnackBar(
+            content: Text(S.of(context).settingsCacheCleared),
+            duration: const Duration(seconds: 1),
+          ),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).settingsCacheClearFailed),
-              duration: const Duration(seconds: 1)),
+          SnackBar(
+            content: Text(S.of(context).settingsCacheClearFailed),
+            duration: const Duration(seconds: 1),
+          ),
         );
       }
     } finally {
@@ -339,9 +435,14 @@ class _CacheTileState extends State<_CacheTile> {
           title: _cacheSize,
           subtitle: S.of(context).settingsCacheUsed,
           trailing: _clearing
-              ? SizedBox(width: 20, height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2,
-                      color: context.colors.primary))
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: context.colors.primary,
+                  ),
+                )
               : TextButton(
                   onPressed: _clearCache,
                   child: Text(S.of(context).settingsCacheClear),
@@ -367,15 +468,24 @@ class _UpdateTileState extends State<_UpdateTile> {
   String? _result;
 
   Future<void> _check() async {
-    setState(() { _checking = true; _result = null; });
+    setState(() {
+      _checking = true;
+      _result = null;
+    });
     final info = await checkForUpdate();
     if (!mounted) return;
     if (info == null) {
-      setState(() { _checking = false; _result = 'failed'; });
+      setState(() {
+        _checking = false;
+        _result = 'failed';
+      });
       return;
     }
     final hasNew = isNewerVersion(info.version, widget.currentVersion);
-    setState(() { _checking = false; _result = hasNew ? info.version : 'latest'; });
+    setState(() {
+      _checking = false;
+      _result = hasNew ? info.version : 'latest';
+    });
     if (hasNew) UpdateDialog.show(context, info);
   }
 
@@ -394,8 +504,14 @@ class _UpdateTileState extends State<_UpdateTile> {
       title: s.updateCheckUpdate,
       subtitle: _result != null ? subtitle : null,
       trailing: _checking
-          ? SizedBox(width: 20, height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.primary))
+          ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: context.colors.primary,
+              ),
+            )
           : IconButton(
               icon: const Icon(Icons.refresh, size: 20),
               onPressed: _check,

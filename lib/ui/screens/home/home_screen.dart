@@ -9,6 +9,7 @@ import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/player/playback_origin.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -18,14 +19,22 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(recommendationProvider.notifier).ensureLoaded();
+      ref.read(recommendationPlaybackTrackerProvider);
+    });
+  }
+
   Future<void> _refresh() async {
     ref.invalidate(newestAlbumsProvider);
-    ref.invalidate(dailySongsProvider);
     ref.invalidate(recentAlbumsProvider);
     await Future.wait([
       ref.read(newestAlbumsProvider.future),
-      ref.read(dailySongsProvider.future),
       ref.read(recentAlbumsProvider.future),
+      ref.read(recommendationProvider.notifier).refresh(),
     ]);
   }
 
@@ -40,16 +49,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final newestAlbums = ref.watch(newestAlbumsProvider);
-    final dailySongs = ref.watch(dailySongsProvider);
+    final recommendations = ref.watch(recommendationProvider);
     final recentAlbums = ref.watch(recentAlbumsProvider);
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
-    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
+    final h = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: newestAlbums.when(
-        loading: () =>
-            Center(child: const CircularProgressIndicator()),
+        loading: () => Center(child: const CircularProgressIndicator()),
         error: (_, _) => ErrorState(
           message: S.of(context).commonError,
           onRetry: _refresh,
@@ -58,66 +68,76 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         data: (newest) => RefreshIndicator(
           onRefresh: _refresh,
           child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+            behavior: ScrollConfiguration.of(
+              context,
+            ).copyWith(scrollbars: false),
             child: ListView(
-            padding: EdgeInsets.fromLTRB(h, h, h, h),
-            children: [
-              // Greeting + Weather
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    _greeting(),
-                    style: Theme.of(context).textTheme.pageTitle.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
+              padding: EdgeInsets.fromLTRB(h, h, h, h),
+              children: [
+                // Greeting + Weather
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      _greeting(),
+                      style: Theme.of(context).textTheme.pageTitle.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
+                    const Spacer(),
+                    _buildWeather(),
+                  ],
+                ),
+                const SizedBox(height: 28),
+
+                // ── 最新专辑 ──
+                _buildSectionHeader(
+                  S.of(context).homeNewestAlbums,
+                  onMore: () => context.go('/library/albums'),
+                ),
+                const SizedBox(height: 12),
+                _buildAlbumRow(newest),
+                const SizedBox(height: 28),
+
+                // ── 推荐 ──
+                _buildSectionHeader(
+                  S.of(context).homeDailyRecommend,
+                  onMore: () => context.go('/recommendations'),
+                ),
+                const SizedBox(height: 12),
+                if (recommendations.initialLoading &&
+                    recommendations.visibleItems.isEmpty)
+                  const SizedBox(
+                    height: 80,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else
+                  _buildRecommendationGrid(
+                    recommendations.visibleItems.take(12).toList(),
                   ),
-                  const Spacer(),
-                  _buildWeather(),
-                ],
-              ),
-              const SizedBox(height: 28),
+                const SizedBox(height: 28),
 
-              // ── 最新专辑 ──
-              _buildSectionHeader(
-                S.of(context).homeNewestAlbums,
-                onMore: () => context.go('/library/albums'),
-              ),
-              const SizedBox(height: 12),
-              _buildAlbumRow(newest),
-              const SizedBox(height: 28),
-
-              // ── 每日推荐 ──
-              _buildSectionHeader(S.of(context).homeDailyRecommend),
-              const SizedBox(height: 12),
-              dailySongs.when(
-                data: (songs) => _buildDailyGrid(songs),
-                loading: () => const SizedBox.shrink(),
-                error: (_, _) => const SizedBox.shrink(),
-              ),
-              const SizedBox(height: 28),
-
-              // ── 最近播放 ──
-              recentAlbums.when(
-                data: (recent) => recent.isNotEmpty
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionHeader(
-                            S.of(context).homeRecentlyPlayed,
-                            onMore: () => context.go('/scrobble'),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildAlbumRow(recent),
-                        ],
-                      )
-                    : const SizedBox.shrink(),
-                loading: () => const SizedBox.shrink(),
-                error: (_, _) => const SizedBox.shrink(),
-              ),
-            ],
-          ),
+                // ── 最近播放 ──
+                recentAlbums.when(
+                  data: (recent) => recent.isNotEmpty
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader(
+                              S.of(context).homeRecentlyPlayed,
+                              onMore: () => context.go('/scrobble'),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildAlbumRow(recent),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -170,9 +190,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onPressed: onMore,
             child: Text(
               S.of(context).homeViewMore,
-              style: Theme.of(context).textTheme.chipLabel.copyWith(
-                color: context.colors.primary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.chipLabel.copyWith(color: context.colors.primary),
             ),
           ),
       ],
@@ -196,38 +216,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               button: true,
               label: album.name,
               child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: () => context.push('/album/${album.id}'),
-              child: SizedBox(
-                width: 130,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CoverArt(
-                      url: client.coverArtUrl(album.coverArt, size: 300),
-                      size: 130,
-                      borderRadius: 10,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      album.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.songSubtitle,
-                    ),
-                    if (album.artist != null)
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => context.push('/album/${album.id}'),
+                child: SizedBox(
+                  width: 130,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CoverArt(
+                        url: client.coverArtUrl(album.coverArt, size: 300),
+                        size: 130,
+                        borderRadius: 10,
+                      ),
+                      const SizedBox(height: 6),
                       Text(
-                        album.artist!,
+                        album.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                        style: Theme.of(context).textTheme.songSubtitle,
                       ),
-                  ],
+                      if (album.artist != null)
+                        Text(
+                          album.artist!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.songSubtitle
+                              .copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             ),
           );
         },
@@ -235,9 +258,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildDailyGrid(List<Song> songs) {
-    if (songs.isEmpty) return const SizedBox.shrink();
-    final client = ref.read(subsonicClientProvider);
+  Widget _buildRecommendationGrid(List<RecommendationItem> items) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    final backend = ref.read(backendClientProvider);
+    final sessionId = ref.read(recommendationProvider).sessionId ?? '';
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = (constraints.maxWidth / 300).floor().clamp(1, 3);
@@ -250,24 +274,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisSpacing: 12,
             mainAxisSpacing: 8,
           ),
-          itemCount: songs.length,
+          itemCount: items.length,
           itemBuilder: (context, index) {
-            final song = songs[index];
+            final item = items[index];
+            final origin = sessionId.isEmpty
+                ? null
+                : PlaybackOrigin(
+                    sessionId: sessionId,
+                    candidateId: item.candidateId,
+                    impressionId: 'home-${item.candidateId}-$index',
+                  );
+            final songs = items.map((e) => e.song).toList();
+            final origins = [
+              for (final entry in items)
+                sessionId.isEmpty
+                    ? null
+                    : PlaybackOrigin(
+                        sessionId: sessionId,
+                        candidateId: entry.candidateId,
+                        impressionId: 'home-${entry.candidateId}',
+                      ),
+            ];
             return SongContextMenu(
-              song: song,
+              song: item.song,
+              playbackOrigin: origin,
               onPlay: () {
                 ref
                     .read(audioPlayerServiceProvider)
-                    .playAll(songs, startIndex: index);
+                    .playAll(songs, startIndex: index, origins: origins);
                 context.push('/player');
               },
               child: _DailyRecommendTile(
-                song: song,
-                coverUrl: client.coverArtUrl(song.coverArt, size: 80),
+                song: item.song,
+                coverUrl: backend.buildCoverProxyUrl(item.song, size: 80),
                 onTap: () {
                   ref
                       .read(audioPlayerServiceProvider)
-                      .playAll(songs, startIndex: index);
+                      .playAll(songs, startIndex: index, origins: origins);
                   context.push('/player');
                 },
               ),
@@ -304,62 +347,65 @@ class _DailyRecommendTileState extends State<_DailyRecommendTile> {
       onExit: (_) => setState(() => _hovered = false),
       child: Material(
         color: _hovered
-            ? Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.8)
-            : Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.4),
+            ? Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.8)
+            : Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(8),
         child: Semantics(
           button: true,
           label: widget.song.title,
           child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: widget.onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                CoverArt(
-                  url: widget.coverUrl,
-                  size: 44,
-                  borderRadius: 6,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.song.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.chipLabel.copyWith(
-                          fontWeight: FontWeight.w500,
+            borderRadius: BorderRadius.circular(8),
+            onTap: widget.onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  CoverArt(url: widget.coverUrl, size: 44, borderRadius: 6),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.chipLabel.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      Text(
-                        widget.song.artist,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        Text(
+                          widget.song.artist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.songSubtitle
+                              .copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                AnimatedOpacity(
-                  opacity: _hovered ? 1.0 : 0.3,
-                  duration: const Duration(milliseconds: 150),
-                  child: Icon(
-                    Icons.play_circle_outline,
-                    size: 24,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  AnimatedOpacity(
+                    opacity: _hovered ? 1.0 : 0.3,
+                    duration: const Duration(milliseconds: 150),
+                    child: Icon(
+                      Icons.play_circle_outline,
+                      size: 24,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
         ),
       ),
     );

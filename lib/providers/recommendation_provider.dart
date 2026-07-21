@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/navidrome_import_provider.dart';
 import 'package:navidrome_player/services/recommendation_playback_tracker.dart';
-import 'package:navidrome_player/player/playback_origin.dart';
 
 import 'audio_providers.dart';
 import 'server_config_provider.dart';

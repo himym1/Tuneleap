@@ -760,7 +760,7 @@ class SEn extends S {
   String get homeNewestAlbums => 'Latest Albums';
 
   @override
-  String get homeDailyRecommend => 'Daily Mix';
+  String get homeDailyRecommend => 'For You';
 
   @override
   String get homeRecentlyPlayed => 'Recently Played';
@@ -936,4 +936,43 @@ class SEn extends S {
 
   @override
   String get contextMenuDeleteFailed => 'Delete failed, please try again';
+
+  @override
+  String get recommendationsTitle => 'Recommendations';
+
+  @override
+  String get recommendationsEmpty => 'No recommendations yet';
+
+  @override
+  String get recommendationsBackendMissing =>
+      'Configure the backend to enable recommendations';
+
+  @override
+  String get recommendationsRetry => 'Retry';
+
+  @override
+  String get recommendationsDislike => 'Dislike';
+
+  @override
+  String get recommendationsImport => 'Import';
+
+  @override
+  String get recommendationsModeAi => 'AI';
+
+  @override
+  String get recommendationsModeFallback => 'Basic recommendation';
+
+  @override
+  String get recommendationsViewAll => 'View all';
+
+  @override
+  String get settingsResetRecommendations => 'Reset recommendation preferences';
+
+  @override
+  String get settingsResetRecommendationsConfirm =>
+      'Reset recommendation preferences? Songs, downloads, play history, and server settings are not affected.';
+
+  @override
+  String get settingsResetRecommendationsDone =>
+      'Recommendation preferences reset';
 }
