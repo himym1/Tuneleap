@@ -7,6 +7,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/navidrome_import_provider.dart';
+import 'package:navidrome_player/services/recommendation_playback_tracker.dart';
+import 'package:navidrome_player/player/playback_origin.dart';
 
 import 'audio_providers.dart';
 import 'server_config_provider.dart';
@@ -601,3 +603,26 @@ class RecommendationNotifier extends Notifier<RecommendationState> {
         '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
   }
 }
+
+final recommendationPlaybackTrackerProvider =
+    Provider<RecommendationPlaybackTracker>((ref) {
+      final player = ref.watch(audioPlayerServiceProvider);
+      final tracker = RecommendationPlaybackTracker(
+        player: player,
+        onFeedback: (origin, event) async {
+          final notifier = ref.read(recommendationProvider.notifier);
+          final state = ref.read(recommendationProvider);
+          RecommendationItem? item;
+          for (final candidate in state.items) {
+            if (candidate.candidateId == origin.candidateId) {
+              item = candidate;
+              break;
+            }
+          }
+          if (item == null) return;
+          await notifier.recordFeedback(item, event);
+        },
+      );
+      ref.onDispose(tracker.dispose);
+      return tracker;
+    });
