@@ -2,7 +2,7 @@
 
 Date: 2026-07-20
 Amended: 2026-07-21
-Status: approved; staged-fill amendment pending written review
+Status: approved (including staged-fill amendment)
 
 ## 1. Goal
 
