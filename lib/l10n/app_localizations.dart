@@ -1474,7 +1474,7 @@ abstract class S {
   /// No description provided for @homeDailyRecommend.
   ///
   /// In zh, this message translates to:
-  /// **'每日推荐'**
+  /// **'为你推荐'**
   String get homeDailyRecommend;
 
   /// No description provided for @homeRecentlyPlayed.
@@ -1806,6 +1806,78 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'删除失败，请稍后重试'**
   String get contextMenuDeleteFailed;
+
+  /// No description provided for @recommendationsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐'**
+  String get recommendationsTitle;
+
+  /// No description provided for @recommendationsEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无推荐'**
+  String get recommendationsEmpty;
+
+  /// No description provided for @recommendationsBackendMissing.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先配置 Backend 以启用推荐'**
+  String get recommendationsBackendMissing;
+
+  /// No description provided for @recommendationsRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试'**
+  String get recommendationsRetry;
+
+  /// No description provided for @recommendationsDislike.
+  ///
+  /// In zh, this message translates to:
+  /// **'不感兴趣'**
+  String get recommendationsDislike;
+
+  /// No description provided for @recommendationsImport.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入'**
+  String get recommendationsImport;
+
+  /// No description provided for @recommendationsModeAi.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI'**
+  String get recommendationsModeAi;
+
+  /// No description provided for @recommendationsModeFallback.
+  ///
+  /// In zh, this message translates to:
+  /// **'基础推荐'**
+  String get recommendationsModeFallback;
+
+  /// No description provided for @recommendationsViewAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看全部'**
+  String get recommendationsViewAll;
+
+  /// No description provided for @settingsResetRecommendations.
+  ///
+  /// In zh, this message translates to:
+  /// **'重置推荐偏好'**
+  String get settingsResetRecommendations;
+
+  /// No description provided for @settingsResetRecommendationsConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'重置推荐偏好？歌曲、下载、播放历史和服务器配置不受影响。'**
+  String get settingsResetRecommendationsConfirm;
+
+  /// No description provided for @settingsResetRecommendationsDone.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐偏好已重置'**
+  String get settingsResetRecommendationsDone;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

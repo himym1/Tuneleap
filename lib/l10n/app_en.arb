@@ -279,7 +279,7 @@
     "sidebarLibrary": "LIBRARY",
 
     "homeNewestAlbums": "Latest Albums",
-    "homeDailyRecommend": "Daily Mix",
+    "homeDailyRecommend": "For You",
     "homeRecentlyPlayed": "Recently Played",
     "homeViewMore": "More",
 
@@ -386,5 +386,17 @@
         }
     },
     "contextMenuDeleted": "Deleted",
-    "contextMenuDeleteFailed": "Delete failed, please try again"
+    "contextMenuDeleteFailed": "Delete failed, please try again",
+    "recommendationsTitle": "Recommendations",
+    "recommendationsEmpty": "No recommendations yet",
+    "recommendationsBackendMissing": "Configure the backend to enable recommendations",
+    "recommendationsRetry": "Retry",
+    "recommendationsDislike": "Dislike",
+    "recommendationsImport": "Import",
+    "recommendationsModeAi": "AI",
+    "recommendationsModeFallback": "Basic recommendation",
+    "recommendationsViewAll": "View all",
+    "settingsResetRecommendations": "Reset recommendation preferences",
+    "settingsResetRecommendationsConfirm": "Reset recommendation preferences? Songs, downloads, play history, and server settings are not affected.",
+    "settingsResetRecommendationsDone": "Recommendation preferences reset"
 }

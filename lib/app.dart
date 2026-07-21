@@ -8,6 +8,7 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/screens/login/login_screen.dart';
 import 'package:navidrome_player/ui/screens/shell/app_shell.dart';
 import 'package:navidrome_player/ui/screens/home/home_screen.dart';
+import 'package:navidrome_player/ui/screens/recommendations/recommendations_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_songs_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_albums_screen.dart';
@@ -122,24 +123,37 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
           pageBuilder: (context, state) => CustomTransitionPage(
             key: state.pageKey,
             child: const PlayerScreen(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 1),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                  reverseCurve: Curves.easeInCubic,
-                )),
-                child: child,
-              );
-            },
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return SlideTransition(
+                    position:
+                        Tween<Offset>(
+                          begin: const Offset(0, 1),
+                          end: Offset.zero,
+                        ).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                            reverseCurve: Curves.easeInCubic,
+                          ),
+                        ),
+                    child: child,
+                  );
+                },
           ),
         ),
         ShellRoute(
           builder: (context, state, child) => AppShell(child: child),
           routes: [
+            GoRoute(
+              path: '/recommendations',
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const RecommendationsScreen(),
+                transitionsBuilder: _fadeThroughTransition,
+                transitionDuration: _kFadeDuration,
+              ),
+            ),
             GoRoute(
               path: '/home',
               pageBuilder: (context, state) => CustomTransitionPage(

@@ -748,7 +748,7 @@ class SZh extends S {
   String get homeNewestAlbums => '最新专辑';
 
   @override
-  String get homeDailyRecommend => '每日推荐';
+  String get homeDailyRecommend => '为你推荐';
 
   @override
   String get homeRecentlyPlayed => '最近播放';
@@ -924,4 +924,41 @@ class SZh extends S {
 
   @override
   String get contextMenuDeleteFailed => '删除失败，请稍后重试';
+
+  @override
+  String get recommendationsTitle => '推荐';
+
+  @override
+  String get recommendationsEmpty => '暂无推荐';
+
+  @override
+  String get recommendationsBackendMissing => '请先配置 Backend 以启用推荐';
+
+  @override
+  String get recommendationsRetry => '重试';
+
+  @override
+  String get recommendationsDislike => '不感兴趣';
+
+  @override
+  String get recommendationsImport => '导入';
+
+  @override
+  String get recommendationsModeAi => 'AI';
+
+  @override
+  String get recommendationsModeFallback => '基础推荐';
+
+  @override
+  String get recommendationsViewAll => '查看全部';
+
+  @override
+  String get settingsResetRecommendations => '重置推荐偏好';
+
+  @override
+  String get settingsResetRecommendationsConfirm =>
+      '重置推荐偏好？歌曲、下载、播放历史和服务器配置不受影响。';
+
+  @override
+  String get settingsResetRecommendationsDone => '推荐偏好已重置';
 }

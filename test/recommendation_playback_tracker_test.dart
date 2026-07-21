@@ -38,6 +38,7 @@ class _FakePlayer implements AudioPlayerService {
   Stream<PlaybackFailure> get playbackFailureStream => failureController.stream;
 
   // Unused members
+  @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
