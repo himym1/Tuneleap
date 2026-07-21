@@ -23,6 +23,7 @@ class RecommendationsScreen extends ConsumerStatefulWidget {
 
 class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
   final _scroll = ScrollController();
+  final _impressionIds = <String, String>{};
 
   @override
   void initState() {
@@ -42,19 +43,24 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
 
   void _onScroll() {
     if (!_scroll.hasClients) return;
-    final pos = _scroll.position;
-    if (pos.extentAfter < 400) {
+    if (_scroll.position.extentAfter < 400) {
       ref.read(recommendationProvider.notifier).loadMore();
     }
   }
 
-  PlaybackOrigin _originFor(RecommendationItem item, String sessionId) {
-    final bytes = List<int>.generate(8, (_) => Random.secure().nextInt(256));
-    final id = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  String _impressionIdFor(String candidateId) {
+    return _impressionIds.putIfAbsent(candidateId, () {
+      final bytes = List<int>.generate(8, (_) => Random.secure().nextInt(256));
+      return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    });
+  }
+
+  PlaybackOrigin? _originFor(RecommendationItem item, String? sessionId) {
+    if (sessionId == null || sessionId.isEmpty) return null;
     return PlaybackOrigin(
       sessionId: sessionId,
       candidateId: item.candidateId,
-      impressionId: id,
+      impressionId: _impressionIdFor(item.candidateId),
     );
   }
 
@@ -68,6 +74,17 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
         .read(audioPlayerServiceProvider)
         .playAll(songs, startIndex: index, origins: origins);
     if (mounted) context.push('/player');
+  }
+
+  Future<void> _import(RecommendationItem item) async {
+    try {
+      await ref.read(recommendationProvider.notifier).importItem(item);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(S.of(context).commonError)));
+    }
   }
 
   @override
@@ -147,18 +164,21 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                   );
                 }
                 final item = visible[index];
-                final sessionId = state.sessionId ?? '';
-                final origin = sessionId.isEmpty
-                    ? null
-                    : _originFor(item, sessionId);
+                final origin = _originFor(item, state.sessionId);
                 final coverUrl = ref
                     .read(backendClientProvider)
                     .buildCoverProxyUrl(item.song, size: 120);
                 return SongContextMenu(
                   song: item.song,
                   playbackOrigin: origin,
+                  // Menu already performed import; only emit recommendation feedback.
                   onImported: () {
-                    ref.read(recommendationProvider.notifier).importItem(item);
+                    ref
+                        .read(recommendationProvider.notifier)
+                        .recordFeedback(
+                          item,
+                          RecommendationFeedbackEvent.imported,
+                        );
                   },
                   onPlay: () => _playAll(visible, index),
                   child: ListTile(
@@ -190,9 +210,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                           IconButton(
                             tooltip: l10n.recommendationsImport,
                             icon: const Icon(Icons.library_add_outlined),
-                            onPressed: () => ref
-                                .read(recommendationProvider.notifier)
-                                .importItem(item),
+                            onPressed: () => _import(item),
                           ),
                         IconButton(
                           tooltip: l10n.recommendationsDislike,

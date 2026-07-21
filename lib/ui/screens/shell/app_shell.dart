@@ -187,6 +187,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep recommendation playback observer alive while shell is mounted.
+    ref.watch(recommendationPlaybackTrackerProvider);
     return _isMobile(context) ? _buildMobileLayout() : _buildDesktopLayout();
   }
 

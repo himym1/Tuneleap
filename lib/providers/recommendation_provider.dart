@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/navidrome_import_provider.dart';
 import 'package:navidrome_player/services/recommendation_playback_tracker.dart';
+import 'package:navidrome_player/player/playback_origin.dart';
 
 import 'audio_providers.dart';
 import 'server_config_provider.dart';
@@ -361,7 +362,10 @@ class RecommendationNotifier extends Notifier<RecommendationState> {
       hiddenCandidateIds: {...state.hiddenCandidateIds, item.candidateId},
       pendingCandidateIds: {...state.pendingCandidateIds, item.candidateId},
     );
-    await _send(item, RecommendationFeedbackEvent.disliked);
+    await _sendCandidate(
+      item.candidateId,
+      RecommendationFeedbackEvent.disliked,
+    );
   }
 
   Future<void> importItem(RecommendationItem item) async {
@@ -379,7 +383,10 @@ class RecommendationNotifier extends Notifier<RecommendationState> {
           .read(navidromeImportServiceProvider)
           .importOnlineSong(item.song);
       if (!ref.mounted || _scope != scope) return;
-      await _send(item, RecommendationFeedbackEvent.imported);
+      await _sendCandidate(
+        item.candidateId,
+        RecommendationFeedbackEvent.imported,
+      );
     } catch (error) {
       rethrow;
     } finally {
@@ -395,14 +402,36 @@ class RecommendationNotifier extends Notifier<RecommendationState> {
   Future<void> recordFeedback(
     RecommendationItem item,
     RecommendationFeedbackEvent event,
-  ) => _send(item, event);
+  ) => _sendCandidate(item.candidateId, event);
 
-  Future<void> _send(
-    RecommendationItem item,
+  /// Feedback for a playback origin even if the candidate left the visible list.
+  Future<void> recordOriginFeedback(
+    PlaybackOrigin origin,
     RecommendationFeedbackEvent event,
-  ) {
-    final session = state.sessionId;
-    if (session == null) return Future<void>.value();
+  ) async {
+    if (state.sessionId != null &&
+        origin.sessionId.isNotEmpty &&
+        origin.sessionId != state.sessionId) {
+      return;
+    }
+    await _sendCandidate(
+      origin.candidateId,
+      event,
+      sessionId: origin.sessionId,
+    );
+  }
+
+  Future<void> _sendCandidate(
+    String candidateId,
+    RecommendationFeedbackEvent event, {
+    String? sessionId,
+  }) {
+    final session = sessionId?.isNotEmpty == true
+        ? sessionId!
+        : state.sessionId;
+    if (session == null || session.isEmpty || candidateId.isEmpty) {
+      return Future<void>.value();
+    }
     final config = ref.read(serverConfigProvider);
     final backendUrl = config.backendUrl;
     final scope = _scopeFor(
@@ -412,13 +441,12 @@ class RecommendationNotifier extends Notifier<RecommendationState> {
     );
     return _withOutboxLock(() async {
       if (!ref.mounted || _scope != scope) return;
-      // Capture-time session/backendUrl/scope only.
       final records = await _readOutbox(backendUrl);
       if (!ref.mounted || _scope != scope) return;
       final existingIndex = records.indexWhere(
         (record) =>
             record['sessionId'] == session &&
-            record['candidateId'] == item.candidateId &&
+            record['candidateId'] == candidateId &&
             record['event'] == event.name,
       );
       final Map<String, dynamic> record;
@@ -428,7 +456,7 @@ class RecommendationNotifier extends Notifier<RecommendationState> {
         record = <String, dynamic>{
           'idempotencyKey': _uuidV4(),
           'sessionId': session,
-          'candidateId': item.candidateId,
+          'candidateId': candidateId,
           'event': event.name,
         };
         records.add(record);
@@ -436,7 +464,7 @@ class RecommendationNotifier extends Notifier<RecommendationState> {
       }
       await _deliverOutboxRecord(
         record,
-        item.candidateId,
+        candidateId,
         backendUrl: backendUrl,
         scope: scope,
       );
@@ -609,17 +637,9 @@ final recommendationPlaybackTrackerProvider =
       final tracker = RecommendationPlaybackTracker(
         player: player,
         onFeedback: (origin, event) async {
-          final notifier = ref.read(recommendationProvider.notifier);
-          final state = ref.read(recommendationProvider);
-          RecommendationItem? item;
-          for (final candidate in state.items) {
-            if (candidate.candidateId == origin.candidateId) {
-              item = candidate;
-              break;
-            }
-          }
-          if (item == null) return;
-          await notifier.recordFeedback(item, event);
+          await ref
+              .read(recommendationProvider.notifier)
+              .recordOriginFeedback(origin, event);
         },
       );
       ref.onDispose(tracker.dispose);
