@@ -1,133 +1,180 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_filex/open_filex.dart';
 
-const _versionUrl = 'https://player.himym.lat/version.json';
+import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
+
+const _updateOrigin = 'https://player.himym.sbs';
+const _versionUrl = '$_updateOrigin/version.json';
 
 class AppUpdateInfo {
   final String version;
   final int build;
-  final String? androidUrl;
-  final String? macosUrl;
+  final String url;
+  final String sha256;
   final String? changelog;
 
   const AppUpdateInfo({
     required this.version,
     required this.build,
-    this.androidUrl,
-    this.macosUrl,
+    required this.url,
+    required this.sha256,
     this.changelog,
   });
 
-  factory AppUpdateInfo.fromJson(Map<String, dynamic> json) {
-    // 按平台读取版本，fallback 到顶层 version
-    final platformKey = Platform.isAndroid ? 'android' : Platform.isMacOS ? 'macos' : null;
-    final platformInfo = platformKey != null ? json[platformKey] : null;
-
-    String version;
-    int build;
-    String? url;
-    if (platformInfo is Map<String, dynamic>) {
-      version = platformInfo['version'] as String? ?? json['version'] as String;
-      build = platformInfo['build'] as int? ?? json['build'] as int? ?? 1;
-      url = platformInfo['url'] as String?;
-    } else {
-      // 兼容旧格式：platform 值直接是 URL 字符串
-      version = json['version'] as String;
-      build = json['build'] as int? ?? 1;
-      url = platformInfo as String?;
+  factory AppUpdateInfo.fromJson(
+    Map<String, dynamic> json, {
+    String? platform,
+  }) {
+    final platformKey =
+        platform ??
+        (Platform.isAndroid
+            ? 'android'
+            : Platform.isMacOS
+            ? 'macos'
+            : null);
+    final platformInfo = platformKey == null ? null : json[platformKey];
+    if (platformInfo is! Map) {
+      throw const FormatException('Missing platform update metadata');
     }
-
+    final info = Map<String, dynamic>.from(platformInfo);
+    final version = info['version'];
+    final build = info['build'];
+    final url = info['url'];
+    final checksum = info['sha256'];
+    if (version is! String ||
+        !RegExp(r'^\d+\.\d+\.\d+$').hasMatch(version) ||
+        build is! int ||
+        build < 1 ||
+        url is! String ||
+        checksum is! String ||
+        !RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(checksum)) {
+      throw const FormatException('Invalid platform update metadata');
+    }
+    _validatePrivateDownloadUrl(url);
     return AppUpdateInfo(
       version: version,
       build: build,
-      androidUrl: Platform.isAndroid ? url : (json['android'] is String ? json['android'] as String : null),
-      macosUrl: Platform.isMacOS ? url : (json['macos'] is String ? json['macos'] as String : null),
+      url: url,
+      sha256: checksum.toLowerCase(),
       changelog: json['changelog'] as String?,
     );
   }
+}
 
-  String? get downloadUrl {
-    if (Platform.isAndroid) return androidUrl;
-    if (Platform.isMacOS) return macosUrl;
-    return null;
+void _validatePrivateDownloadUrl(String value) {
+  final uri = Uri.tryParse(value);
+  if (uri == null ||
+      uri.scheme != 'https' ||
+      uri.host != 'player.himym.sbs' ||
+      uri.port != 443 ||
+      !uri.path.startsWith('/releases/')) {
+    throw const FormatException('Untrusted update download URL');
   }
 }
 
-/// 比较语义化版本号，返回 true 表示 remote 比 local 新
-bool isNewerVersion(String remote, String local) {
-  final r = remote.split('.').map(int.tryParse).toList();
-  final l = local.split('.').map(int.tryParse).toList();
+bool isNewerVersion(
+  String remote,
+  String local, {
+  int remoteBuild = 0,
+  int localBuild = 0,
+}) {
+  final r = _versionParts(remote);
+  final l = _versionParts(local);
   for (int i = 0; i < 3; i++) {
-    final rv = (i < r.length ? r[i] : 0) ?? 0;
-    final lv = (i < l.length ? l[i] : 0) ?? 0;
+    final rv = r[i];
+    final lv = l[i];
     if (rv > lv) return true;
     if (rv < lv) return false;
   }
-  return false;
+  return remoteBuild > localBuild;
 }
 
-/// 从服务器获取最新版本信息
-Future<AppUpdateInfo?> checkForUpdate() async {
+List<int> _versionParts(String value) {
+  if (!RegExp(r'^\d+\.\d+\.\d+$').hasMatch(value)) {
+    throw const FormatException('Invalid semantic version');
+  }
+  return value.split('.').map(int.parse).toList(growable: false);
+}
+
+Future<AppUpdateInfo?> checkForUpdate({
+  required String apiKey,
+  Dio? dio,
+}) async {
+  if (apiKey.isEmpty) return null;
   try {
-    final dio = Dio()..options.connectTimeout = const Duration(seconds: 10);
-    final response = await dio.get(_versionUrl);
-    if (response.statusCode == 200) {
-      return AppUpdateInfo.fromJson(response.data as Map<String, dynamic>);
+    final client = dio ?? Dio();
+    final response = await client.get<dynamic>(
+      _versionUrl,
+      options: Options(
+        headers: {'X-API-Key': apiKey},
+        followRedirects: false,
+        validateStatus: (status) => status == 200,
+        sendTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+      ),
+    );
+    final data = response.data;
+    if (data is Map<String, dynamic>) return AppUpdateInfo.fromJson(data);
+    if (data is Map) {
+      return AppUpdateInfo.fromJson(Map<String, dynamic>.from(data));
     }
-  } catch (e) {
-    debugPrint('Update check failed: $e');
+  } catch (error) {
+    debugPrint('Update check failed: ${error.runtimeType}');
   }
   return null;
 }
 
-/// 下载更新文件，返回本地文件路径
-///
-/// [onProgress] 回调：0.0 ~ 1.0
+Future<bool> verifyFileSha256(String path, String expected) async {
+  final digest = await sha256.bind(File(path).openRead()).first;
+  return digest.toString() == expected.toLowerCase();
+}
+
 Future<String?> downloadUpdate(
-  String url, {
+  AppUpdateInfo info, {
+  required String apiKey,
   void Function(double progress)? onProgress,
+  Dio? dio,
+  @visibleForTesting String? savePathOverride,
 }) async {
+  if (apiKey.isEmpty) return null;
+  _validatePrivateDownloadUrl(info.url);
+  final savePath =
+      savePathOverride ??
+      '${(await getTemporaryDirectory()).path}/app_update.${Platform.isAndroid ? 'apk' : 'dmg'}';
+  final file = File(savePath);
   try {
-    final dir = await getTemporaryDirectory();
-    final ext = Platform.isAndroid ? 'apk' : 'dmg';
-    final savePath = '${dir.path}/app_update.$ext';
-
-    // 删除旧文件
-    final oldFile = File(savePath);
-    if (oldFile.existsSync()) oldFile.deleteSync();
-
-    final dio = Dio();
-    await dio.download(
-      url,
+    if (file.existsSync()) file.deleteSync();
+    final client = dio ?? Dio();
+    await client.download(
+      info.url,
       savePath,
+      options: Options(
+        headers: {'X-API-Key': apiKey},
+        followRedirects: false,
+        validateStatus: (status) => status == 200,
+      ),
       onReceiveProgress: (received, total) {
         if (total > 0) onProgress?.call(received / total);
       },
     );
-
-    final savedFile = File(savePath);
-    debugPrint('[Update] Downloaded: $savePath (${savedFile.lengthSync()} bytes)');
-
+    if (!await verifyFileSha256(savePath, info.sha256)) {
+      await file.delete();
+      return null;
+    }
     return savePath;
-  } catch (e) {
-    debugPrint('Download update failed: $e');
+  } catch (error) {
+    debugPrint('Download update failed: ${error.runtimeType}');
+    if (await file.exists()) await file.delete();
     return null;
   }
 }
 
-/// 安装更新
-///
-/// Android: 打开 APK 触发系统安装器
-/// macOS: 挂载 DMG → 替换 .app → 重启
 Future<bool> installUpdate(String filePath) async {
-  if (Platform.isAndroid) {
-    return _installAndroid(filePath);
-  } else if (Platform.isMacOS) {
-    return _installMacOS(filePath);
-  }
+  if (Platform.isAndroid) return _installAndroid(filePath);
+  if (Platform.isMacOS) return _installMacOS(filePath);
   return false;
 }
 
@@ -135,19 +182,18 @@ Future<bool> _installAndroid(String apkPath) async {
   try {
     final result = await OpenFilex.open(apkPath);
     return result.type == ResultType.done;
-  } catch (e) {
-    debugPrint('Install APK failed: $e');
+  } catch (error) {
+    debugPrint('Install APK failed: ${error.runtimeType}');
     return false;
   }
 }
 
 Future<bool> _installMacOS(String dmgPath) async {
   try {
-    // 直接打开 DMG，Finder 会自动挂载并显示拖拽安装界面
     final result = await Process.run('open', [dmgPath]);
     return result.exitCode == 0;
-  } catch (e) {
-    debugPrint('[Update] macOS open DMG failed: $e');
+  } catch (error) {
+    debugPrint('Open DMG failed: ${error.runtimeType}');
     return false;
   }
 }

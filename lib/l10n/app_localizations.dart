@@ -1789,6 +1789,12 @@ abstract class S {
   /// **'检查更新失败，请稍后重试'**
   String get updateFailed;
 
+  /// No description provided for @updateMacInstallHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'DMG 已打开，请将音跃拖入“应用程序”文件夹完成更新。'**
+  String get updateMacInstallHint;
+
   /// No description provided for @contextMenuDeleteTitle.
   ///
   /// In zh, this message translates to:

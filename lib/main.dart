@@ -75,6 +75,9 @@ void main() async {
       sharedPreferencesProvider.overrideWithValue(prefs),
       audioHandlerProvider.overrideWithValue(handler),
       appVersionProvider.overrideWithValue(packageInfo.version),
+      appBuildProvider.overrideWithValue(
+        int.tryParse(packageInfo.buildNumber) ?? 0,
+      ),
     ],
   );
 
