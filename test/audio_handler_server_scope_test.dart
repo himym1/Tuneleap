@@ -604,6 +604,30 @@ void main() {
     expect(failures.single.toString(), isNot(contains('missing')));
   });
 
+  test('local playback does not enable the header proxy', () async {
+    final player = _FakeAudioPlayer();
+    final client = _ScrobbleClient()
+      ..configure(serverUrl: 'http://server', username: 'u', password: 'p');
+    final handler = NavidromeAudioHandler(
+      client,
+      BackendClient(),
+      player: player,
+    );
+    const song = Song(
+      id: 'local',
+      title: 'Local',
+      artist: 'Artist',
+      artistId: 'artist',
+      album: 'Album',
+      albumId: 'album',
+    );
+
+    await handler.setQueue([song]);
+
+    expect(player.loadedHeaders.single, isNull);
+    expect(player.playing, isTrue);
+  });
+
   test('online playback retries a fresh URL with compatible headers', () async {
     final player = _FakeAudioPlayer()
       ..setUrlError = StateError('stale URL')
