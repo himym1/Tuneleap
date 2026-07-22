@@ -54,7 +54,8 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     SharedPreferences? prefs,
     String serverId = defaultServerId,
     AudioPlayer? player,
-  }) : _player = player ?? AudioPlayer(),
+  }) : _player =
+           player ?? AudioPlayer(useProxyForRequestHeaders: !Platform.isMacOS),
        _prefs = prefs,
        _serverId = normalizeServerId(serverId) {
     // 加载持久化的播放历史
@@ -533,6 +534,11 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   /// 加载当前歌曲并播放
   Future<void> _loadAndPlay() => _loadCurrent(autoplay: true);
 
+  Future<Duration?> _setPlaybackUrl(String url) {
+    final headers = mediaRequestHeaders(url, kind: MediaRequestKind.audio);
+    return _player.setUrl(url, headers: headers.isEmpty ? null : headers);
+  }
+
   Future<void> _loadCurrent({required bool autoplay}) {
     final request = _loadRequests.begin();
     final song = currentSong;
@@ -559,10 +565,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
           );
           if (!_loadRequests.isCurrent(request)) return;
           try {
-            await _player.setUrl(
-              url,
-              headers: mediaRequestHeaders(url, kind: MediaRequestKind.audio),
-            );
+            await _setPlaybackUrl(url);
           } catch (_) {
             if (!song.isOnline || !_loadRequests.isCurrent(request)) rethrow;
             final retryUrl = await _resolver.playbackUrl(
@@ -570,13 +573,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
               maxBitRate: _maxBitRate,
             );
             if (!_loadRequests.isCurrent(request)) return;
-            await _player.setUrl(
-              retryUrl,
-              headers: mediaRequestHeaders(
-                retryUrl,
-                kind: MediaRequestKind.audio,
-              ),
-            );
+            await _setPlaybackUrl(retryUrl);
           }
         }
         if (!_loadRequests.isCurrent(request)) return;
