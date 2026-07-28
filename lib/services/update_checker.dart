@@ -132,6 +132,26 @@ Future<bool> verifyFileSha256(String path, String expected) async {
   return digest.toString() == expected.toLowerCase();
 }
 
+Future<String> defaultUpdateSavePath() async {
+  final dir = await getTemporaryDirectory();
+  final ext = Platform.isAndroid ? 'apk' : 'dmg';
+  return '${dir.path}/app_update.$ext';
+}
+
+/// Returns a local path when a previously downloaded package still matches.
+Future<String?> findCachedUpdate(AppUpdateInfo info, {String? savePath}) async {
+  final path = savePath ?? await defaultUpdateSavePath();
+  final file = File(path);
+  if (!file.existsSync()) return null;
+  if (!await verifyFileSha256(path, info.sha256)) {
+    try {
+      await file.delete();
+    } catch (_) {}
+    return null;
+  }
+  return path;
+}
+
 Future<String?> downloadUpdate(
   AppUpdateInfo info, {
   required String apiKey,
@@ -141,10 +161,15 @@ Future<String?> downloadUpdate(
 }) async {
   if (apiKey.isEmpty) return null;
   _validatePrivateDownloadUrl(info.url);
-  final savePath =
-      savePathOverride ??
-      '${(await getTemporaryDirectory()).path}/app_update.${Platform.isAndroid ? 'apk' : 'dmg'}';
+  final savePath = savePathOverride ?? await defaultUpdateSavePath();
   final file = File(savePath);
+
+  final cached = await findCachedUpdate(info, savePath: savePath);
+  if (cached != null) {
+    onProgress?.call(1);
+    return cached;
+  }
+
   try {
     if (file.existsSync()) file.deleteSync();
     final client = dio ?? Dio();
@@ -164,6 +189,7 @@ Future<String?> downloadUpdate(
       await file.delete();
       return null;
     }
+    onProgress?.call(1);
     return savePath;
   } catch (error) {
     debugPrint('Download update failed: ${error.runtimeType}');

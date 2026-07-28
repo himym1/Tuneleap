@@ -935,6 +935,16 @@ class SEn extends S {
   String get updateDownload => 'Download Update';
 
   @override
+  String get updateInstall => 'Install Update';
+
+  @override
+  String get updateInstalling => 'Opening installer...';
+
+  @override
+  String get updateAlreadyDownloaded =>
+      'Package already downloaded. You can install now without downloading again.';
+
+  @override
   String get updateLatest => 'You\'re up to date';
 
   @override

@@ -54,22 +54,32 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   Future<void> _checkUpdateOnStartup() async {
-    await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return;
-    final config = ref.read(serverConfigProvider);
-    final info = await checkForUpdate(apiKey: config.backendApiKey);
-    if (info == null || !mounted) return;
-    final currentVersion = ref.read(appVersionProvider);
-    final currentBuild = ref.read(appBuildProvider);
-    if (!isNewerVersion(
-      info.version,
-      currentVersion,
-      remoteBuild: info.build,
-      localBuild: currentBuild,
-    )) {
+    // Wait until the shell is on-screen and API key is available.
+    for (var attempt = 0; attempt < 10; attempt++) {
+      await Future.delayed(Duration(milliseconds: attempt == 0 ? 1500 : 500));
+      if (!mounted) return;
+      final apiKey = ref.read(serverConfigProvider).backendApiKey;
+      if (apiKey.isEmpty) continue;
+
+      final info = await checkForUpdate(apiKey: apiKey);
+      if (!mounted) return;
+      if (info == null) continue;
+
+      final currentVersion = ref.read(appVersionProvider);
+      final currentBuild = ref.read(appBuildProvider);
+      if (!isNewerVersion(
+        info.version,
+        currentVersion,
+        remoteBuild: info.build,
+        localBuild: currentBuild,
+      )) {
+        return;
+      }
+
+      if (!mounted) return;
+      UpdateDialog.show(context, info, apiKey: apiKey);
       return;
     }
-    UpdateDialog.show(context, info, apiKey: config.backendApiKey);
   }
 
   @override

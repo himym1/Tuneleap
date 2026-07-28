@@ -4,7 +4,7 @@ import 'package:navidrome_player/services/update_checker.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
-/// 统一的更新弹窗 — 发现新版本 → 下载进度 → 安装
+/// 统一的更新弹窗 — 发现新版本 → 复用本地包 / 下载 → 安装
 class UpdateDialog extends StatefulWidget {
   final AppUpdateInfo info;
   final String apiKey;
@@ -34,8 +34,30 @@ class _UpdateDialogState extends State<UpdateDialog> {
   _UpdateState _state = _UpdateState.info;
   double _progress = 0;
   String? _error;
+  String? _cachedPath;
+  bool _checkingCache = true;
 
-  Future<void> _startDownload() async {
+  @override
+  void initState() {
+    super.initState();
+    _loadCache();
+  }
+
+  Future<void> _loadCache() async {
+    final cached = await findCachedUpdate(widget.info);
+    if (!mounted) return;
+    setState(() {
+      _cachedPath = cached;
+      _checkingCache = false;
+    });
+  }
+
+  Future<void> _startDownloadOrInstall() async {
+    if (_cachedPath != null) {
+      await _install(_cachedPath!);
+      return;
+    }
+
     setState(() => _state = _UpdateState.downloading);
 
     final filePath = await downloadUpdate(
@@ -56,6 +78,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
       return;
     }
 
+    setState(() => _cachedPath = filePath);
+    await _install(filePath);
+  }
+
+  Future<void> _install(String filePath) async {
     setState(() => _state = _UpdateState.installing);
 
     final ok = await installUpdate(filePath);
@@ -99,7 +126,12 @@ class _UpdateDialogState extends State<UpdateDialog> {
               ),
               const SizedBox(height: 8),
               Text(widget.info.changelog!),
+              const SizedBox(height: 12),
             ],
+            if (_checkingCache)
+              Text(s.updateChecking)
+            else if (_cachedPath != null)
+              Text(s.updateAlreadyDownloaded),
           ],
         );
 
@@ -135,7 +167,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
               ),
             ),
             const SizedBox(width: 16),
-            Text(s.updateCheckUpdate),
+            Text(s.updateInstalling),
           ],
         );
 
@@ -153,14 +185,15 @@ class _UpdateDialogState extends State<UpdateDialog> {
   List<Widget> _buildActions(S s) {
     switch (_state) {
       case _UpdateState.info:
+        final ready = _cachedPath != null && !_checkingCache;
         return [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(s.commonCancel),
           ),
           FilledButton(
-            onPressed: _startDownload,
-            child: Text(s.updateDownload),
+            onPressed: _checkingCache ? null : _startDownloadOrInstall,
+            child: Text(ready ? s.updateInstall : s.updateDownload),
           ),
         ];
 
