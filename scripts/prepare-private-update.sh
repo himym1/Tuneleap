@@ -51,7 +51,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "修复播放器暂停与切歌，恢复在线歌词，并启用私有在线更新。",
+    "changelog": "推荐改为稳定算法，移除 AI 模式标签，并提升多设备分页推荐的一致性。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

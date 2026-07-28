@@ -1849,18 +1849,6 @@ abstract class S {
   /// **'导入'**
   String get recommendationsImport;
 
-  /// No description provided for @recommendationsModeAi.
-  ///
-  /// In zh, this message translates to:
-  /// **'AI'**
-  String get recommendationsModeAi;
-
-  /// No description provided for @recommendationsModeFallback.
-  ///
-  /// In zh, this message translates to:
-  /// **'基础推荐'**
-  String get recommendationsModeFallback;
-
   /// No description provided for @recommendationsViewAll.
   ///
   /// In zh, this message translates to:

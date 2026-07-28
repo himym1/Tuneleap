@@ -19,7 +19,6 @@ class RecommendationState {
     List<RecommendationItem> items = const [],
     this.sessionId,
     this.cursor,
-    this.mode,
     this.initialLoading = false,
     this.loadingMore = false,
     this.refreshing = false,
@@ -30,7 +29,6 @@ class RecommendationState {
     Set<String> hiddenCandidateIds = const {},
     Set<String> pendingCandidateIds = const {},
     Set<String> importingCandidateIds = const {},
-    this.fallbackNoticeShown = false,
   }) : items = List.unmodifiable(items),
        hiddenCandidateIds = Set.unmodifiable(hiddenCandidateIds),
        pendingCandidateIds = Set.unmodifiable(pendingCandidateIds),
@@ -39,7 +37,6 @@ class RecommendationState {
   final List<RecommendationItem> items;
   final String? sessionId;
   final String? cursor;
-  final RecommendationMode? mode;
   final bool initialLoading;
   final bool loadingMore;
   final bool refreshing;
@@ -50,7 +47,6 @@ class RecommendationState {
   final Set<String> hiddenCandidateIds;
   final Set<String> pendingCandidateIds;
   final Set<String> importingCandidateIds;
-  final bool fallbackNoticeShown;
 
   List<RecommendationItem> get visibleItems => items
       .where((item) => !hiddenCandidateIds.contains(item.candidateId))
@@ -62,8 +58,6 @@ class RecommendationState {
     bool clearSessionId = false,
     String? cursor,
     bool clearCursor = false,
-    RecommendationMode? mode,
-    bool clearMode = false,
     bool? initialLoading,
     bool? loadingMore,
     bool? refreshing,
@@ -76,13 +70,11 @@ class RecommendationState {
     Set<String>? hiddenCandidateIds,
     Set<String>? pendingCandidateIds,
     Set<String>? importingCandidateIds,
-    bool? fallbackNoticeShown,
   }) {
     return RecommendationState(
       items: List.unmodifiable(items ?? this.items),
       sessionId: clearSessionId ? null : (sessionId ?? this.sessionId),
       cursor: clearCursor ? null : (cursor ?? this.cursor),
-      mode: clearMode ? null : (mode ?? this.mode),
       initialLoading: initialLoading ?? this.initialLoading,
       loadingMore: loadingMore ?? this.loadingMore,
       refreshing: refreshing ?? this.refreshing,
@@ -101,7 +93,6 @@ class RecommendationState {
       importingCandidateIds: Set.unmodifiable(
         importingCandidateIds ?? this.importingCandidateIds,
       ),
-      fallbackNoticeShown: fallbackNoticeShown ?? this.fallbackNoticeShown,
     );
   }
 }
@@ -345,15 +336,12 @@ class RecommendationNotifier extends Notifier<RecommendationState> {
       sessionId: page.sessionId,
       cursor: page.nextCursor,
       clearCursor: page.nextCursor == null,
-      mode: page.mode,
       initialLoading: false,
       loadingMore: false,
       refreshing: false,
       hasMore: page.hasMore,
       clearError: true,
       clearLoadMoreError: true,
-      fallbackNoticeShown:
-          state.fallbackNoticeShown || page.mode == RecommendationMode.fallback,
     );
   }
 

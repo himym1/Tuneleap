@@ -217,13 +217,11 @@ void main() {
       hiddenCandidateIds: {'c1'},
       pendingCandidateIds: {'c1'},
       importingCandidateIds: {'c2'},
-      fallbackNoticeShown: true,
     );
     expect(state.items, isA<List<RecommendationItem>>());
     expect(() => state.items.add(item), throwsUnsupportedError);
     expect(() => state.hiddenCandidateIds.add('x'), throwsUnsupportedError);
     expect(state.visibleItems, isEmpty);
-    expect(state.fallbackNoticeShown, isTrue);
   });
 
   test('ensureLoaded sends recent history and stores page', () async {
@@ -250,8 +248,6 @@ void main() {
     expect(state.sessionId, 's1');
     expect(state.items, hasLength(2));
     expect(state.cursor, 'next');
-    expect(state.mode, RecommendationMode.fallback);
-    expect(state.fallbackNoticeShown, isTrue);
     expect(state.initialLoading, isFalse);
   });
 

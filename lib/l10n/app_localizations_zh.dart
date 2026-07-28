@@ -947,12 +947,6 @@ class SZh extends S {
   String get recommendationsImport => '导入';
 
   @override
-  String get recommendationsModeAi => 'AI';
-
-  @override
-  String get recommendationsModeFallback => '基础推荐';
-
-  @override
   String get recommendationsViewAll => '查看全部';
 
   @override
