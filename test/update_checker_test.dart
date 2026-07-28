@@ -22,7 +22,7 @@ class _CaptureAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-Map<String, dynamic> _metadata({String host = 'player.himym.sbs'}) => {
+Map<String, dynamic> _metadata({String host = 'player.himym.us.ci'}) => {
   'android': {
     'version': '1.0.5',
     'build': 3,
@@ -75,7 +75,7 @@ void main() {
         ..httpClientAdapter = _CaptureAdapter((options) async {
           expect(
             options.uri.toString(),
-            'https://player.himym.sbs/version.json',
+            'https://player.himym.us.ci/version.json',
           );
           expect(options.headers['X-API-Key'], 'private-key');
           expect(options.followRedirects, isFalse);
@@ -106,7 +106,7 @@ void main() {
       final checksum = sha256.convert(bytes).toString();
       final dio = Dio()
         ..httpClientAdapter = _CaptureAdapter((options) async {
-          expect(options.uri.host, 'player.himym.sbs');
+          expect(options.uri.host, 'player.himym.us.ci');
           expect(options.headers['X-API-Key'], 'private-key');
           expect(options.followRedirects, isFalse);
           return ResponseBody.fromBytes(
@@ -121,7 +121,7 @@ void main() {
         version: '1.0.5',
         build: 3,
         url:
-            'https://player.himym.sbs/releases/navidrome_player-1.0.5+3-android.apk',
+            'https://player.himym.us.ci/releases/navidrome_player-1.0.5+3-android.apk',
         sha256: checksum,
       );
 
@@ -151,7 +151,7 @@ void main() {
       version: '1.0.5',
       build: 3,
       url:
-          'https://player.himym.sbs/releases/navidrome_player-1.0.5+3-android.apk',
+          'https://player.himym.us.ci/releases/navidrome_player-1.0.5+3-android.apk',
       sha256: List.filled(64, '0').join(),
     );
 

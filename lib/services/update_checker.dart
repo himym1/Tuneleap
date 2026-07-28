@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
-const _updateOrigin = 'https://player.himym.sbs';
+const _updateOrigin = 'https://player.himym.us.ci';
 const _versionUrl = '$_updateOrigin/version.json';
 
 class AppUpdateInfo {
@@ -68,7 +68,7 @@ void _validatePrivateDownloadUrl(String value) {
   final uri = Uri.tryParse(value);
   if (uri == null ||
       uri.scheme != 'https' ||
-      uri.host != 'player.himym.sbs' ||
+      uri.host != 'player.himym.us.ci' ||
       uri.port != 443 ||
       !uri.path.startsWith('/releases/')) {
     throw const FormatException('Untrusted update download URL');
