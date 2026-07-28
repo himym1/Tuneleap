@@ -37,7 +37,7 @@ def digest(name: str) -> str:
             value.update(chunk)
     return value.hexdigest()
 
-origin = "https://player.himym.sbs/releases"
+origin = "https://player.himym.us.ci/releases"
 data = {
     "android": {
         "version": android_version,
@@ -51,7 +51,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "推荐改为稳定算法，移除 AI 模式标签，并提升多设备分页推荐的一致性。",
+    "changelog": "推荐改为稳定算法，更新服务迁移到新域名，并提升多设备分页推荐的一致性。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
