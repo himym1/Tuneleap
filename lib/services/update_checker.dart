@@ -190,6 +190,9 @@ Future<bool> _installAndroid(String apkPath) async {
 
 Future<bool> _installMacOS(String dmgPath) async {
   try {
+    // Downloaded DMGs get com.apple.quarantine; combined with adhoc/unsigned
+    // builds this makes macOS report the app as damaged / not permitted.
+    await Process.run('xattr', ['-cr', dmgPath]);
     final result = await Process.run('open', [dmgPath]);
     return result.exitCode == 0;
   } catch (error) {

@@ -51,7 +51,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "统一登录鉴权，新增经典/纯黑/封面取色主题，主导航独立页面栈，并优化推荐刷新与展示。",
+    "changelog": "统一登录鉴权，新增经典/纯黑/封面取色主题，主导航独立页面栈，并优化推荐刷新与展示；修复 macOS 更新后无法打开。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

@@ -60,6 +60,16 @@ build_macos() {
   local app_path
   app_path="$(find "$PROJECT_ROOT/build/macos/Build/Products/Release" -maxdepth 1 -name '*.app' -print -quit)"
   [ -n "$app_path" ] && [ -d "$app_path" ] || err "macOS app not found in build/macos/Build/Products/Release/"
+  # Sign with Developer ID so Gatekeeper accepts private-update installs.
+  local identity="${MACOS_CODESIGN_IDENTITY:-Developer ID Application: Topping Technology Co., Ltd (M336Q22BHF)}"
+  local entitlements="$PROJECT_ROOT/macos/Runner/Release.entitlements"
+  log "Codesigning macOS app with: $identity"
+  codesign --deep --force --options runtime \
+    --entitlements "$entitlements" \
+    --timestamp \
+    --sign "$identity" \
+    "$app_path"
+  codesign --verify --deep --strict "$app_path" || err "codesign verify failed"
   # Create DMG for distribution
   local dmg_name="${APP_NAME}-${ver}+${build}-macos.dmg"
   local tmp_dmg="$DIST_DIR/${dmg_name}.tmp"
@@ -70,6 +80,8 @@ build_macos() {
   ln -s /Applications "$staging/Applications"
   hdiutil create -volname "音跃" -srcfolder "$staging" -ov -format UDZO "$DIST_DIR/$dmg_name"
   rm -rf "$staging"
+  # Avoid carrying Finder quarantine into installs from this host.
+  xattr -cr "$DIST_DIR/$dmg_name" 2>/dev/null || true
   log "macOS DMG -> dist/$dmg_name"
 }
 
