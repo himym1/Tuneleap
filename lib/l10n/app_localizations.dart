@@ -619,6 +619,30 @@ abstract class S {
   /// **'浅色'**
   String get settingsThemeLight;
 
+  /// No description provided for @settingsThemeStyle.
+  ///
+  /// In zh, this message translates to:
+  /// **'主题风格'**
+  String get settingsThemeStyle;
+
+  /// No description provided for @settingsThemeClassic.
+  ///
+  /// In zh, this message translates to:
+  /// **'经典'**
+  String get settingsThemeClassic;
+
+  /// No description provided for @settingsThemeAmoled.
+  ///
+  /// In zh, this message translates to:
+  /// **'纯黑'**
+  String get settingsThemeAmoled;
+
+  /// No description provided for @settingsThemeDynamic.
+  ///
+  /// In zh, this message translates to:
+  /// **'封面取色'**
+  String get settingsThemeDynamic;
+
   /// No description provided for @settingsAudioQuality.
   ///
   /// In zh, this message translates to:
@@ -1854,6 +1878,48 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'查看全部'**
   String get recommendationsViewAll;
+
+  /// No description provided for @recommendationsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'根据最近播放和你的反馈生成'**
+  String get recommendationsSubtitle;
+
+  /// No description provided for @recommendationsModeAi.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 推荐'**
+  String get recommendationsModeAi;
+
+  /// No description provided for @recommendationsModeFallback.
+  ///
+  /// In zh, this message translates to:
+  /// **'规则推荐'**
+  String get recommendationsModeFallback;
+
+  /// No description provided for @recommendationsSimilar.
+  ///
+  /// In zh, this message translates to:
+  /// **'相似推荐'**
+  String get recommendationsSimilar;
+
+  /// No description provided for @recommendationsExplore.
+  ///
+  /// In zh, this message translates to:
+  /// **'探索推荐'**
+  String get recommendationsExplore;
+
+  /// No description provided for @recommendationsRefreshed.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐已更新'**
+  String get recommendationsRefreshed;
+
+  /// No description provided for @recommendationsRefreshing.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在刷新推荐'**
+  String get recommendationsRefreshing;
 
   /// No description provided for @settingsResetRecommendations.
   ///

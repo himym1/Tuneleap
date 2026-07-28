@@ -280,6 +280,18 @@ class SZh extends S {
   String get settingsThemeLight => '浅色';
 
   @override
+  String get settingsThemeStyle => '主题风格';
+
+  @override
+  String get settingsThemeClassic => '经典';
+
+  @override
+  String get settingsThemeAmoled => '纯黑';
+
+  @override
+  String get settingsThemeDynamic => '封面取色';
+
+  @override
   String get settingsAudioQuality => '音质设置';
 
   @override
@@ -948,6 +960,27 @@ class SZh extends S {
 
   @override
   String get recommendationsViewAll => '查看全部';
+
+  @override
+  String get recommendationsSubtitle => '根据最近播放和你的反馈生成';
+
+  @override
+  String get recommendationsModeAi => 'AI 推荐';
+
+  @override
+  String get recommendationsModeFallback => '规则推荐';
+
+  @override
+  String get recommendationsSimilar => '相似推荐';
+
+  @override
+  String get recommendationsExplore => '探索推荐';
+
+  @override
+  String get recommendationsRefreshed => '推荐已更新';
+
+  @override
+  String get recommendationsRefreshing => '正在刷新推荐';
 
   @override
   String get settingsResetRecommendations => '重置推荐偏好';

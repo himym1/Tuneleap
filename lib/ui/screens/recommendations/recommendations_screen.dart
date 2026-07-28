@@ -86,6 +86,22 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
     }
   }
 
+  Future<void> _refresh() async {
+    if (ref.read(recommendationProvider).refreshing) return;
+    await ref.read(recommendationProvider.notifier).refresh();
+    if (!mounted) return;
+    final refreshed = ref.read(recommendationProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          refreshed.error == null
+              ? S.of(context).recommendationsRefreshed
+              : S.of(context).commonError,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(recommendationProvider);
@@ -95,18 +111,38 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
         : AppDimensions.paddingDesktop;
     final l10n = S.of(context);
     final visible = state.visibleItems;
+    final similarCount = visible
+        .where((item) => item.type == RecommendationType.similar)
+        .length;
+    final exploreCount = visible.length - similarCount;
+    final modeLabel = state.mode == RecommendationMode.ai
+        ? l10n.recommendationsModeAi
+        : l10n.recommendationsModeFallback;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(l10n.recommendationsTitle),
         actions: [
-          IconButton(
-            tooltip: l10n.commonRefresh,
-            onPressed: () =>
-                ref.read(recommendationProvider.notifier).refresh(),
-            icon: const Icon(Icons.refresh),
-          ),
+          if (state.refreshing)
+            Semantics(
+              label: l10n.recommendationsRefreshing,
+              liveRegion: true,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              tooltip: l10n.commonRefresh,
+              onPressed: backendReady ? _refresh : null,
+              icon: const Icon(Icons.refresh),
+            ),
         ],
       ),
       body: !backendReady
@@ -126,92 +162,178 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
               retryLabel: l10n.recommendationsRetry,
             )
           : visible.isEmpty
-          ? EmptyState(
-              icon: Icons.recommend_outlined,
-              message: l10n.recommendationsEmpty,
-            )
-          : ListView.builder(
-              controller: _scroll,
-              padding: EdgeInsets.fromLTRB(h, 8, h, h),
-              itemCount:
-                  visible.length +
-                  (state.loadingMore || state.loadMoreError != null ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index >= visible.length) {
-                  if (state.loadMoreError != null) {
-                    return TextButton(
-                      onPressed: () =>
-                          ref.read(recommendationProvider.notifier).loadMore(),
-                      child: Text(l10n.recommendationsRetry),
-                    );
-                  }
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final item = visible[index];
-                final origin = _originFor(item, state.sessionId);
-                return SongContextMenu(
-                  song: item.song,
-                  playbackOrigin: origin,
-                  // Menu already performed import; only emit recommendation feedback.
-                  onImported: () {
-                    ref
-                        .read(recommendationProvider.notifier)
-                        .recordFeedback(
-                          item,
-                          RecommendationFeedbackEvent.imported,
-                        );
-                  },
-                  onPlay: () => _playAll(visible, index),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                    leading: ResolvedSongCoverArt(
-                      song: item.song,
-                      size: 52,
-                      borderRadius: 8,
-                    ),
-                    title: Text(
-                      item.song.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      item.song.artist,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () => _playAll(visible, index),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (state.importingCandidateIds.contains(
-                          item.candidateId,
-                        ))
-                          const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        else
-                          IconButton(
-                            tooltip: l10n.recommendationsImport,
-                            icon: const Icon(Icons.library_add_outlined),
-                            onPressed: () => _import(item),
-                          ),
-                        IconButton(
-                          tooltip: l10n.recommendationsDislike,
-                          icon: const Icon(Icons.thumb_down_alt_outlined),
-                          onPressed: () => ref
-                              .read(recommendationProvider.notifier)
-                              .dislike(item),
-                        ),
-                      ],
+          ? RefreshIndicator(
+              onRefresh: _refresh,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyState(
+                      icon: Icons.recommend_outlined,
+                      message: l10n.recommendationsEmpty,
+                      actionLabel: l10n.commonRefresh,
+                      onAction: _refresh,
                     ),
                   ),
-                );
-              },
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView.builder(
+                controller: _scroll,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(h, 8, h, h),
+                itemCount:
+                    visible.length +
+                    1 +
+                    (state.loadingMore || state.loadMoreError != null ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.auto_awesome_rounded,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    modeLabel,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    l10n.recommendationsSubtitle,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      Chip(
+                                        avatar: const Icon(
+                                          Icons.favorite_outline,
+                                          size: 16,
+                                        ),
+                                        label: Text(
+                                          '${l10n.recommendationsSimilar} $similarCount',
+                                        ),
+                                      ),
+                                      Chip(
+                                        avatar: const Icon(
+                                          Icons.explore_outlined,
+                                          size: 16,
+                                        ),
+                                        label: Text(
+                                          '${l10n.recommendationsExplore} $exploreCount',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  final songIndex = index - 1;
+                  if (songIndex >= visible.length) {
+                    if (state.loadMoreError != null) {
+                      return TextButton(
+                        onPressed: () => ref
+                            .read(recommendationProvider.notifier)
+                            .loadMore(),
+                        child: Text(l10n.recommendationsRetry),
+                      );
+                    }
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final item = visible[songIndex];
+                  final origin = _originFor(item, state.sessionId);
+                  final typeLabel = item.type == RecommendationType.similar
+                      ? l10n.recommendationsSimilar
+                      : l10n.recommendationsExplore;
+                  return SongContextMenu(
+                    song: item.song,
+                    playbackOrigin: origin,
+                    onImported: () {
+                      ref
+                          .read(recommendationProvider.notifier)
+                          .recordFeedback(
+                            item,
+                            RecommendationFeedbackEvent.imported,
+                          );
+                    },
+                    onPlay: () => _playAll(visible, songIndex),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                      leading: ResolvedSongCoverArt(
+                        song: item.song,
+                        size: 52,
+                        borderRadius: 8,
+                      ),
+                      title: Text(
+                        item.song.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${item.song.artist} · $typeLabel',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () => _playAll(visible, songIndex),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (state.importingCandidateIds.contains(
+                            item.candidateId,
+                          ))
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else
+                            IconButton(
+                              tooltip: l10n.recommendationsImport,
+                              icon: const Icon(Icons.library_add_outlined),
+                              onPressed: () => _import(item),
+                            ),
+                          IconButton(
+                            tooltip: l10n.recommendationsDislike,
+                            icon: const Icon(Icons.thumb_down_alt_outlined),
+                            onPressed: () => ref
+                                .read(recommendationProvider.notifier)
+                                .dislike(item),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
     );
   }

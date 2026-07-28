@@ -249,6 +249,7 @@ void main() {
     expect(state.items, hasLength(2));
     expect(state.cursor, 'next');
     expect(state.initialLoading, isFalse);
+    expect(state.mode, RecommendationMode.fallback);
   });
 
   test('refresh replaces session with refresh=true', () async {
@@ -277,6 +278,7 @@ void main() {
     expect(state.sessionId, 'new');
     expect(state.items.single.candidateId, 'c9');
     expect(state.cursor, 'c-new');
+    expect(state.mode, RecommendationMode.ai);
   });
 
   test('loadMore is single-flight and appends unique songs', () async {

@@ -19,6 +19,7 @@ class RecommendationState {
     List<RecommendationItem> items = const [],
     this.sessionId,
     this.cursor,
+    this.mode,
     this.initialLoading = false,
     this.loadingMore = false,
     this.refreshing = false,
@@ -37,6 +38,7 @@ class RecommendationState {
   final List<RecommendationItem> items;
   final String? sessionId;
   final String? cursor;
+  final RecommendationMode? mode;
   final bool initialLoading;
   final bool loadingMore;
   final bool refreshing;
@@ -58,6 +60,7 @@ class RecommendationState {
     bool clearSessionId = false,
     String? cursor,
     bool clearCursor = false,
+    RecommendationMode? mode,
     bool? initialLoading,
     bool? loadingMore,
     bool? refreshing,
@@ -75,6 +78,7 @@ class RecommendationState {
       items: List.unmodifiable(items ?? this.items),
       sessionId: clearSessionId ? null : (sessionId ?? this.sessionId),
       cursor: clearCursor ? null : (cursor ?? this.cursor),
+      mode: mode ?? this.mode,
       initialLoading: initialLoading ?? this.initialLoading,
       loadingMore: loadingMore ?? this.loadingMore,
       refreshing: refreshing ?? this.refreshing,
@@ -334,6 +338,7 @@ class RecommendationNotifier extends Notifier<RecommendationState> {
     state = state.copyWith(
       items: existing,
       sessionId: page.sessionId,
+      mode: page.mode,
       cursor: page.nextCursor,
       clearCursor: page.nextCursor == null,
       initialLoading: false,

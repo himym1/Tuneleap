@@ -16,9 +16,9 @@ import 'package:navidrome_player/utils/request_generation.dart';
 
 /// 响应式外壳 — 移动端 BottomNavigationBar / 桌面端侧边栏
 class AppShell extends ConsumerStatefulWidget {
-  final Widget child;
+  final StatefulNavigationShell navigationShell;
 
-  const AppShell({super.key, required this.child});
+  const AppShell({super.key, required this.navigationShell});
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
@@ -194,6 +194,42 @@ class _AppShellState extends ConsumerState<AppShell> {
   bool _isPathSelected(String itemPath, String currentPath) =>
       currentPath.startsWith(itemPath);
 
+  int? _branchIndexForPath(String path) {
+    final uri = path.split('?').first;
+    if (uri == '/recommendations' ||
+        uri == '/playlists' ||
+        uri == '/home' ||
+        uri.startsWith('/home/')) {
+      return 0;
+    }
+    if (uri.startsWith('/library') ||
+        uri.startsWith('/album/') ||
+        uri.startsWith('/artist/')) {
+      return 1;
+    }
+    if (uri == '/search' || uri.startsWith('/search/')) return 2;
+    if (uri == '/settings' ||
+        uri == '/downloads' ||
+        uri == '/servers' ||
+        uri == '/scrobble') {
+      return 3;
+    }
+    return null;
+  }
+
+  /// Branch roots restore the last stack when switching; re-tap resets.
+  void _openDesktopPath(BuildContext context, String path) {
+    final shell = widget.navigationShell;
+    final branch = _branchIndexForPath(path);
+    final isBranchRoot =
+        path == '/home' || path == '/search' || path == '/settings';
+    if (branch != null && isBranchRoot) {
+      shell.goBranch(branch, initialLocation: branch == shell.currentIndex);
+      return;
+    }
+    context.go(path);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Keep recommendation playback observer alive while shell is mounted.
@@ -205,16 +241,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Widget _buildMobileLayout() {
     final playerService = ref.watch(audioPlayerServiceProvider);
-    final location = _currentPath(context);
-
-    int mobileIndex = 0;
-    for (int i = 0; i < _mobileNavItems.length; i++) {
-      if (_isPathSelected(_mobileNavItems[i].path, location) ||
-          (i == 1 && location.startsWith('/library'))) {
-        mobileIndex = i;
-        break;
-      }
-    }
+    final shell = widget.navigationShell;
+    final mobileIndex = shell.currentIndex.clamp(0, _mobileNavItems.length - 1);
 
     return Scaffold(
       body: AnimatedContainer(
@@ -224,12 +252,16 @@ class _AppShellState extends ConsumerState<AppShell> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ref.watch(globalAccentColorProvider).withValues(alpha: 0.15),
+              ref.watch(themePresetProvider) == ThemePreset.amoled
+                  ? context.colors.background
+                  : ref
+                        .watch(globalAccentColorProvider)
+                        .withValues(alpha: 0.15),
               context.colors.background,
             ],
           ),
         ),
-        child: SafeArea(bottom: false, child: widget.child),
+        child: SafeArea(bottom: false, child: shell),
       ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
@@ -283,7 +315,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                         final selected = mobileIndex == i;
                         return Expanded(
                           child: _buildMobileTabItem(item, selected, () {
-                            context.go(item.path);
+                            shell.goBranch(
+                              i,
+                              initialLocation: i == shell.currentIndex,
+                            );
                           }),
                         );
                       }),
@@ -376,7 +411,11 @@ class _AppShellState extends ConsumerState<AppShell> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  ref.watch(globalAccentColorProvider).withValues(alpha: 0.15),
+                  ref.watch(themePresetProvider) == ThemePreset.amoled
+                      ? context.colors.background
+                      : ref
+                            .watch(globalAccentColorProvider)
+                            .withValues(alpha: 0.15),
                   context.colors.background,
                 ],
               ),
@@ -389,7 +428,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                     padding: EdgeInsets.only(
                       top: MediaQuery.of(context).padding.top,
                     ),
-                    child: widget.child,
+                    child: widget.navigationShell,
                   ),
                 ),
               ],
@@ -489,7 +528,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                           (item) => _buildDesktopNavItem(
                             item,
                             _isPathSelected(item.path, location),
-                            () => context.go(item.path),
+                            () => _openDesktopPath(context, item.path),
                           ),
                         ),
 
@@ -501,7 +540,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                           (item) => _buildDesktopNavItem(
                             item,
                             _isPathSelected(item.path, location),
-                            () => context.go(item.path),
+                            () => _openDesktopPath(context, item.path),
                           ),
                         ),
 
@@ -513,7 +552,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                           (item) => _buildDesktopNavItem(
                             item,
                             _isPathSelected(item.path, location),
-                            () => context.go(item.path),
+                            () => _openDesktopPath(context, item.path),
                           ),
                         ),
 
@@ -532,7 +571,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   path: '/settings',
                 ),
                 _isPathSelected('/settings', location),
-                () => context.go('/settings'),
+                () => _openDesktopPath(context, '/settings'),
               ),
               const SizedBox(height: 12),
             ],

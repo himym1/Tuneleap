@@ -10,14 +10,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 class SettingsScreen extends ConsumerWidget {
-  final VoidCallback onLogout;
-
-  const SettingsScreen({super.key, required this.onLogout});
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(serverConfigProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final themePreset = ref.watch(themePresetProvider);
     final appVersion = ref.watch(appVersionProvider);
     final appBuild = ref.watch(appBuildProvider);
     final padding = AppBreakpoints.isMobile(MediaQuery.of(context).size.width)
@@ -168,6 +167,62 @@ class SettingsScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
+                      const Divider(height: 1, indent: 54),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Tooltip(
+                              message: S.of(context).settingsThemeStyle,
+                              child: Icon(
+                                Icons.color_lens_outlined,
+                                size: 22,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<ThemePreset>(
+                                  value: themePreset,
+                                  isExpanded: true,
+                                  items: [
+                                    DropdownMenuItem(
+                                      value: ThemePreset.classic,
+                                      child: Text(
+                                        S.of(context).settingsThemeClassic,
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: ThemePreset.amoled,
+                                      child: Text(
+                                        S.of(context).settingsThemeAmoled,
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: ThemePreset.dynamic,
+                                      child: Text(
+                                        S.of(context).settingsThemeDynamic,
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (preset) {
+                                    if (preset == null) return;
+                                    ref
+                                        .read(themePresetProvider.notifier)
+                                        .setPreset(preset);
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
 
@@ -247,9 +302,14 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed == true) {
-      await ref.read(serverConfigProvider.notifier).clear();
-      onLogout();
+    if (confirmed != true) return;
+    try {
+      await ref.read(authProvider.notifier).signOut();
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(S.of(context).commonError)));
     }
   }
 }

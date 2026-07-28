@@ -97,8 +97,8 @@ class MultiServerScreen extends ConsumerWidget {
                       ? null
                       : () => _confirmDelete(context, ref, server),
                   onSwitch: () => ref
-                      .read(serversListProvider.notifier)
-                      .setActive(server.id),
+                      .read(authProvider.notifier)
+                      .activateServer(server.id),
                 ),
               ),
             ),

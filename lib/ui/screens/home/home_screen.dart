@@ -217,7 +217,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               label: album.name,
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
-                onTap: () => context.push('/album/${album.id}'),
+                onTap: () => context.push('/home/album/${album.id}'),
                 child: SizedBox(
                   width: 130,
                   child: Column(

@@ -282,6 +282,18 @@ class SEn extends S {
   String get settingsThemeLight => 'Light';
 
   @override
+  String get settingsThemeStyle => 'Theme style';
+
+  @override
+  String get settingsThemeClassic => 'Classic';
+
+  @override
+  String get settingsThemeAmoled => 'AMOLED';
+
+  @override
+  String get settingsThemeDynamic => 'Artwork';
+
+  @override
   String get settingsAudioQuality => 'Audio Quality';
 
   @override
@@ -962,6 +974,28 @@ class SEn extends S {
 
   @override
   String get recommendationsViewAll => 'View all';
+
+  @override
+  String get recommendationsSubtitle =>
+      'Based on your recent listening and feedback';
+
+  @override
+  String get recommendationsModeAi => 'AI recommendations';
+
+  @override
+  String get recommendationsModeFallback => 'Rule-based recommendations';
+
+  @override
+  String get recommendationsSimilar => 'Similar';
+
+  @override
+  String get recommendationsExplore => 'Explore';
+
+  @override
+  String get recommendationsRefreshed => 'Recommendations updated';
+
+  @override
+  String get recommendationsRefreshing => 'Refreshing recommendations';
 
   @override
   String get settingsResetRecommendations => 'Reset recommendation preferences';
