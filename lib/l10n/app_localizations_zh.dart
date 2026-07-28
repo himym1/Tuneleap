@@ -923,6 +923,15 @@ class SZh extends S {
   String get updateDownload => '下载更新';
 
   @override
+  String get updateInstall => '立即安装';
+
+  @override
+  String get updateInstalling => '正在打开安装包...';
+
+  @override
+  String get updateAlreadyDownloaded => '安装包已下载完成，可直接安装，无需重新下载。';
+
+  @override
   String get updateLatest => '已是最新版本';
 
   @override

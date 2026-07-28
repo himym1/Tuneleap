@@ -1801,6 +1801,24 @@ abstract class S {
   /// **'下载更新'**
   String get updateDownload;
 
+  /// No description provided for @updateInstall.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即安装'**
+  String get updateInstall;
+
+  /// No description provided for @updateInstalling.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在打开安装包...'**
+  String get updateInstalling;
+
+  /// No description provided for @updateAlreadyDownloaded.
+  ///
+  /// In zh, this message translates to:
+  /// **'安装包已下载完成，可直接安装，无需重新下载。'**
+  String get updateAlreadyDownloaded;
+
   /// No description provided for @updateLatest.
   ///
   /// In zh, this message translates to:

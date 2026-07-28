@@ -179,4 +179,42 @@ void main() {
       isFalse,
     );
   });
+
+  test('reuses a cached package with matching sha256', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'update-cache-test',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final destination = '${directory.path}/release.apk';
+    final bytes = utf8.encode('cached release');
+    final checksum = sha256.convert(bytes).toString();
+    await File(destination).writeAsBytes(bytes);
+
+    var downloads = 0;
+    final dio = Dio()
+      ..httpClientAdapter = _CaptureAdapter((_) async {
+        downloads += 1;
+        return ResponseBody.fromBytes(bytes, 200);
+      });
+    final info = AppUpdateInfo(
+      version: '1.0.5',
+      build: 3,
+      url:
+          'https://player.himym.us.ci/releases/navidrome_player-1.0.5+3-android.apk',
+      sha256: checksum,
+    );
+
+    final cached = await findCachedUpdate(info, savePath: destination);
+    expect(cached, destination);
+
+    final path = await downloadUpdate(
+      info,
+      apiKey: 'private-key',
+      dio: dio,
+      savePathOverride: destination,
+    );
+
+    expect(path, destination);
+    expect(downloads, 0);
+  });
 }
