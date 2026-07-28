@@ -1,6 +1,6 @@
 # ADR 0002: Verified Online Recommendation Pipeline
 
-- Status: Accepted
+- Status: Superseded by ADR 0003
 - Date: 2026-07-21
 - Amended: 2026-07-21 (staged first-page fill)
 - Worktree commits:

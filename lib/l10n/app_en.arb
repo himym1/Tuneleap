@@ -394,8 +394,6 @@
     "recommendationsRetry": "Retry",
     "recommendationsDislike": "Dislike",
     "recommendationsImport": "Import",
-    "recommendationsModeAi": "AI",
-    "recommendationsModeFallback": "Basic recommendation",
     "recommendationsViewAll": "View all",
     "settingsResetRecommendations": "Reset recommendation preferences",
     "settingsResetRecommendationsConfirm": "Reset recommendation preferences? Songs, downloads, play history, and server settings are not affected.",

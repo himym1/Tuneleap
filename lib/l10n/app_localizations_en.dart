@@ -961,12 +961,6 @@ class SEn extends S {
   String get recommendationsImport => 'Import';
 
   @override
-  String get recommendationsModeAi => 'AI';
-
-  @override
-  String get recommendationsModeFallback => 'Basic recommendation';
-
-  @override
   String get recommendationsViewAll => 'View all';
 
   @override

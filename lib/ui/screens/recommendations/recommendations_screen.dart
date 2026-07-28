@@ -7,7 +7,6 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/player/playback_origin.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
-import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
@@ -102,18 +101,6 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
       appBar: AppBar(
         title: Text(l10n.recommendationsTitle),
         actions: [
-          if (state.mode != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Center(
-                child: Text(
-                  state.mode == RecommendationMode.ai
-                      ? l10n.recommendationsModeAi
-                      : l10n.recommendationsModeFallback,
-                  style: Theme.of(context).textTheme.chipLabel,
-                ),
-              ),
-            ),
           IconButton(
             tooltip: l10n.commonRefresh,
             onPressed: () =>
