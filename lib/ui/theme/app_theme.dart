@@ -47,13 +47,17 @@ class AppColors {
 }
 
 class AppTheme {
-  static ThemeData light() {
+  static ThemeData light({Color? seedColor}) {
+    final useSchemeBrand = seedColor != null;
     final base = ThemeData(
       useMaterial3: true,
-      colorSchemeSeed: AppColors.secondary,
+      colorSchemeSeed: seedColor ?? AppColors.secondary,
       brightness: Brightness.light,
       fontFamily: 'Poppins',
     );
+    final primary = useSchemeBrand
+        ? base.colorScheme.primary
+        : AppColors.primary;
     return base.copyWith(
       cardTheme: CardThemeData(
         color: base.colorScheme.surfaceContainerHigh,
@@ -82,16 +86,17 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: primary, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: base.colorScheme.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         titleTextStyle: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -121,17 +126,41 @@ class AppTheme {
         trackColor: WidgetStateProperty.all(Colors.transparent),
         crossAxisMargin: 2,
       ),
-      extensions: [AppSemanticColors._fromScheme(base.colorScheme)],
+      extensions: [
+        AppSemanticColors._fromScheme(
+          base.colorScheme,
+          useSchemeBrand: useSchemeBrand,
+        ),
+      ],
     );
   }
 
-  static ThemeData dark() {
+  static ThemeData dark({Color? seedColor, bool amoled = false}) {
+    final useSchemeBrand = seedColor != null;
+    final generated = ColorScheme.fromSeed(
+      seedColor: seedColor ?? AppColors.secondary,
+      brightness: Brightness.dark,
+    );
+    final scheme = amoled
+        ? generated.copyWith(
+            surface: Colors.black,
+            surfaceDim: Colors.black,
+            surfaceBright: const Color(0xFF242424),
+            surfaceContainerLowest: Colors.black,
+            surfaceContainerLow: const Color(0xFF050505),
+            surfaceContainer: const Color(0xFF0A0A0A),
+            surfaceContainerHigh: const Color(0xFF111111),
+            surfaceContainerHighest: const Color(0xFF1A1A1A),
+          )
+        : generated;
     final base = ThemeData(
       useMaterial3: true,
-      colorSchemeSeed: AppColors.secondary,
-      brightness: Brightness.dark,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: scheme.surface,
       fontFamily: 'Poppins',
     );
+    final primary = useSchemeBrand ? scheme.primary : AppColors.primary;
+    final accent = useSchemeBrand ? scheme.tertiary : AppColors.accent;
     return base.copyWith(
       cardTheme: CardThemeData(
         color: base.colorScheme.surfaceContainerHigh,
@@ -160,13 +189,16 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: primary, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       sliderTheme: SliderThemeData(
-        activeTrackColor: AppColors.accent,
-        thumbColor: AppColors.accent,
+        activeTrackColor: accent,
+        thumbColor: accent,
         inactiveTrackColor: base.colorScheme.surfaceContainerHighest,
       ),
       scrollbarTheme: ScrollbarThemeData(
@@ -187,7 +219,12 @@ class AppTheme {
           textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12)),
         ),
       ),
-      extensions: [AppSemanticColors._fromScheme(base.colorScheme)],
+      extensions: [
+        AppSemanticColors._fromScheme(
+          base.colorScheme,
+          useSchemeBrand: useSchemeBrand,
+        ),
+      ],
     );
   }
 }
@@ -203,25 +240,21 @@ extension AppTextStyles on TextTheme {
   TextStyle get sectionSubheader =>
       const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
-  TextStyle get chipLabel =>
-      const TextStyle(fontSize: 13);
+  TextStyle get chipLabel => const TextStyle(fontSize: 13);
 
   // ── Stats / values ──
   TextStyle get statValue =>
       const TextStyle(fontSize: 20, fontWeight: FontWeight.w700);
 
-  TextStyle get segmentLabel =>
-      const TextStyle(fontSize: 12);
+  TextStyle get segmentLabel => const TextStyle(fontSize: 12);
 
   // ── Song list items ──
   TextStyle get songTitle =>
       const TextStyle(fontSize: 14, fontWeight: FontWeight.w500);
 
-  TextStyle get songSubtitle =>
-      const TextStyle(fontSize: 12);
+  TextStyle get songSubtitle => const TextStyle(fontSize: 12);
 
-  TextStyle get songDuration =>
-      const TextStyle(fontSize: 12);
+  TextStyle get songDuration => const TextStyle(fontSize: 12);
 
   // ── Player-specific ──
   TextStyle get playerSongName =>
@@ -236,11 +269,9 @@ extension AppTextStyles on TextTheme {
   TextStyle get playerQueueHeader =>
       const TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
 
-  TextStyle get playerTimestamp =>
-      const TextStyle(fontSize: 12);
+  TextStyle get playerTimestamp => const TextStyle(fontSize: 12);
 
-  TextStyle get playerSubtitle =>
-      const TextStyle(fontSize: 14);
+  TextStyle get playerSubtitle => const TextStyle(fontSize: 14);
 
   // ── Settings (kept for backward compat) ──
   TextStyle get settingsPageTitle => pageTitle;
@@ -309,30 +340,44 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     required this.navigationIndicator,
   });
 
-  /// Brand tokens from AppColors + surface/on* from Material ColorScheme.
-  factory AppSemanticColors._fromScheme(ColorScheme scheme) =>
-      AppSemanticColors(
-        primary: AppColors.primary,
-        secondary: AppColors.secondary,
-        accent: AppColors.accent,
-        success: AppColors.success,
-        background: scheme.surface,
-        surface: scheme.surfaceContainerLow,
-        surfaceContainer: scheme.surfaceContainerHigh,
-        onBackground: scheme.onSurface,
-        onSurface: scheme.onSurface,
-        onSurfaceVariant: scheme.onSurfaceVariant,
-        error: AppColors.error,
-        onEmphasis: AppColors.onEmphasis,
-        onEmphasisMuted: AppColors.onEmphasisMuted,
-        shadowSoft: AppColors.shadowSoft,
-        shadowStrong: AppColors.shadowStrong,
-        primarySoft: AppColors.primarySoft,
-        primarySoftAlt: AppColors.primarySoftAlt,
-        primarySoftSubtle: AppColors.primarySoftSubtle,
-        errorSoft: AppColors.errorSoft,
-        navigationIndicator: AppColors.navigationIndicator,
-      );
+  /// Brand tokens from AppColors, or generated scheme colors for dynamic mode.
+  factory AppSemanticColors._fromScheme(
+    ColorScheme scheme, {
+    bool useSchemeBrand = false,
+  }) {
+    return AppSemanticColors(
+      primary: useSchemeBrand ? scheme.primary : AppColors.primary,
+      secondary: useSchemeBrand ? scheme.secondary : AppColors.secondary,
+      accent: useSchemeBrand ? scheme.tertiary : AppColors.accent,
+      success: AppColors.success,
+      background: scheme.surface,
+      surface: scheme.surfaceContainerLow,
+      surfaceContainer: scheme.surfaceContainerHigh,
+      onBackground: scheme.onSurface,
+      onSurface: scheme.onSurface,
+      onSurfaceVariant: scheme.onSurfaceVariant,
+      error: AppColors.error,
+      onEmphasis: useSchemeBrand ? scheme.onPrimary : AppColors.onEmphasis,
+      onEmphasisMuted: useSchemeBrand
+          ? scheme.onPrimary.withValues(alpha: 0.70)
+          : AppColors.onEmphasisMuted,
+      shadowSoft: AppColors.shadowSoft,
+      shadowStrong: AppColors.shadowStrong,
+      primarySoft: useSchemeBrand
+          ? scheme.primary.withValues(alpha: 0.10)
+          : AppColors.primarySoft,
+      primarySoftAlt: useSchemeBrand
+          ? scheme.primary.withValues(alpha: 0.08)
+          : AppColors.primarySoftAlt,
+      primarySoftSubtle: useSchemeBrand
+          ? scheme.primary.withValues(alpha: 0.06)
+          : AppColors.primarySoftSubtle,
+      errorSoft: AppColors.errorSoft,
+      navigationIndicator: useSchemeBrand
+          ? scheme.primaryContainer
+          : AppColors.navigationIndicator,
+    );
+  }
 
   @override
   AppSemanticColors copyWith({
@@ -391,10 +436,18 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       success: Color.lerp(success, other.success, t)!,
       background: Color.lerp(background, other.background, t)!,
       surface: Color.lerp(surface, other.surface, t)!,
-      surfaceContainer: Color.lerp(surfaceContainer, other.surfaceContainer, t)!,
+      surfaceContainer: Color.lerp(
+        surfaceContainer,
+        other.surfaceContainer,
+        t,
+      )!,
       onBackground: Color.lerp(onBackground, other.onBackground, t)!,
       onSurface: Color.lerp(onSurface, other.onSurface, t)!,
-      onSurfaceVariant: Color.lerp(onSurfaceVariant, other.onSurfaceVariant, t)!,
+      onSurfaceVariant: Color.lerp(
+        onSurfaceVariant,
+        other.onSurfaceVariant,
+        t,
+      )!,
       error: Color.lerp(error, other.error, t)!,
       onEmphasis: Color.lerp(onEmphasis, other.onEmphasis, t)!,
       onEmphasisMuted: Color.lerp(onEmphasisMuted, other.onEmphasisMuted, t)!,
@@ -402,9 +455,17 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       shadowStrong: Color.lerp(shadowStrong, other.shadowStrong, t)!,
       primarySoft: Color.lerp(primarySoft, other.primarySoft, t)!,
       primarySoftAlt: Color.lerp(primarySoftAlt, other.primarySoftAlt, t)!,
-      primarySoftSubtle: Color.lerp(primarySoftSubtle, other.primarySoftSubtle, t)!,
+      primarySoftSubtle: Color.lerp(
+        primarySoftSubtle,
+        other.primarySoftSubtle,
+        t,
+      )!,
       errorSoft: Color.lerp(errorSoft, other.errorSoft, t)!,
-      navigationIndicator: Color.lerp(navigationIndicator, other.navigationIndicator, t)!,
+      navigationIndicator: Color.lerp(
+        navigationIndicator,
+        other.navigationIndicator,
+        t,
+      )!,
     );
   }
 }

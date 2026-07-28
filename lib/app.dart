@@ -55,6 +55,26 @@ Widget _fadeThroughTransition(
 
 const _kFadeDuration = Duration(milliseconds: 250);
 
+CustomTransitionPage<void> _detailSlidePage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.05),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+        child: FadeTransition(opacity: animation, child: child),
+      );
+    },
+    transitionDuration: const Duration(milliseconds: 250),
+  );
+}
+
 class NavidromePlayerApp extends ConsumerStatefulWidget {
   const NavidromePlayerApp({super.key});
 
@@ -63,59 +83,66 @@ class NavidromePlayerApp extends ConsumerStatefulWidget {
 }
 
 class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
-  bool _initialized = false;
-  bool _loggedIn = false;
   late final GoRouter _router;
+  late final ProviderSubscription<AsyncValue<AuthStatus>> _authSubscription;
+  final _authRefresh = ValueNotifier<int>(0);
   final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
   @override
   void initState() {
     super.initState();
     _router = _buildRouter();
+    _authSubscription = ref.listenManual(authProvider, (previous, next) {
+      _authRefresh.value++;
+    });
     _initPlatform();
   }
 
+  @override
+  void dispose() {
+    _authSubscription.close();
+    _authRefresh.dispose();
+    _router.dispose();
+    super.dispose();
+  }
+
   Future<void> _initPlatform() async {
-    if (isDesktop) {
-      final strings = systemLocalizations();
-      await windowManager.ensureInitialized();
-      await windowManager.setMinimumSize(const Size(800, 600));
-      await windowManager.setSize(const Size(1200, 800));
-      await windowManager.setTitle(strings.appName);
-      await windowManager.show();
-    }
-
-    final config = ref.read(serverConfigProvider);
-    if (config.isConfigured) {
-      final client = ref.read(subsonicClientProvider);
-      final ok = await client.ping();
-      if (ok) {
-        _loggedIn = true;
-      }
-    }
-
-    setState(() => _initialized = true);
+    if (!isDesktop) return;
+    final strings = systemLocalizations();
+    await windowManager.ensureInitialized();
+    await windowManager.setMinimumSize(const Size(800, 600));
+    await windowManager.setSize(const Size(1200, 800));
+    await windowManager.setTitle(strings.appName);
+    await windowManager.show();
   }
 
   GoRouter _buildRouter() {
     return GoRouter(
       navigatorKey: _rootNavigatorKey,
       initialLocation: '/home',
+      refreshListenable: _authRefresh,
       redirect: (context, state) {
-        if (!_initialized) return null;
-        if (!_loggedIn && state.uri.toString() != '/login') return '/login';
-        if (_loggedIn && state.uri.toString() == '/login') return '/home';
-        return null;
+        return ref
+            .read(authProvider)
+            .when(
+              data: (status) {
+                final onLogin = state.uri.path == '/login';
+                if (status == AuthStatus.unauthenticated && !onLogin) {
+                  return '/login';
+                }
+                if (status == AuthStatus.authenticated && onLogin) {
+                  return '/home';
+                }
+                return null;
+              },
+              loading: () => null,
+              error: (_, _) => state.uri.path == '/login' ? null : '/login',
+            );
       },
       routes: [
         GoRoute(
           path: '/login',
-          builder: (context, state) => LoginScreen(
-            onLoginSuccess: () {
-              setState(() => _loggedIn = true);
-              _router.go('/home');
-            },
-          ),
+          builder: (context, state) => const LoginScreen(),
         ),
         GoRoute(
           path: '/player',
@@ -142,206 +169,210 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                 },
           ),
         ),
-        ShellRoute(
-          builder: (context, state, child) => AppShell(child: child),
-          routes: [
-            GoRoute(
-              path: '/recommendations',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const RecommendationsScreen(),
-                transitionsBuilder: _fadeThroughTransition,
-                transitionDuration: _kFadeDuration,
-              ),
-            ),
-            GoRoute(
-              path: '/home',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const HomeScreen(),
-                transitionsBuilder: _fadeThroughTransition,
-                transitionDuration: _kFadeDuration,
-              ),
-            ),
-            GoRoute(
-              path: '/library',
-              redirect: (context, state) {
-                if (state.uri.toString() == '/library') {
-                  return '/library/songs';
-                }
-                return null;
-              },
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const LibraryScreen(),
-                transitionsBuilder: _fadeThroughTransition,
-                transitionDuration: _kFadeDuration,
-              ),
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) =>
+              AppShell(navigationShell: navigationShell),
+          branches: [
+            // 0 Home hub — keeps recommendations/playlists with home stack
+            StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: 'songs',
+                  path: '/home',
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
-                    child: const LibrarySongsScreen(),
+                    child: const HomeScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                  routes: [
+                    GoRoute(
+                      path: 'album/:id',
+                      pageBuilder: (context, state) => _detailSlidePage(
+                        key: state.pageKey,
+                        child: AlbumDetailScreen(
+                          albumId: state.pathParameters['id']!,
+                        ),
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'artist/:id',
+                      pageBuilder: (context, state) => _detailSlidePage(
+                        key: state.pageKey,
+                        child: ArtistDetailScreen(
+                          artistId: state.pathParameters['id']!,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                GoRoute(
+                  path: '/recommendations',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const RecommendationsScreen(),
                     transitionsBuilder: _fadeThroughTransition,
                     transitionDuration: _kFadeDuration,
                   ),
                 ),
                 GoRoute(
-                  path: 'albums',
+                  path: '/playlists',
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
-                    child: const LibraryAlbumsScreen(),
-                    transitionsBuilder: _fadeThroughTransition,
-                    transitionDuration: _kFadeDuration,
-                  ),
-                ),
-                GoRoute(
-                  path: 'artists',
-                  pageBuilder: (context, state) => CustomTransitionPage(
-                    key: state.pageKey,
-                    child: const LibraryArtistsScreen(),
-                    transitionsBuilder: _fadeThroughTransition,
-                    transitionDuration: _kFadeDuration,
-                  ),
-                ),
-                GoRoute(
-                  path: 'album-artists',
-                  pageBuilder: (context, state) => CustomTransitionPage(
-                    key: state.pageKey,
-                    child: const LibraryAlbumArtistsScreen(),
-                    transitionsBuilder: _fadeThroughTransition,
-                    transitionDuration: _kFadeDuration,
-                  ),
-                ),
-                GoRoute(
-                  path: 'genres',
-                  pageBuilder: (context, state) => CustomTransitionPage(
-                    key: state.pageKey,
-                    child: const LibraryGenresScreen(),
-                    transitionsBuilder: _fadeThroughTransition,
-                    transitionDuration: _kFadeDuration,
-                  ),
-                ),
-                GoRoute(
-                  path: 'radio',
-                  pageBuilder: (context, state) => CustomTransitionPage(
-                    key: state.pageKey,
-                    child: const LibraryRadioScreen(),
+                    child: const PlaylistsScreen(),
                     transitionsBuilder: _fadeThroughTransition,
                     transitionDuration: _kFadeDuration,
                   ),
                 ),
               ],
             ),
-            GoRoute(
-              path: '/search',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const SearchScreen(),
-                transitionsBuilder: _fadeThroughTransition,
-                transitionDuration: _kFadeDuration,
-              ),
-            ),
-            GoRoute(
-              path: '/playlists',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const PlaylistsScreen(),
-                transitionsBuilder: _fadeThroughTransition,
-                transitionDuration: _kFadeDuration,
-              ),
-            ),
-            GoRoute(
-              path: '/downloads',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const DownloadsScreen(),
-                transitionsBuilder: _fadeThroughTransition,
-                transitionDuration: _kFadeDuration,
-              ),
-            ),
-            GoRoute(
-              path: '/scrobble',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const ScrobbleScreen(),
-                transitionsBuilder: _fadeThroughTransition,
-                transitionDuration: _kFadeDuration,
-              ),
-            ),
-            GoRoute(
-              path: '/servers',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const MultiServerScreen(),
-                transitionsBuilder: _fadeThroughTransition,
-                transitionDuration: _kFadeDuration,
-              ),
-            ),
-            GoRoute(
-              path: '/album/:id',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: AlbumDetailScreen(albumId: state.pathParameters['id']!),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      return SlideTransition(
-                        position:
-                            Tween<Offset>(
-                              begin: const Offset(0, 0.05),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOut,
-                              ),
-                            ),
-                        child: FadeTransition(opacity: animation, child: child),
-                      );
-                    },
-                transitionDuration: const Duration(milliseconds: 250),
-              ),
-            ),
-            GoRoute(
-              path: '/artist/:id',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: ArtistDetailScreen(
-                  artistId: state.pathParameters['id']!,
-                ),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      return SlideTransition(
-                        position:
-                            Tween<Offset>(
-                              begin: const Offset(0, 0.05),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOut,
-                              ),
-                            ),
-                        child: FadeTransition(opacity: animation, child: child),
-                      );
-                    },
-                transitionDuration: const Duration(milliseconds: 250),
-              ),
-            ),
-            GoRoute(
-              path: '/settings',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: SettingsScreen(
-                  onLogout: () {
-                    setState(() => _loggedIn = false);
-                    _router.go('/login');
+            // 1 Library — album/artist detail share this stack
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/library',
+                  redirect: (context, state) {
+                    if (state.uri.toString() == '/library') {
+                      return '/library/songs';
+                    }
+                    return null;
                   },
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                  routes: [
+                    GoRoute(
+                      path: 'songs',
+                      pageBuilder: (context, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const LibrarySongsScreen(),
+                        transitionsBuilder: _fadeThroughTransition,
+                        transitionDuration: _kFadeDuration,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'albums',
+                      pageBuilder: (context, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const LibraryAlbumsScreen(),
+                        transitionsBuilder: _fadeThroughTransition,
+                        transitionDuration: _kFadeDuration,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'artists',
+                      pageBuilder: (context, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const LibraryArtistsScreen(),
+                        transitionsBuilder: _fadeThroughTransition,
+                        transitionDuration: _kFadeDuration,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'album-artists',
+                      pageBuilder: (context, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const LibraryAlbumArtistsScreen(),
+                        transitionsBuilder: _fadeThroughTransition,
+                        transitionDuration: _kFadeDuration,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'genres',
+                      pageBuilder: (context, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const LibraryGenresScreen(),
+                        transitionsBuilder: _fadeThroughTransition,
+                        transitionDuration: _kFadeDuration,
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'radio',
+                      pageBuilder: (context, state) => CustomTransitionPage(
+                        key: state.pageKey,
+                        child: const LibraryRadioScreen(),
+                        transitionsBuilder: _fadeThroughTransition,
+                        transitionDuration: _kFadeDuration,
+                      ),
+                    ),
+                  ],
                 ),
-                transitionsBuilder: _fadeThroughTransition,
-                transitionDuration: _kFadeDuration,
-              ),
+                GoRoute(
+                  path: '/album/:id',
+                  pageBuilder: (context, state) => _detailSlidePage(
+                    key: state.pageKey,
+                    child: AlbumDetailScreen(
+                      albumId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ),
+                GoRoute(
+                  path: '/artist/:id',
+                  pageBuilder: (context, state) => _detailSlidePage(
+                    key: state.pageKey,
+                    child: ArtistDetailScreen(
+                      artistId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // 2 Search
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/search',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const SearchScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+              ],
+            ),
+            // 3 Settings hub — tools share settings branch stack
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/settings',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const SettingsScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/downloads',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const DownloadsScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/servers',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const MultiServerScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/scrobble',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const ScrobbleScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -352,12 +383,24 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
+    final themePreset = ref.watch(themePresetProvider);
+    final dynamicAccent = ref.watch(globalAccentColorProvider);
+    final seedColor = themePreset == ThemePreset.dynamic ? dynamicAccent : null;
+    final effectiveThemeMode = themePreset == ThemePreset.amoled
+        ? ThemeMode.dark
+        : themeMode;
+    final lightTheme = AppTheme.light(seedColor: seedColor);
+    final darkTheme = AppTheme.dark(
+      seedColor: seedColor,
+      amoled: themePreset == ThemePreset.amoled,
+    );
+    final auth = ref.watch(authProvider);
 
-    if (!_initialized) {
+    if (auth.isLoading) {
       return MaterialApp(
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
-        themeMode: themeMode,
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        themeMode: effectiveThemeMode,
         localizationsDelegates: S.localizationsDelegates,
         supportedLocales: S.supportedLocales,
         home: const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -366,9 +409,9 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
 
     return MaterialApp.router(
       onGenerateTitle: (context) => S.of(context).appName,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: themeMode,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: effectiveThemeMode,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: S.localizationsDelegates,
       supportedLocales: S.supportedLocales,

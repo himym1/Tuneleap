@@ -5,9 +5,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  final VoidCallback onLoginSuccess;
-
-  const LoginScreen({super.key, required this.onLoginSuccess});
+  const LoginScreen({super.key});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -62,7 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         return;
       }
 
-      await ref.read(serverConfigProvider.notifier).save(
+      final ok = await ref.read(authProvider.notifier).signIn(
         url: url,
         username: username,
         password: password,
@@ -70,18 +68,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         backendApiKey: backendApiKey,
       );
 
-      final client = ref.read(subsonicClientProvider);
-      final ok = await client.ping();
-
-      if (ok) {
-        widget.onLoginSuccess();
-      } else {
+      if (!mounted) return;
+      if (!ok) {
         setState(() => _error = s.loginFailed);
       }
     } catch (e) {
-      setState(() => _error = s.loginError(e.toString()));
+      if (mounted) setState(() => _error = s.loginError(e.toString()));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 

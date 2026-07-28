@@ -90,7 +90,7 @@ void main() {
   });
 
   test(
-    'logout forgets the active server credentials but keeps the entry',
+    'clear forgets the active server credentials but keeps the entry',
     () async {
       SharedPreferences.setMockInitialValues({
         'servers_list': jsonEncode([

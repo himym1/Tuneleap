@@ -33,3 +33,29 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
     state = mode;
   }
 }
+
+enum ThemePreset { classic, amoled, dynamic }
+
+final themePresetProvider = NotifierProvider<ThemePresetNotifier, ThemePreset>(
+  ThemePresetNotifier.new,
+);
+
+class ThemePresetNotifier extends Notifier<ThemePreset> {
+  @override
+  ThemePreset build() {
+    final value = ref
+        .watch(sharedPreferencesProvider)
+        .getString('theme_preset');
+    return ThemePreset.values
+            .where((preset) => preset.name == value)
+            .firstOrNull ??
+        ThemePreset.classic;
+  }
+
+  Future<void> setPreset(ThemePreset preset) async {
+    await ref
+        .read(sharedPreferencesProvider)
+        .setString('theme_preset', preset.name);
+    state = preset;
+  }
+}

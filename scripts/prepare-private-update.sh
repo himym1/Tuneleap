@@ -51,7 +51,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "推荐改为稳定算法，更新服务迁移到新域名，并提升多设备分页推荐的一致性。",
+    "changelog": "统一登录鉴权，新增经典/纯黑/封面取色主题，主导航独立页面栈，并优化推荐刷新与展示。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
