@@ -94,6 +94,32 @@ void main() {
     },
   );
 
+  test('update metadata follows configured cloud origin', () async {
+    final dio = Dio()
+      ..httpClientAdapter = _CaptureAdapter((options) async {
+        expect(
+          options.uri.toString(),
+          'https://cloud.example.com/version.json',
+        );
+        return ResponseBody.fromString(
+          jsonEncode(_metadata(host: 'cloud.example.com')),
+          200,
+          headers: {
+            Headers.contentTypeHeader: ['application/json'],
+          },
+        );
+      });
+
+    final info = await checkForUpdate(
+      apiKey: 'cloud-key',
+      updateOrigin: 'https://cloud.example.com/',
+      dio: dio,
+    );
+
+    expect(info, isNotNull);
+    expect(info!.trustedOrigin, 'https://cloud.example.com');
+  });
+
   test(
     'artifact download is authenticated, non-redirecting, and verified',
     () async {

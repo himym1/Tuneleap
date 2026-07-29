@@ -1234,26 +1234,50 @@ abstract class S {
   /// No description provided for @backendUrl.
   ///
   /// In zh, this message translates to:
-  /// **'在线后端地址'**
+  /// **'云端 API 地址'**
   String get backendUrl;
 
   /// No description provided for @backendUrlHint.
   ///
   /// In zh, this message translates to:
-  /// **'可选，默认使用 Navidrome 主机的 8503 端口'**
+  /// **'navidrome-cloud 公网地址，例如 https://cloud.example.com'**
   String get backendUrlHint;
 
   /// No description provided for @backendApiKey.
   ///
   /// In zh, this message translates to:
-  /// **'在线后端 API Key'**
+  /// **'云端 API Key'**
   String get backendApiKey;
 
   /// No description provided for @backendApiKeyHint.
   ///
   /// In zh, this message translates to:
-  /// **'与 Navidrome 密码分开保存'**
+  /// **'与 Navidrome 密码、NAS Agent Key 分开保存'**
   String get backendApiKeyHint;
+
+  /// No description provided for @nasAgentUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'NAS Agent 地址'**
+  String get nasAgentUrl;
+
+  /// No description provided for @nasAgentUrlHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'可选，默认使用 Navidrome 主机的 8503 端口'**
+  String get nasAgentUrlHint;
+
+  /// No description provided for @nasAgentKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'NAS Agent Key'**
+  String get nasAgentKey;
+
+  /// No description provided for @nasAgentKeyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅用于导入/删除，与云端 API Key 分开'**
+  String get nasAgentKeyHint;
 
   /// No description provided for @serverUrlExample.
   ///

@@ -28,6 +28,13 @@ Subsonic/Navidrome API 对接文档和服务端兼容性说明。
 - [音频播放架构](./guides/audio-playback.md)
 - [平台适配](./guides/platform-adaptation.md)
 
+### [架构决策 ADR](./adr/)
+已接受的架构决策记录（不是开发排期）。
+- [0001 多服务器会话隔离](./adr/0001-multi-server-session-isolation.md)
+- [0002 在线推荐管线（已由 0003 取代）](./adr/0002-verified-online-recommendation-pipeline.md)
+- [0003 确定性在线推荐算法](./adr/0003-deterministic-online-recommendation-algorithm.md)
+- [0004 云端控制面 + NAS Agent](./adr/0004-cloud-control-plane-and-nas-agent.md)
+
 ### [开发笔记](./notes/)
 技术决策记录、插件选型、架构演进等开发过程中的思考。
 - [路由方案决策](./notes/routing-decision.md)

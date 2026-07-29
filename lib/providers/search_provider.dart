@@ -5,34 +5,41 @@ import 'audio_providers.dart';
 import 'server_config_provider.dart';
 
 // ============================================================
-// 搜索状态管理 — 仅在线搜索（网易云/酷我/JOOX）
+// 搜索状态管理 — cloud first-success（ADR-0004）
 // ============================================================
 
 class SearchState {
   final List<Song> songs;
   final bool searching;
+  final String? provider;
+  final String? error;
 
   const SearchState({
     this.songs = const [],
     this.searching = false,
+    this.provider,
+    this.error,
   });
 
   SearchState copyWith({
     List<Song>? songs,
     bool? searching,
+    String? provider,
+    String? error,
     bool clearResult = false,
   }) {
     return SearchState(
       songs: clearResult ? const [] : (songs ?? this.songs),
       searching: clearResult ? false : (searching ?? this.searching),
+      provider: clearResult ? null : (provider ?? this.provider),
+      error: clearResult ? null : error,
     );
   }
 }
 
-final searchProvider =
-    NotifierProvider<SearchNotifier, SearchState>(
-      SearchNotifier.new,
-    );
+final searchProvider = NotifierProvider<SearchNotifier, SearchState>(
+  SearchNotifier.new,
+);
 
 class SearchNotifier extends Notifier<SearchState> {
   CancelToken? _cancelToken;
@@ -63,32 +70,31 @@ class SearchNotifier extends Notifier<SearchState> {
     final cancelToken = CancelToken();
     _cancelToken = cancelToken;
 
-    state = state.copyWith(searching: true);
+    state = state.copyWith(searching: true, error: null);
     try {
       final client = ref.read(backendClientProvider);
-      final songs = <Song>[];
-      for (final source in ['netease', 'kuwo', 'joox']) {
-        if (cancelToken.isCancelled) return;
-        try {
-          final result = await client.searchSongs(
-            query,
-            source: source,
-            count: 30,
-            page: 1,
-            cancelToken: cancelToken,
-          );
-          songs.addAll(result);
-        } catch (e) {
-          if (e is DioException && e.type == DioExceptionType.cancel) return;
-          // Individual source failure doesn't affect others
-        }
-      }
+      // One query → one provider list (cloud first-success). Optional source
+      // hint only; do not serial-merge netease+kuwo+joox.
+      final result = await client.searchSongs(
+        query,
+        source: 'netease',
+        count: 30,
+        page: 1,
+        cancelToken: cancelToken,
+      );
       if (!cancelToken.isCancelled) {
-        state = state.copyWith(songs: songs, searching: false);
+        state = state.copyWith(
+          songs: result,
+          searching: false,
+          provider: result.isEmpty ? null : result.first.onlineSource,
+          error: null,
+        );
       }
     } catch (e) {
       if (e is DioException && e.type == DioExceptionType.cancel) return;
-      state = state.copyWith(searching: false);
+      if (!cancelToken.isCancelled) {
+        state = state.copyWith(searching: false, error: e.toString());
+      }
     }
   }
 }

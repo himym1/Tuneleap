@@ -616,16 +616,29 @@ class SZh extends S {
   String get multiServerPassword => '密码';
 
   @override
-  String get backendUrl => '在线后端地址';
+  String get backendUrl => '云端 API 地址';
 
   @override
-  String get backendUrlHint => '可选，默认使用 Navidrome 主机的 8503 端口';
+  String get backendUrlHint =>
+      'navidrome-cloud 公网地址，例如 https://cloud.example.com';
 
   @override
-  String get backendApiKey => '在线后端 API Key';
+  String get backendApiKey => '云端 API Key';
 
   @override
-  String get backendApiKeyHint => '与 Navidrome 密码分开保存';
+  String get backendApiKeyHint => '与 Navidrome 密码、NAS Agent Key 分开保存';
+
+  @override
+  String get nasAgentUrl => 'NAS Agent 地址';
+
+  @override
+  String get nasAgentUrlHint => '可选，默认使用 Navidrome 主机的 8503 端口';
+
+  @override
+  String get nasAgentKey => 'NAS Agent Key';
+
+  @override
+  String get nasAgentKeyHint => '仅用于导入/删除，与云端 API Key 分开';
 
   @override
   String get serverUrlExample => 'https://music.example.com';

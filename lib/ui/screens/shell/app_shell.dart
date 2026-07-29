@@ -58,10 +58,14 @@ class _AppShellState extends ConsumerState<AppShell> {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    final apiKey = ref.read(serverConfigProvider).backendApiKey;
+    final config = ref.read(serverConfigProvider);
+    final apiKey = config.backendApiKey;
     if (apiKey.isEmpty) return;
 
-    final info = await checkForUpdate(apiKey: apiKey);
+    final info = await checkForUpdate(
+      apiKey: apiKey,
+      updateOrigin: config.backendUrl,
+    );
     if (!mounted || info == null) return;
 
     final currentVersion = ref.read(appVersionProvider);

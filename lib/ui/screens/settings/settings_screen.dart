@@ -253,6 +253,7 @@ class SettingsScreen extends ConsumerWidget {
                         currentVersion: appVersion,
                         currentBuild: appBuild,
                         apiKey: config.backendApiKey,
+                        updateOrigin: config.backendUrl,
                       ),
                     ],
                   ),
@@ -525,11 +526,13 @@ class _UpdateTile extends StatefulWidget {
   final String currentVersion;
   final int currentBuild;
   final String apiKey;
+  final String updateOrigin;
 
   const _UpdateTile({
     required this.currentVersion,
     required this.currentBuild,
     required this.apiKey,
+    required this.updateOrigin,
   });
 
   @override
@@ -545,7 +548,10 @@ class _UpdateTileState extends State<_UpdateTile> {
       _checking = true;
       _result = null;
     });
-    final info = await checkForUpdate(apiKey: widget.apiKey);
+    final info = await checkForUpdate(
+      apiKey: widget.apiKey,
+      updateOrigin: widget.updateOrigin,
+    );
     if (!mounted) return;
     if (info == null) {
       setState(() {

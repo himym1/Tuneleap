@@ -103,15 +103,11 @@ void main() {
       expect(BackendClient.inferBaseUrl('not-a-url'), '');
     });
 
-    test('configure clears a previously set backend API key', () {
-      final dio = Dio();
-      final client = BackendClient(dio: dio);
-
-      client.configure(baseUrl: 'http://backend', apiKey: 'secret');
-      expect(dio.options.headers['X-API-Key'], 'secret');
-
-      client.configure(baseUrl: 'http://backend');
-      expect(dio.options.headers.containsKey('X-API-Key'), isFalse);
+    test('configure accepts legacy baseUrl alias for cloud', () {
+      final client = BackendClient(dio: Dio())
+        ..configure(baseUrl: 'http://cloud', apiKey: 'secret');
+      expect(client.cloudBaseUrl, 'http://cloud');
+      expect(client.isConfigured, isTrue);
     });
 
     test(
@@ -119,21 +115,29 @@ void main() {
       () async {
         final dio = Dio()
           ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
-            expect(options.path, 'http://nas:10086/proxy');
-            expect(options.queryParameters['types'], 'search');
+            expect(options.path, 'http://nas:10086/v1/music/search');
+            expect(options.queryParameters['q'], '屋顶');
             expect(options.queryParameters['source'], 'netease');
-            return _jsonBody([
-              {
-                'id': '5257138',
-                'name': '屋顶',
-                'artist': ['周杰伦', '温岚'],
-                'album': '男女情歌对唱冠军全记录',
-                'pic_id': '109951165671182684',
-                'url_id': '5257138',
-                'lyric_id': '5257138',
-                'source': 'netease',
-              },
-            ]);
+            expect(options.headers['X-API-Key'], isNull);
+            return _jsonBody({
+              'query': '屋顶',
+              'provider': 'gdstudio',
+              'source': 'netease',
+              'strategy': 'first-success',
+              'items': [
+                {
+                  'id': '5257138',
+                  'title': '屋顶',
+                  'artist': '周杰伦 / 温岚',
+                  'album': '男女情歌对唱冠军全记录',
+                  'source': 'netease',
+                  'provider': 'gdstudio',
+                  'url_id': '5257138',
+                  'cover_id': '109951165671182684',
+                  'lyric_id': '5257138',
+                },
+              ],
+            });
           });
         final client = BackendClient(dio: dio)
           ..configure(baseUrl: 'http://nas:10086');
@@ -175,7 +179,7 @@ void main() {
       final url = await client.getPlaybackUrl(targetSong, maxBitRate: 192);
 
       expect(url, 'https://cdn.example.com/song.mp3');
-      expect(captured.queryParameters['types'], 'url');
+      expect(captured.path, 'http://nas:10086/v1/music/url');
       expect(captured.queryParameters['source'], 'kuwo');
       expect(captured.queryParameters['br'], '192');
     });
@@ -199,13 +203,11 @@ void main() {
 
       expect(
         '${uri.scheme}://${uri.host}:${uri.port}${uri.path}',
-        'http://nas:10086/proxy',
+        'http://nas:10086/v1/music/cover',
       );
-      expect(uri.queryParameters['types'], 'pic');
       expect(uri.queryParameters['id'], '109951166681216835');
       expect(uri.queryParameters['source'], 'netease');
       expect(uri.queryParameters['size'], '640');
-      expect(uri.queryParameters['s'], isNotEmpty);
     });
 
     test('queueNasDownload posts expected payload', () async {
@@ -217,30 +219,39 @@ void main() {
           return _jsonBody({'success': true, 'message': 'queued'});
         });
       final client = BackendClient(dio: dio)
-        ..configure(baseUrl: 'http://nas:10086');
+        ..configure(
+          cloudBaseUrl: 'http://cloud:8600',
+          nasAgentUrl: 'http://nas:10086',
+          nasAgentKey: 'nas-key',
+        );
 
       final message = await client.queueNasDownload(
         url: 'https://cdn.example.com/song.flac',
         filename: 'solara_netease_1.flac',
         song: {'id': '1', 'name': 'Track'},
-        picUrl: 'http://nas:10086/proxy?types=pic&id=1',
+        picUrl: 'http://cover/1',
       );
 
       expect(message, 'queued');
-      expect(captured.path, 'http://nas:10086/api/nas-download');
+      expect(captured.path, 'http://nas:10086/v1/nas/import');
+      expect(captured.headers['X-API-Key'], 'nas-key');
       expect(captured.data['url'], 'https://cdn.example.com/song.flac');
       expect(captured.data['filename'], 'solara_netease_1.flac');
       expect(captured.data['song'], {'id': '1', 'name': 'Track'});
-      expect(captured.data['picUrl'], 'http://nas:10086/proxy?types=pic&id=1');
+      expect(captured.data['picUrl'], 'http://cover/1');
     });
 
     test('getRawLyrics sends fallback song context', () async {
       final dio = Dio()
         ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
-          expect(options.queryParameters['types'], 'lyric');
-          expect(options.queryParameters['name'], '屋顶');
-          expect(options.queryParameters['artist'], '周杰伦');
-          return _jsonBody({'lyric': '[00:01]第一句'});
+          expect(options.path, 'http://nas:10086/v1/music/lyric');
+          expect(options.queryParameters['id'], '5257138');
+          expect(options.queryParameters['source'], 'joox');
+          return _jsonBody({
+            'lyric': '[00:01]第一句',
+            'provider': 'gdstudio',
+            'source': 'joox',
+          });
         });
       final client = BackendClient(dio: dio)
         ..configure(baseUrl: 'http://nas:10086');
@@ -261,10 +272,13 @@ void main() {
     test('getLyrics parses lrc timestamps into LyricsList', () async {
       final dio = Dio()
         ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
-          expect(options.queryParameters['types'], 'lyric');
-          expect(options.queryParameters['name'], '屋顶');
-          expect(options.queryParameters['artist'], '周杰伦');
-          return _jsonBody({'lyric': '[00:01.23]第一句\n[00:02.50]第二句\n纯文本结尾'});
+          expect(options.path, 'http://nas:10086/v1/music/lyric');
+          expect(options.queryParameters['source'], 'netease');
+          return _jsonBody({
+            'lyric': '[00:01.23]第一句\n[00:02.50]第二句\n纯文本结尾',
+            'provider': 'gdstudio',
+            'source': 'netease',
+          });
         });
       final client = BackendClient(dio: dio)
         ..configure(baseUrl: 'http://nas:10086');

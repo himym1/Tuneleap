@@ -3,7 +3,7 @@ import 'package:navidrome_player/providers/server_config_provider.dart';
 
 void main() {
   test(
-    'ServerEntry keeps backend configuration separate from Navidrome credentials',
+    'ServerEntry keeps cloud and NAS credentials separate from Navidrome credentials',
     () {
       const entry = ServerEntry(
         id: 'server-a',
@@ -11,8 +11,10 @@ void main() {
         url: 'https://music.example.com',
         username: 'user',
         password: 'nav-password',
-        backendUrl: 'https://backend.example.com',
-        backendApiKey: 'backend-key',
+        backendUrl: 'https://cloud.example.com',
+        backendApiKey: 'cloud-key',
+        nasAgentUrl: 'http://nas.example.com:8503',
+        nasAgentKey: 'nas-key',
         isActive: true,
       );
 
@@ -20,14 +22,18 @@ void main() {
       final restored = ServerEntry.fromJson({
         ...json,
         'password': 'nav-password',
-        'backendApiKey': 'backend-key',
+        'backendApiKey': 'cloud-key',
+        'nasAgentKey': 'nas-key',
       });
 
       expect(json.containsKey('password'), isFalse);
       expect(json.containsKey('backendApiKey'), isFalse);
-      expect(restored.backendUrl, 'https://backend.example.com');
+      expect(json.containsKey('nasAgentKey'), isFalse);
+      expect(restored.backendUrl, 'https://cloud.example.com');
+      expect(restored.backendApiKey, 'cloud-key');
+      expect(restored.nasAgentUrl, 'http://nas.example.com:8503');
+      expect(restored.nasAgentKey, 'nas-key');
       expect(restored.password, 'nav-password');
-      expect(restored.backendApiKey, 'backend-key');
     },
   );
 }
