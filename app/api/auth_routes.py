@@ -5,7 +5,6 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from app.core.config import get_settings
 from app.core.limiter import limiter
 from app.services.auth_service import AuthError, AuthService
 
@@ -34,8 +33,11 @@ class TokenResponse(BaseModel):
     expires_in: int | None = None
 
 
-def _service() -> AuthService:
-    return AuthService(get_settings())
+def _service(request: Request) -> AuthService:
+    service = getattr(request.app.state, "auth_service", None)
+    if service is None:
+        raise HTTPException(status_code=503, detail="Auth service not initialized")
+    return service
 
 
 def _map_auth(exc: AuthError) -> HTTPException:
@@ -46,7 +48,7 @@ def _map_auth(exc: AuthError) -> HTTPException:
 @limiter.limit("20/minute")
 async def register(request: Request, body: RegisterRequest):
     try:
-        return _service().register(
+        return await _service(request).register(
             username=body.username, password=body.password, email=body.email
         )
     except AuthError as exc:
@@ -57,7 +59,9 @@ async def register(request: Request, body: RegisterRequest):
 @limiter.limit("20/minute")
 async def login(request: Request, body: LoginRequest):
     try:
-        return _service().login(username=body.username, password=body.password)
+        return await _service(request).login(
+            username=body.username, password=body.password
+        )
     except AuthError as exc:
         raise _map_auth(exc) from exc
 
@@ -66,6 +70,6 @@ async def login(request: Request, body: LoginRequest):
 @limiter.limit("20/minute")
 async def refresh(request: Request, body: RefreshRequest):
     try:
-        return _service().refresh(body.refresh_token)
+        return await _service(request).refresh(body.refresh_token)
     except AuthError as exc:
         raise _map_auth(exc) from exc

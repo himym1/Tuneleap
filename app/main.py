@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
@@ -21,6 +21,8 @@ from app.core.recommendation_http import (
     recommendation_validation_handler,
     recommendation_value_error_handler,
 )
+from app.db.database import Database
+from app.services.auth_service import AuthService
 from app.services.music_facade import MusicFacade
 from app.services.nas_library_client import NasLibraryClient
 from app.services.recommendation_service import RecommendationService
@@ -31,14 +33,22 @@ from app.services.recommendation_store import RecommendationStore
 async def lifespan(app: FastAPI):
     settings = get_settings()
     client = httpx.AsyncClient(timeout=settings.http_timeout_seconds)
+    database = Database(
+        settings.database_url,
+        min_size=settings.database_pool_min_size,
+        max_size=settings.database_pool_max_size,
+        timeout=settings.database_pool_timeout_seconds,
+    )
     facade = MusicFacade(client, settings)
     library = NasLibraryClient(client, settings)
-    store = RecommendationStore(
-        settings.recommendation_db_path,
-        session_ttl_ms=settings.recommendation_session_ttl_hours * 3600_000,
-    )
+    store: RecommendationStore | None = None
     service: RecommendationService | None = None
     try:
+        await database.open()
+        store = RecommendationStore(
+            database.pool,
+            session_ttl_ms=settings.recommendation_session_ttl_hours * 3600_000,
+        )
         await store.initialize()
         service = RecommendationService(
             store=store,
@@ -51,6 +61,8 @@ async def lifespan(app: FastAPI):
             low_watermark=settings.recommendation_pool_low_watermark,
             page_max=settings.recommendation_page_max,
         )
+        app.state.database = database
+        app.state.auth_service = AuthService(database.pool, settings)
         app.state.http_client = client
         app.state.music_facade = facade
         app.state.recommendation_store = store
@@ -65,8 +77,14 @@ async def lifespan(app: FastAPI):
                 )
             except BaseException as exc:  # noqa: BLE001
                 cleanup_error = exc
+        if store is not None:
+            try:
+                await store.close()
+            except BaseException as exc:  # noqa: BLE001
+                if cleanup_error is None:
+                    cleanup_error = exc
         try:
-            await store.close()
+            await database.close()
         except BaseException as exc:  # noqa: BLE001
             if cleanup_error is None:
                 cleanup_error = exc

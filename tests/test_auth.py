@@ -19,7 +19,7 @@ def test_register_login_refresh_flow():
 
         dup = client.post(
             "/v1/auth/register",
-            json={"username": "alice", "password": "password123"},
+            json={"username": "ALICE", "password": "password123"},
         )
         assert dup.status_code == 409
 
@@ -31,7 +31,7 @@ def test_register_login_refresh_flow():
 
         login = client.post(
             "/v1/auth/login",
-            json={"username": "alice", "password": "password123"},
+            json={"username": "AlIcE", "password": "password123"},
         )
         assert login.status_code == 200
         refresh = client.post(
@@ -40,6 +40,11 @@ def test_register_login_refresh_flow():
         )
         assert refresh.status_code == 200
         assert refresh.json()["access_token"]
+        replay = client.post(
+            "/v1/auth/refresh",
+            json={"refresh_token": login.json()["refresh_token"]},
+        )
+        assert replay.status_code == 401
 
         # Bearer access token works on music routes (even if upstream fails later)
         authed = client.get(

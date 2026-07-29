@@ -1,8 +1,8 @@
 from functools import lru_cache
+from typing import Self
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 _SUPPORTED_RECOMMENDATION_SOURCES = frozenset(
     {"netease", "migu", "joox", "kuwo", "kugou"}
@@ -36,19 +36,26 @@ class Settings(BaseSettings):
     nas_agent_key: str = ""
 
     app_name: str = "navidrome-cloud"
-    app_version: str = "0.1.0"
+    app_version: str = "0.2.0"
     host: str = "0.0.0.0"
     port: int = 8600
 
-    # Auth / JWT (file-backed users by default; optional DATABASE_URL later)
+    # Postgres is the cloud source of truth.
+    database_url: str = ""
+    database_pool_min_size: int = 1
+    database_pool_max_size: int = 10
+    database_pool_timeout_seconds: float = 10.0
+
+    # Auth / JWT
     jwt_secret: str = "change-me-jwt-secret"
     jwt_access_ttl_minutes: int = 60
     jwt_refresh_ttl_days: int = 30
-    auth_db_path: str = "./data/auth.db"
-    database_url: str | None = None
 
-    # Recommendations (SQLite store; no Navidrome library mount)
+    # Legacy SQLite sources used only by scripts/migrate_sqlite_to_postgres.py.
+    auth_db_path: str = "./data/auth.db"
     recommendation_db_path: str = "./data/recommendations.db"
+
+    # Recommendations
     recommendation_session_ttl_hours: int = 24
     recommendation_pool_target: int = 60
     recommendation_pool_low_watermark: int = 20
@@ -73,6 +80,26 @@ class Settings(BaseSettings):
                 "recommendation_sources must contain at least one supported source"
             )
         return value
+
+    @field_validator(
+        "database_pool_min_size",
+        "database_pool_max_size",
+        "database_pool_timeout_seconds",
+    )
+    @classmethod
+    def _require_positive_database_setting(cls, value: float) -> int | float:
+        if value <= 0:
+            raise ValueError("database pool settings must be positive")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_database_pool_bounds(self) -> Self:
+        if self.database_pool_min_size > self.database_pool_max_size:
+            raise ValueError(
+                "database_pool_max_size must be greater than or equal to "
+                "database_pool_min_size"
+            )
+        return self
 
     @property
     def gdstudio_bases(self) -> tuple[str, ...]:

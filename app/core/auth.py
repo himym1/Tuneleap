@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import secrets
-from typing import Optional
 
 from fastapi import Header, HTTPException, Query
 
 from app.core.config import get_settings
+from app.services.auth_service import AuthError, verify_access_token
 
 
 async def verify_api_key(
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    api_key: Optional[str] = Query(None, alias="api_key"),
-    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_api_key: str | None = Header(None, alias="X-API-Key"),
+    api_key: str | None = Query(None, alias="api_key"),
+    authorization: str | None = Header(None, alias="Authorization"),
 ) -> None:
     """Accept shared API key or Bearer access token."""
     settings = get_settings()
@@ -22,12 +22,10 @@ async def verify_api_key(
     if authorization and authorization.lower().startswith("bearer "):
         token = authorization.split(" ", 1)[1].strip()
         if token:
-            from app.services.auth_service import AuthService
-
             try:
-                AuthService(settings).verify_access_token(token)
+                verify_access_token(token, settings)
                 return
-            except Exception:  # noqa: BLE001
+            except AuthError:
                 pass
 
     raise HTTPException(status_code=401, detail="Invalid API Key")
