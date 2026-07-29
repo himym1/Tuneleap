@@ -39,6 +39,10 @@ void main() async {
   );
   final backendUrl = prefs.getString(backendUrlPreferenceKey(serverId)) ?? '';
   final backendApiKey = await preloadServerBackendApiKey(prefs, serverId);
+  final nasAgentUrl =
+      prefs.getString(nasAgentUrlPreferenceKey(serverId)) ??
+      (url.isNotEmpty ? BackendClient.inferBaseUrl(url) : '');
+  final nasAgentKey = await preloadServerNasAgentKey(prefs, serverId);
   if (url.isNotEmpty && username.isNotEmpty) {
     client.configure(
       serverUrl: url,
@@ -46,9 +50,12 @@ void main() async {
       password: serverPassword,
     );
   }
-  if (backendUrl.isNotEmpty) {
-    backendClient.configure(baseUrl: backendUrl, apiKey: backendApiKey);
-  }
+  backendClient.configure(
+    cloudBaseUrl: backendUrl,
+    cloudApiKey: backendApiKey,
+    nasAgentUrl: nasAgentUrl,
+    nasAgentKey: nasAgentKey.isNotEmpty ? nasAgentKey : backendApiKey,
+  );
 
   final strings = systemLocalizations();
   final packageInfo = await PackageInfo.fromPlatform();
@@ -84,6 +91,9 @@ void main() async {
   // 预设密码到内存缓存
   container.read(cachedPasswordProvider.notifier).set(serverPassword);
   container.read(cachedBackendApiKeyProvider.notifier).set(backendApiKey);
+  container
+      .read(cachedNasAgentKeyProvider.notifier)
+      .set(nasAgentKey.isNotEmpty ? nasAgentKey : backendApiKey);
 
   // 加载多服务器密码
   await container.read(serversListProvider.notifier).loadPasswords();

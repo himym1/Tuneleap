@@ -118,6 +118,43 @@ class Song {
     );
   }
 
+  /// Normalized song from navidrome-cloud `SongDTO`.
+  factory Song.fromCloudJson(Map<String, dynamic> json) {
+    final artist = switch (json['artist']) {
+      final List<dynamic> artists => artists.join(' / '),
+      final String value => value,
+      _ => '',
+    };
+    final coverArt = (json['cover_id'] ?? json['coverId'] ?? json['pic_id'])
+        ?.toString();
+    final source = json['source']?.toString();
+    final urlId = (json['url_id'] ?? json['urlId'] ?? json['id'])?.toString();
+    final lyricId = (json['lyric_id'] ?? json['lyricId'] ?? json['id'])
+        ?.toString();
+    final durationRaw = json['duration'];
+    final duration = switch (durationRaw) {
+      final int value => value,
+      final num value => value.round(),
+      final String value => double.tryParse(value)?.round(),
+      _ => null,
+    };
+
+    return Song(
+      id: (json['id'] ?? urlId ?? '').toString(),
+      title: json['title'] as String? ?? json['name'] as String? ?? '',
+      album: json['album'] as String? ?? '',
+      albumId: '',
+      artist: artist,
+      artistId: '',
+      duration: duration,
+      coverArt: coverArt == null || coverArt.isEmpty ? null : coverArt,
+      backend: SongBackend.solara,
+      onlineSource: source == null || source.isEmpty ? null : source,
+      urlId: urlId == null || urlId.isEmpty ? null : urlId,
+      lyricId: lyricId == null || lyricId.isEmpty ? null : lyricId,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,

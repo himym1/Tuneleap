@@ -21,90 +21,95 @@ class MultiServerScreen extends ConsumerWidget {
         if (!didPop) context.go('/home');
       },
       child: Scaffold(
-      backgroundColor: Colors.transparent,
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Row(
-            children: [
-              if (isMobile)
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                  onPressed: () {
-                    if (Navigator.of(context).canPop()) {
-                      Navigator.of(context).pop();
-                    } else {
-                      context.go('/home');
-                    }
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+        backgroundColor: Colors.transparent,
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Row(
+              children: [
+                if (isMobile)
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        context.go('/home');
+                      }
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                  ),
+                Text(
+                  S.of(context).multiServerManage,
+                  style: Theme.of(context).textTheme.pageTitle.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
-              Text(
-                S.of(context).multiServerManage,
-                style: Theme.of(context).textTheme.pageTitle.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
+                const Spacer(),
+                Text(
+                  S.of(context).multiServerCount(servers.length),
+                  style: Theme.of(context).textTheme.chipLabel.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              Text(
-                S.of(context).multiServerCount(servers.length),
-                style: Theme.of(context).textTheme.chipLabel.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ],
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: FilledButton.icon(
+                onPressed: () => _showServerDialog(context, ref, null),
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(S.of(context).multiServerAdd),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Center(
-            child: FilledButton.icon(
-              onPressed: () => _showServerDialog(context, ref, null),
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(S.of(context).multiServerAdd),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 40),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-          if (servers.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(40),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  S.of(context).multiServerEmptyHint,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    height: 1.6,
+            const SizedBox(height: 24),
+            if (servers.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(40),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    S.of(context).multiServerEmptyHint,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+              )
+            else
+              ...servers.map(
+                (server) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _ServerCard(
+                    server: server,
+                    onEdit: () => _showServerDialog(context, ref, server),
+                    onDelete: server.isActive
+                        ? null
+                        : () => _confirmDelete(context, ref, server),
+                    onSwitch: () => ref
+                        .read(authProvider.notifier)
+                        .activateServer(server.id),
                   ),
                 ),
               ),
-            )
-          else
-            ...servers.map(
-              (server) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _ServerCard(
-                  server: server,
-                  onEdit: () => _showServerDialog(context, ref, server),
-                  onDelete: server.isActive
-                      ? null
-                      : () => _confirmDelete(context, ref, server),
-                  onSwitch: () => ref
-                      .read(authProvider.notifier)
-                      .activateServer(server.id),
-                ),
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -117,36 +122,43 @@ class MultiServerScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => _ServerDialog(
         existing: existing,
-        onSave: (
-          name,
-          url,
-          username,
-          password,
-          backendUrl,
-          backendApiKey,
-        ) async {
-          final notifier = ref.read(serversListProvider.notifier);
-          if (existing == null) {
-            await notifier.addServer(
-              name: name,
-              url: url,
-              username: username,
-              password: password,
-              backendUrl: backendUrl,
-              backendApiKey: backendApiKey,
-            );
-          } else {
-            await notifier.updateServer(
-              existing.id,
-              name: name,
-              url: url,
-              username: username,
-              password: password,
-              backendUrl: backendUrl,
-              backendApiKey: backendApiKey,
-            );
-          }
-        },
+        onSave:
+            (
+              name,
+              url,
+              username,
+              password,
+              backendUrl,
+              backendApiKey,
+              nasAgentUrl,
+              nasAgentKey,
+            ) async {
+              final notifier = ref.read(serversListProvider.notifier);
+              if (existing == null) {
+                await notifier.addServer(
+                  name: name,
+                  url: url,
+                  username: username,
+                  password: password,
+                  backendUrl: backendUrl,
+                  backendApiKey: backendApiKey,
+                  nasAgentUrl: nasAgentUrl,
+                  nasAgentKey: nasAgentKey,
+                );
+              } else {
+                await notifier.updateServer(
+                  existing.id,
+                  name: name,
+                  url: url,
+                  username: username,
+                  password: password,
+                  backendUrl: backendUrl,
+                  backendApiKey: backendApiKey,
+                  nasAgentUrl: nasAgentUrl,
+                  nasAgentKey: nasAgentKey,
+                );
+              }
+            },
       ),
     );
   }
@@ -167,7 +179,9 @@ class MultiServerScreen extends ConsumerWidget {
               Navigator.pop(ctx);
               ref.read(serversListProvider.notifier).removeServer(server.id);
             },
-            style: FilledButton.styleFrom(backgroundColor: context.colors.error),
+            style: FilledButton.styleFrom(
+              backgroundColor: context.colors.error,
+            ),
             child: Text(S.of(context).commonDelete),
           ),
         ],
@@ -187,6 +201,8 @@ class _ServerDialog extends StatefulWidget {
     String password,
     String backendUrl,
     String backendApiKey,
+    String nasAgentUrl,
+    String nasAgentKey,
   )
   onSave;
 
@@ -203,6 +219,8 @@ class _ServerDialogState extends State<_ServerDialog> {
   late final TextEditingController _password;
   late final TextEditingController _backendUrl;
   late final TextEditingController _backendApiKey;
+  late final TextEditingController _nasAgentUrl;
+  late final TextEditingController _nasAgentKey;
   bool _saving = false;
 
   @override
@@ -218,6 +236,12 @@ class _ServerDialogState extends State<_ServerDialog> {
     _backendApiKey = TextEditingController(
       text: widget.existing?.backendApiKey ?? '',
     );
+    _nasAgentUrl = TextEditingController(
+      text: widget.existing?.nasAgentUrl ?? '',
+    );
+    _nasAgentKey = TextEditingController(
+      text: widget.existing?.nasAgentKey ?? '',
+    );
   }
 
   @override
@@ -228,6 +252,8 @@ class _ServerDialogState extends State<_ServerDialog> {
     _password.dispose();
     _backendUrl.dispose();
     _backendApiKey.dispose();
+    _nasAgentUrl.dispose();
+    _nasAgentKey.dispose();
     super.dispose();
   }
 
@@ -294,6 +320,24 @@ class _ServerDialogState extends State<_ServerDialog> {
               ),
               obscureText: true,
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _nasAgentUrl,
+              decoration: InputDecoration(
+                labelText: S.of(context).nasAgentUrl,
+                hintText: S.of(context).nasAgentUrlHint,
+              ),
+              keyboardType: TextInputType.url,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _nasAgentKey,
+              decoration: InputDecoration(
+                labelText: S.of(context).nasAgentKey,
+                hintText: S.of(context).nasAgentKeyHint,
+              ),
+              obscureText: true,
+            ),
           ],
         ),
       ),
@@ -326,6 +370,8 @@ class _ServerDialogState extends State<_ServerDialog> {
     final password = _password.text;
     final backendUrl = _backendUrl.text.trim();
     final backendApiKey = _backendApiKey.text;
+    final nasAgentUrl = _nasAgentUrl.text.trim();
+    final nasAgentKey = _nasAgentKey.text;
     if (name.isEmpty || url.isEmpty || username.isEmpty) return;
     setState(() => _saving = true);
     try {
@@ -336,6 +382,8 @@ class _ServerDialogState extends State<_ServerDialog> {
         password,
         backendUrl,
         backendApiKey,
+        nasAgentUrl,
+        nasAgentKey,
       );
       if (mounted) Navigator.pop(context);
     } finally {
@@ -364,7 +412,9 @@ class _ServerCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
         border: server.isActive
             ? Border.all(color: context.colors.primary, width: 1.5)
@@ -398,9 +448,9 @@ class _ServerCard extends StatelessWidget {
               children: [
                 Text(
                   server.name,
-                  style: Theme.of(context).textTheme.songTitle.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.songTitle.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 2),
                 Text(

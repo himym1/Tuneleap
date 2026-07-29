@@ -17,6 +17,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   final _backendUrlController = TextEditingController();
   final _backendApiKeyController = TextEditingController();
+  final _nasAgentUrlController = TextEditingController();
+  final _nasAgentKeyController = TextEditingController();
   bool _loading = false;
   String? _error;
 
@@ -29,6 +31,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _passwordController.text = config.password;
     _backendUrlController.text = config.backendUrl;
     _backendApiKeyController.text = config.backendApiKey;
+    _nasAgentUrlController.text = config.nasAgentUrl;
+    _nasAgentKeyController.text = config.nasAgentKey;
   }
 
   @override
@@ -38,6 +42,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _passwordController.dispose();
     _backendUrlController.dispose();
     _backendApiKeyController.dispose();
+    _nasAgentUrlController.dispose();
+    _nasAgentKeyController.dispose();
     super.dispose();
   }
 
@@ -54,19 +60,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final password = _passwordController.text.trim();
       final backendUrl = _backendUrlController.text.trim();
       final backendApiKey = _backendApiKeyController.text;
+      final nasAgentUrl = _nasAgentUrlController.text.trim();
+      final nasAgentKey = _nasAgentKeyController.text;
 
       if (url.isEmpty || username.isEmpty || password.isEmpty) {
         setState(() => _error = s.loginFieldsRequired);
         return;
       }
 
-      final ok = await ref.read(authProvider.notifier).signIn(
-        url: url,
-        username: username,
-        password: password,
-        backendUrl: backendUrl,
-        backendApiKey: backendApiKey,
-      );
+      final ok = await ref
+          .read(authProvider.notifier)
+          .signIn(
+            url: url,
+            username: username,
+            password: password,
+            backendUrl: backendUrl,
+            backendApiKey: backendApiKey,
+            nasAgentUrl: nasAgentUrl,
+            nasAgentKey: nasAgentKey,
+          );
 
       if (!mounted) return;
       if (!ok) {
@@ -90,104 +102,126 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                Theme.of(
+                  context,
+                ).colorScheme.primaryContainer.withValues(alpha: 0.3),
                 Theme.of(context).colorScheme.surface,
               ],
             ),
           ),
           child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Icon(
-                  Icons.music_note_rounded,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  s.appName,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.pageTitle,
-                ),
-                const SizedBox(height: 32),
-                TextField(
-                  controller: _urlController,
-                  decoration: InputDecoration(
-                    labelText: s.multiServerUrl,
-                    hintText: s.serverUrlExample,
-                    prefixIcon: const Icon(Icons.dns),
-                  ),
-                  keyboardType: TextInputType.url,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(
-                    labelText: s.multiServerUsername,
-                    prefixIcon: const Icon(Icons.person),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: s.multiServerPassword,
-                    prefixIcon: const Icon(Icons.lock),
-                  ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _backendUrlController,
-                  decoration: InputDecoration(
-                    labelText: s.backendUrl,
-                    hintText: s.backendUrlHint,
-                    prefixIcon: const Icon(Icons.cloud_outlined),
-                  ),
-                  keyboardType: TextInputType.url,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _backendApiKeyController,
-                  decoration: InputDecoration(
-                    labelText: s.backendApiKey,
-                    hintText: s.backendApiKeyHint,
-                    prefixIcon: const Icon(Icons.key_outlined),
-                  ),
-                  obscureText: true,
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    _error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Icon(
+                      Icons.music_note_rounded,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _loading ? null : _connect,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(s.loginConnect),
+                    const SizedBox(height: 16),
+                    Text(
+                      s.appName,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.pageTitle,
+                    ),
+                    const SizedBox(height: 32),
+                    TextField(
+                      controller: _urlController,
+                      decoration: InputDecoration(
+                        labelText: s.multiServerUrl,
+                        hintText: s.serverUrlExample,
+                        prefixIcon: const Icon(Icons.dns),
+                      ),
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _usernameController,
+                      decoration: InputDecoration(
+                        labelText: s.multiServerUsername,
+                        prefixIcon: const Icon(Icons.person),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: s.multiServerPassword,
+                        prefixIcon: const Icon(Icons.lock),
+                      ),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _backendUrlController,
+                      decoration: InputDecoration(
+                        labelText: s.backendUrl,
+                        hintText: s.backendUrlHint,
+                        prefixIcon: const Icon(Icons.cloud_outlined),
+                      ),
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _backendApiKeyController,
+                      decoration: InputDecoration(
+                        labelText: s.backendApiKey,
+                        hintText: s.backendApiKeyHint,
+                        prefixIcon: const Icon(Icons.key_outlined),
+                      ),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _nasAgentUrlController,
+                      decoration: InputDecoration(
+                        labelText: s.nasAgentUrl,
+                        hintText: s.nasAgentUrlHint,
+                        prefixIcon: const Icon(Icons.storage_outlined),
+                      ),
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _nasAgentKeyController,
+                      decoration: InputDecoration(
+                        labelText: s.nasAgentKey,
+                        hintText: s.nasAgentKeyHint,
+                        prefixIcon: const Icon(Icons.vpn_key_outlined),
+                      ),
+                      obscureText: true,
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        _error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: _loading ? null : _connect,
+                      child: _loading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(s.loginConnect),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-          ),
         ),
-      ),
       ),
     );
   }

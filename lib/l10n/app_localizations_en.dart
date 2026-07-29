@@ -625,18 +625,32 @@ class SEn extends S {
   String get multiServerPassword => 'Password';
 
   @override
-  String get backendUrl => 'Online backend URL';
+  String get backendUrl => 'Cloud API URL';
 
   @override
   String get backendUrlHint =>
-      'Optional; defaults to the Navidrome host on port 8503';
+      'navidrome-cloud public URL, e.g. https://cloud.example.com';
 
   @override
-  String get backendApiKey => 'Online backend API key';
+  String get backendApiKey => 'Cloud API key';
 
   @override
   String get backendApiKeyHint =>
-      'Stored separately from the Navidrome password';
+      'Stored separately from the Navidrome password and NAS agent key';
+
+  @override
+  String get nasAgentUrl => 'NAS agent URL';
+
+  @override
+  String get nasAgentUrlHint =>
+      'Optional; defaults to the Navidrome host on port 8503';
+
+  @override
+  String get nasAgentKey => 'NAS agent key';
+
+  @override
+  String get nasAgentKeyHint =>
+      'Import/delete only; separate from the cloud API key';
 
   @override
   String get serverUrlExample => 'https://music.example.com';

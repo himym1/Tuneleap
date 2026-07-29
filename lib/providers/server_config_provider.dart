@@ -13,8 +13,14 @@ class ServerConfig {
   final String url;
   final String username;
   final String password;
+
+  /// Cloud control plane URL (navidrome-cloud). Kept as [backendUrl] for prefs key stability.
   final String backendUrl;
   final String backendApiKey;
+
+  /// NAS agent URL (import/delete). Defaults to same-host :8503 when empty.
+  final String nasAgentUrl;
+  final String nasAgentKey;
 
   const ServerConfig({
     required this.serverId,
@@ -23,9 +29,13 @@ class ServerConfig {
     required this.password,
     required this.backendUrl,
     required this.backendApiKey,
+    this.nasAgentUrl = '',
+    this.nasAgentKey = '',
   });
 
   bool get isConfigured => url.isNotEmpty && username.isNotEmpty;
+  String get cloudApiUrl => backendUrl;
+  String get cloudApiKey => backendApiKey;
 }
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
@@ -41,11 +51,18 @@ String backendApiKeyPreferenceKey(String serverId) =>
     'backend_api_key_${normalizeServerId(serverId)}';
 String backendMigrationPreferenceKey(String serverId) =>
     'backend_config_migrated_${normalizeServerId(serverId)}';
+String nasAgentUrlPreferenceKey(String serverId) =>
+    'nas_agent_url_${normalizeServerId(serverId)}';
+String nasAgentKeyPreferenceKey(String serverId) =>
+    'nas_agent_key_${normalizeServerId(serverId)}';
 String _serverPasswordKey(String serverId) =>
     'server_pw_${normalizeServerId(serverId)}';
 String _serverBackendApiKey(String serverId) =>
     'server_backend_api_key_${normalizeServerId(serverId)}';
+String _serverNasAgentKey(String serverId) =>
+    'server_nas_agent_key_${normalizeServerId(serverId)}';
 
+/// Infer NAS agent URL from Navidrome host (LAN default port 8503).
 String inferBackendUrl(String serverUrl, {int port = 8503}) {
   final uri = Uri.tryParse(serverUrl);
   if (uri == null || uri.host.isEmpty) return '';
@@ -55,6 +72,10 @@ String inferBackendUrl(String serverUrl, {int port = 8503}) {
     port: port,
   ).toString();
 }
+
+/// Alias kept for ADR-0004 naming.
+String inferNasAgentUrl(String serverUrl, {int port = 8503}) =>
+    inferBackendUrl(serverUrl, port: port);
 
 Future<bool> _safeSecureWrite(String key, String value) async {
   if (!_secureStorageAvailable) return false;
@@ -116,6 +137,13 @@ Future<void> migratePasswordsToSecureStorage(SharedPreferences prefs) async {
           dirty = true;
         }
       }
+      final nasAgentKey = map['nasAgentKey'] as String?;
+      if (nasAgentKey != null && nasAgentKey.isNotEmpty) {
+        if (await _safeSecureWrite(_serverNasAgentKey(id), nasAgentKey)) {
+          map.remove('nasAgentKey');
+          dirty = true;
+        }
+      }
     }
     if (dirty) await prefs.setString('servers_list', jsonEncode(list));
   } catch (e) {
@@ -146,10 +174,11 @@ Future<void> migrateActiveBackendConfiguration(
   required String serverPassword,
 }) async {
   if (serverUrl.isEmpty) return;
-  final backendUrlKey = backendUrlPreferenceKey(serverId);
-  if ((prefs.getString(backendUrlKey) ?? '').isEmpty) {
-    final inferred = inferBackendUrl(serverUrl);
-    if (inferred.isNotEmpty) await prefs.setString(backendUrlKey, inferred);
+  // Keep existing cloud URL if present. Do not invent a public cloud from NAS host.
+  final nasUrlKey = nasAgentUrlPreferenceKey(serverId);
+  if ((prefs.getString(nasUrlKey) ?? '').isEmpty) {
+    final inferredNas = inferNasAgentUrl(serverUrl);
+    if (inferredNas.isNotEmpty) await prefs.setString(nasUrlKey, inferredNas);
   }
 
   final migrationKey = backendMigrationPreferenceKey(serverId);
@@ -195,6 +224,17 @@ class CachedBackendApiKeyNotifier extends Notifier<String> {
   void set(String apiKey) => state = apiKey;
 }
 
+final cachedNasAgentKeyProvider =
+    NotifierProvider<CachedNasAgentKeyNotifier, String>(
+      CachedNasAgentKeyNotifier.new,
+    );
+
+class CachedNasAgentKeyNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+  void set(String apiKey) => state = apiKey;
+}
+
 final serverConfigProvider =
     NotifierProvider<ServerConfigNotifier, ServerConfig>(
       ServerConfigNotifier.new,
@@ -212,6 +252,8 @@ class ServerConfigNotifier extends Notifier<ServerConfig> {
       password: ref.watch(cachedPasswordProvider),
       backendUrl: prefs.getString(backendUrlPreferenceKey(serverId)) ?? '',
       backendApiKey: ref.watch(cachedBackendApiKeyProvider),
+      nasAgentUrl: prefs.getString(nasAgentUrlPreferenceKey(serverId)) ?? '',
+      nasAgentKey: ref.watch(cachedNasAgentKeyProvider),
     );
   }
 
@@ -222,18 +264,25 @@ class ServerConfigNotifier extends Notifier<ServerConfig> {
     required String password,
     String? backendUrl,
     String? backendApiKey,
+    String? nasAgentUrl,
+    String? nasAgentKey,
   }) async {
     final prefs = ref.read(sharedPreferencesProvider);
     final id = normalizeServerId(serverId ?? state.serverId);
-    final resolvedBackendUrl = (backendUrl ?? '').trim().isEmpty
-        ? inferBackendUrl(url)
-        : backendUrl!.trim();
+    // Cloud URL is explicit; empty means "not configured" (no auto :8503 cloud).
+    final resolvedBackendUrl = (backendUrl ?? state.backendUrl).trim();
     final resolvedBackendApiKey = backendApiKey ?? state.backendApiKey;
+    final resolvedNasAgentUrl =
+        (nasAgentUrl ?? state.nasAgentUrl).trim().isEmpty
+        ? inferNasAgentUrl(url)
+        : (nasAgentUrl ?? state.nasAgentUrl).trim();
+    final resolvedNasAgentKey = nasAgentKey ?? state.nasAgentKey;
 
     await prefs.setString(activeServerIdPreferenceKey, id);
     await prefs.setString('server_url', url);
     await prefs.setString('server_username', username);
     await prefs.setString(backendUrlPreferenceKey(id), resolvedBackendUrl);
+    await prefs.setString(nasAgentUrlPreferenceKey(id), resolvedNasAgentUrl);
     await prefs.setBool(backendMigrationPreferenceKey(id), true);
 
     if (await _safeSecureWrite('server_password', password)) {
@@ -255,6 +304,12 @@ class ServerConfigNotifier extends Notifier<ServerConfig> {
 
     ref.read(cachedPasswordProvider.notifier).set(password);
     ref.read(cachedBackendApiKeyProvider.notifier).set(resolvedBackendApiKey);
+    if (await _safeSecureWrite(_serverNasAgentKey(id), resolvedNasAgentKey)) {
+      await prefs.remove(nasAgentKeyPreferenceKey(id));
+    } else {
+      await prefs.setString(nasAgentKeyPreferenceKey(id), resolvedNasAgentKey);
+    }
+    ref.read(cachedNasAgentKeyProvider.notifier).set(resolvedNasAgentKey);
     state = ServerConfig(
       serverId: id,
       url: url,
@@ -262,6 +317,8 @@ class ServerConfigNotifier extends Notifier<ServerConfig> {
       password: password,
       backendUrl: resolvedBackendUrl,
       backendApiKey: resolvedBackendApiKey,
+      nasAgentUrl: resolvedNasAgentUrl,
+      nasAgentKey: resolvedNasAgentKey,
     );
   }
 
@@ -271,13 +328,17 @@ class ServerConfigNotifier extends Notifier<ServerConfig> {
     await prefs.remove('server_url');
     await prefs.remove('server_username');
     await prefs.remove(backendUrlPreferenceKey(id));
+    await prefs.remove(nasAgentUrlPreferenceKey(id));
     await _safeSecureDelete('server_password');
     await _safeSecureDelete(_serverBackendApiKey(id));
+    await _safeSecureDelete(_serverNasAgentKey(id));
     await prefs.remove('server_password');
     await prefs.remove(backendApiKeyPreferenceKey(id));
+    await prefs.remove(nasAgentKeyPreferenceKey(id));
     await ref.read(serversListProvider.notifier).clearSecrets(id);
     ref.read(cachedPasswordProvider.notifier).set('');
     ref.read(cachedBackendApiKeyProvider.notifier).set('');
+    ref.read(cachedNasAgentKeyProvider.notifier).set('');
     state = ServerConfig(
       serverId: id,
       url: '',
@@ -285,6 +346,8 @@ class ServerConfigNotifier extends Notifier<ServerConfig> {
       password: '',
       backendUrl: '',
       backendApiKey: '',
+      nasAgentUrl: '',
+      nasAgentKey: '',
     );
   }
 }
@@ -315,6 +378,20 @@ Future<bool> saveServerBackendApiKey(String serverId, String apiKey) =>
 Future<void> deleteServerBackendApiKey(String serverId) =>
     _safeSecureDelete(_serverBackendApiKey(serverId));
 
+Future<String> preloadServerNasAgentKey(
+  SharedPreferences prefs,
+  String serverId,
+) async =>
+    await _safeSecureRead(_serverNasAgentKey(serverId)) ??
+    prefs.getString(nasAgentKeyPreferenceKey(serverId)) ??
+    '';
+
+Future<bool> saveServerNasAgentKey(String serverId, String apiKey) =>
+    _safeSecureWrite(_serverNasAgentKey(serverId), apiKey);
+
+Future<void> deleteServerNasAgentKey(String serverId) =>
+    _safeSecureDelete(_serverNasAgentKey(serverId));
+
 class ServerEntry {
   final String id;
   final String name;
@@ -323,6 +400,8 @@ class ServerEntry {
   final String password;
   final String backendUrl;
   final String backendApiKey;
+  final String nasAgentUrl;
+  final String nasAgentKey;
   final bool isActive;
 
   const ServerEntry({
@@ -333,6 +412,8 @@ class ServerEntry {
     required this.password,
     this.backendUrl = '',
     this.backendApiKey = '',
+    this.nasAgentUrl = '',
+    this.nasAgentKey = '',
     this.isActive = false,
   });
 
@@ -343,6 +424,8 @@ class ServerEntry {
     String? password,
     String? backendUrl,
     String? backendApiKey,
+    String? nasAgentUrl,
+    String? nasAgentKey,
     bool? isActive,
   }) => ServerEntry(
     id: id,
@@ -352,6 +435,8 @@ class ServerEntry {
     password: password ?? this.password,
     backendUrl: backendUrl ?? this.backendUrl,
     backendApiKey: backendApiKey ?? this.backendApiKey,
+    nasAgentUrl: nasAgentUrl ?? this.nasAgentUrl,
+    nasAgentKey: nasAgentKey ?? this.nasAgentKey,
     isActive: isActive ?? this.isActive,
   );
 
@@ -361,10 +446,13 @@ class ServerEntry {
     'url': url,
     'username': username,
     'backendUrl': backendUrl,
+    'nasAgentUrl': nasAgentUrl,
     'isActive': isActive,
     if (!_secureStorageAvailable && password.isNotEmpty) 'password': password,
     if (!_secureStorageAvailable && backendApiKey.isNotEmpty)
       'backendApiKey': backendApiKey,
+    if (!_secureStorageAvailable && nasAgentKey.isNotEmpty)
+      'nasAgentKey': nasAgentKey,
   };
 
   factory ServerEntry.fromJson(Map<String, dynamic> json) => ServerEntry(
@@ -373,8 +461,14 @@ class ServerEntry {
     url: json['url'] as String? ?? '',
     username: json['username'] as String? ?? '',
     password: json['password'] as String? ?? '',
-    backendUrl: json['backendUrl'] as String? ?? '',
-    backendApiKey: json['backendApiKey'] as String? ?? '',
+    backendUrl:
+        json['backendUrl'] as String? ?? json['cloudApiUrl'] as String? ?? '',
+    backendApiKey:
+        json['backendApiKey'] as String? ??
+        json['cloudApiKey'] as String? ??
+        '',
+    nasAgentUrl: json['nasAgentUrl'] as String? ?? '',
+    nasAgentKey: json['nasAgentKey'] as String? ?? '',
     isActive: json['isActive'] as bool? ?? false,
   );
 }
@@ -415,6 +509,8 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
         password: ref.read(cachedPasswordProvider),
         backendUrl: prefs.getString(backendUrlPreferenceKey(id)) ?? '',
         backendApiKey: ref.read(cachedBackendApiKeyProvider),
+        nasAgentUrl: prefs.getString(nasAgentUrlPreferenceKey(id)) ?? '',
+        nasAgentKey: ref.read(cachedNasAgentKeyProvider),
         isActive: true,
       ),
     ];
@@ -437,6 +533,16 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
           !await saveServerBackendApiKey(server.id, server.backendApiKey)) {
         _secureStorageAvailable = false;
       }
+      if (server.nasAgentKey.isNotEmpty &&
+          !await saveServerNasAgentKey(server.id, server.nasAgentKey)) {
+        _secureStorageAvailable = false;
+      }
+      if (server.nasAgentUrl.isNotEmpty) {
+        await prefs.setString(
+          nasAgentUrlPreferenceKey(server.id),
+          server.nasAgentUrl,
+        );
+      }
       await prefs.setBool(backendMigrationPreferenceKey(server.id), true);
     }
     await prefs.setString(
@@ -453,6 +559,8 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
     required String password,
     required String backendUrl,
     required String backendApiKey,
+    String nasAgentUrl = '',
+    String nasAgentKey = '',
   }) => _mutate(() async {
     final entry = ServerEntry(
       id: _nextServerId(),
@@ -460,8 +568,12 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
       url: url,
       username: username,
       password: password,
-      backendUrl: backendUrl.trim().isEmpty ? inferBackendUrl(url) : backendUrl,
+      backendUrl: backendUrl.trim(),
       backendApiKey: backendApiKey,
+      nasAgentUrl: nasAgentUrl.trim().isEmpty
+          ? inferNasAgentUrl(url)
+          : nasAgentUrl.trim(),
+      nasAgentKey: nasAgentKey,
     );
     await _persist([...state, entry]);
   });
@@ -474,6 +586,8 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
     String? password,
     String? backendUrl,
     String? backendApiKey,
+    String? nasAgentUrl,
+    String? nasAgentKey,
   }) => _mutate(() async {
     final updated = state.map((server) {
       if (server.id != id) return server;
@@ -483,10 +597,12 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
         url: nextUrl,
         username: username,
         password: password,
-        backendUrl: backendUrl?.trim().isEmpty == true
-            ? inferBackendUrl(nextUrl)
-            : backendUrl,
+        backendUrl: backendUrl,
         backendApiKey: backendApiKey,
+        nasAgentUrl: nasAgentUrl?.trim().isEmpty == true
+            ? inferNasAgentUrl(nextUrl)
+            : nasAgentUrl,
+        nasAgentKey: nasAgentKey,
       );
     }).toList();
     await _persist(updated);
@@ -501,6 +617,8 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
             password: active.password,
             backendUrl: active.backendUrl,
             backendApiKey: active.backendApiKey,
+            nasAgentUrl: active.nasAgentUrl,
+            nasAgentKey: active.nasAgentKey,
           );
     }
   });
@@ -510,9 +628,12 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
     if (target.isActive) return;
     await deleteServerEntryPassword(id);
     await deleteServerBackendApiKey(id);
+    await deleteServerNasAgentKey(id);
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.remove(backendUrlPreferenceKey(id));
     await prefs.remove(backendApiKeyPreferenceKey(id));
+    await prefs.remove(nasAgentUrlPreferenceKey(id));
+    await prefs.remove(nasAgentKeyPreferenceKey(id));
     await prefs.remove(backendMigrationPreferenceKey(id));
     await _persist(state.where((s) => s.id != id).toList());
   });
@@ -520,12 +641,18 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
   Future<void> clearSecrets(String id) => _mutate(() async {
     await deleteServerEntryPassword(id);
     await deleteServerBackendApiKey(id);
+    await deleteServerNasAgentKey(id);
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.remove(backendApiKeyPreferenceKey(id));
+    await prefs.remove(nasAgentKeyPreferenceKey(id));
     final updated = state
         .map(
           (server) => server.id == id
-              ? server.copyWith(password: '', backendApiKey: '')
+              ? server.copyWith(
+                  password: '',
+                  backendApiKey: '',
+                  nasAgentKey: '',
+                )
               : server,
         )
         .toList();
@@ -541,13 +668,22 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
     if (backendApiKey.isEmpty) {
       backendApiKey = await preloadServerBackendApiKey(prefs, id);
     }
+    var nasAgentKey = server.nasAgentKey;
+    if (nasAgentKey.isEmpty) {
+      nasAgentKey = await preloadServerNasAgentKey(prefs, id);
+    }
+    var nasAgentUrl = server.nasAgentUrl;
+    if (nasAgentUrl.isEmpty) {
+      nasAgentUrl = prefs.getString(nasAgentUrlPreferenceKey(id)) ?? '';
+    }
+    if (nasAgentUrl.isEmpty) nasAgentUrl = inferNasAgentUrl(server.url);
 
     server = server.copyWith(
       password: password,
       backendApiKey: backendApiKey,
-      backendUrl: server.backendUrl.isEmpty
-          ? inferBackendUrl(server.url)
-          : server.backendUrl,
+      backendUrl: server.backendUrl,
+      nasAgentUrl: nasAgentUrl,
+      nasAgentKey: nasAgentKey,
     );
     await ref
         .read(serverConfigProvider.notifier)
@@ -558,6 +694,8 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
           password: password,
           backendUrl: server.backendUrl,
           backendApiKey: backendApiKey,
+          nasAgentUrl: nasAgentUrl,
+          nasAgentKey: nasAgentKey,
         );
     await _persist(
       state
@@ -580,19 +718,33 @@ class ServersListNotifier extends Notifier<List<ServerEntry>> {
       }
       var backendUrl = server.backendUrl;
       var backendApiKey = server.backendApiKey;
-      final legacyEntry = backendUrl.isEmpty;
-      if (backendUrl.isEmpty) backendUrl = inferBackendUrl(server.url);
+      var nasAgentUrl = server.nasAgentUrl;
+      var nasAgentKey = server.nasAgentKey;
+      if (backendUrl.isEmpty) {
+        backendUrl = prefs.getString(backendUrlPreferenceKey(server.id)) ?? '';
+      }
       if (backendApiKey.isEmpty) {
         backendApiKey = await preloadServerBackendApiKey(prefs, server.id);
       }
-      if (legacyEntry && backendApiKey.isEmpty && password.isNotEmpty) {
-        backendApiKey = password;
+      if (nasAgentUrl.isEmpty) {
+        nasAgentUrl =
+            prefs.getString(nasAgentUrlPreferenceKey(server.id)) ?? '';
+      }
+      if (nasAgentUrl.isEmpty) nasAgentUrl = inferNasAgentUrl(server.url);
+      if (nasAgentKey.isEmpty) {
+        nasAgentKey = await preloadServerNasAgentKey(prefs, server.id);
+      }
+      // Legacy monorepo: one backend key for both; seed nas key if empty.
+      if (nasAgentKey.isEmpty && backendApiKey.isNotEmpty) {
+        nasAgentKey = backendApiKey;
       }
       loaded.add(
         server.copyWith(
           password: password,
           backendUrl: backendUrl,
           backendApiKey: backendApiKey,
+          nasAgentUrl: nasAgentUrl,
+          nasAgentKey: nasAgentKey,
         ),
       );
     }

@@ -100,8 +100,10 @@ void main() {
             'url': 'http://a',
             'username': 'a',
             'password': 'secret',
-            'backendUrl': 'http://backend',
-            'backendApiKey': 'backend-secret',
+            'backendUrl': 'http://cloud',
+            'backendApiKey': 'cloud-secret',
+            'nasAgentUrl': 'http://nas:8503',
+            'nasAgentKey': 'nas-secret',
             'isActive': true,
           },
         ]),
@@ -109,7 +111,9 @@ void main() {
         'server_url': 'http://a',
         'server_username': 'a',
         'server_password': 'secret',
-        backendApiKeyPreferenceKey('a'): 'backend-secret',
+        backendApiKeyPreferenceKey('a'): 'cloud-secret',
+        nasAgentUrlPreferenceKey('a'): 'http://nas:8503',
+        nasAgentKeyPreferenceKey('a'): 'nas-secret',
       });
       final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
@@ -123,8 +127,10 @@ void main() {
       expect(server.id, 'a');
       expect(server.password, isEmpty);
       expect(server.backendApiKey, isEmpty);
+      expect(server.nasAgentKey, isEmpty);
       expect(prefs.getString('server_password'), isNull);
       expect(prefs.getString(backendApiKeyPreferenceKey('a')), isNull);
+      expect(prefs.getString(nasAgentKeyPreferenceKey('a')), isNull);
     },
   );
 }

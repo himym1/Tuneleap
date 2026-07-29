@@ -34,9 +34,16 @@ final subsonicClientProvider = Provider<SubsonicClient>((ref) {
 final backendClientProvider = Provider<BackendClient>((ref) {
   final config = ref.watch(serverConfigProvider);
   final client = BackendClient();
-  if (config.backendUrl.isNotEmpty) {
-    client.configure(baseUrl: config.backendUrl, apiKey: config.backendApiKey);
-  }
+  client.configure(
+    cloudBaseUrl: config.backendUrl,
+    cloudApiKey: config.backendApiKey,
+    nasAgentUrl: config.nasAgentUrl.isNotEmpty
+        ? config.nasAgentUrl
+        : (config.url.isNotEmpty ? BackendClient.inferBaseUrl(config.url) : ''),
+    nasAgentKey: config.nasAgentKey.isNotEmpty
+        ? config.nasAgentKey
+        : config.backendApiKey,
+  );
   return client;
 });
 

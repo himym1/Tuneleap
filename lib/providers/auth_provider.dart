@@ -78,6 +78,8 @@ class AuthNotifier extends AsyncNotifier<AuthStatus> {
     required String password,
     String backendUrl = '',
     String backendApiKey = '',
+    String nasAgentUrl = '',
+    String nasAgentKey = '',
   }) async {
     final generation = _startOperation();
     await ref
@@ -88,6 +90,8 @@ class AuthNotifier extends AsyncNotifier<AuthStatus> {
           password: password,
           backendUrl: backendUrl,
           backendApiKey: backendApiKey,
+          nasAgentUrl: nasAgentUrl,
+          nasAgentKey: nasAgentKey,
         );
 
     final authenticated = await ref.read(subsonicClientProvider).ping();

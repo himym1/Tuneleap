@@ -6,8 +6,26 @@ import 'package:flutter/foundation.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
-const _updateOrigin = 'https://player.himym.us.ci';
-const _versionUrl = '$_updateOrigin/version.json';
+const _legacyUpdateOrigin = 'https://player.himym.us.ci';
+
+String _normalizeUpdateOrigin(String? value) {
+  final raw = value?.trim() ?? '';
+  final origin = raw.isEmpty ? _legacyUpdateOrigin : raw;
+  return origin.endsWith('/') ? origin.substring(0, origin.length - 1) : origin;
+}
+
+Uri _trustedUpdateOrigin(String value) {
+  final uri = Uri.tryParse(_normalizeUpdateOrigin(value));
+  if (uri == null ||
+      uri.scheme != 'https' ||
+      uri.host.isEmpty ||
+      (uri.path.isNotEmpty && uri.path != '/') ||
+      uri.hasQuery ||
+      uri.hasFragment) {
+    throw const FormatException('Invalid update origin');
+  }
+  return uri;
+}
 
 class AppUpdateInfo {
   final String version;
@@ -15,6 +33,7 @@ class AppUpdateInfo {
   final String url;
   final String sha256;
   final String? changelog;
+  final String trustedOrigin;
 
   const AppUpdateInfo({
     required this.version,
@@ -22,11 +41,13 @@ class AppUpdateInfo {
     required this.url,
     required this.sha256,
     this.changelog,
+    this.trustedOrigin = _legacyUpdateOrigin,
   });
 
   factory AppUpdateInfo.fromJson(
     Map<String, dynamic> json, {
     String? platform,
+    String trustedOrigin = _legacyUpdateOrigin,
   }) {
     final platformKey =
         platform ??
@@ -53,23 +74,26 @@ class AppUpdateInfo {
         !RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(checksum)) {
       throw const FormatException('Invalid platform update metadata');
     }
-    _validatePrivateDownloadUrl(url);
+    final normalizedOrigin = _normalizeUpdateOrigin(trustedOrigin);
+    _validatePrivateDownloadUrl(url, normalizedOrigin);
     return AppUpdateInfo(
       version: version,
       build: build,
       url: url,
       sha256: checksum.toLowerCase(),
       changelog: json['changelog'] as String?,
+      trustedOrigin: normalizedOrigin,
     );
   }
 }
 
-void _validatePrivateDownloadUrl(String value) {
+void _validatePrivateDownloadUrl(String value, String trustedOrigin) {
   final uri = Uri.tryParse(value);
+  final trusted = _trustedUpdateOrigin(trustedOrigin);
   if (uri == null ||
-      uri.scheme != 'https' ||
-      uri.host != 'player.himym.us.ci' ||
-      uri.port != 443 ||
+      uri.scheme != trusted.scheme ||
+      uri.host != trusted.host ||
+      uri.port != trusted.port ||
       !uri.path.startsWith('/releases/')) {
     throw const FormatException('Untrusted update download URL');
   }
@@ -101,13 +125,16 @@ List<int> _versionParts(String value) {
 
 Future<AppUpdateInfo?> checkForUpdate({
   required String apiKey,
+  String updateOrigin = '',
   Dio? dio,
 }) async {
   if (apiKey.isEmpty) return null;
   try {
+    final origin = _normalizeUpdateOrigin(updateOrigin);
+    _trustedUpdateOrigin(origin);
     final client = dio ?? Dio();
     final response = await client.get<dynamic>(
-      _versionUrl,
+      '$origin/version.json',
       options: Options(
         headers: {'X-API-Key': apiKey},
         followRedirects: false,
@@ -117,9 +144,14 @@ Future<AppUpdateInfo?> checkForUpdate({
       ),
     );
     final data = response.data;
-    if (data is Map<String, dynamic>) return AppUpdateInfo.fromJson(data);
+    if (data is Map<String, dynamic>) {
+      return AppUpdateInfo.fromJson(data, trustedOrigin: origin);
+    }
     if (data is Map) {
-      return AppUpdateInfo.fromJson(Map<String, dynamic>.from(data));
+      return AppUpdateInfo.fromJson(
+        Map<String, dynamic>.from(data),
+        trustedOrigin: origin,
+      );
     }
   } catch (error) {
     debugPrint('Update check failed: ${error.runtimeType}');
@@ -160,7 +192,7 @@ Future<String?> downloadUpdate(
   @visibleForTesting String? savePathOverride,
 }) async {
   if (apiKey.isEmpty) return null;
-  _validatePrivateDownloadUrl(info.url);
+  _validatePrivateDownloadUrl(info.url, info.trustedOrigin);
   final savePath = savePathOverride ?? await defaultUpdateSavePath();
   final file = File(savePath);
 
