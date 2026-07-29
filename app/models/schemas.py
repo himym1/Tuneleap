@@ -71,3 +71,8 @@ class DeleteResult(BaseModel):
 class ScanResult(BaseModel):
     ok: bool
     message: str = ""
+
+
+class LibraryIdentitiesResponse(BaseModel):
+    count: int
+    identities: list[str] = Field(default_factory=list)

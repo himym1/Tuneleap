@@ -13,6 +13,7 @@ import httpx
 from app.core.audit import audit_event
 from app.core.config import Settings
 from app.models.schemas import DeleteResult
+from app.services.recommendation_identity import weak_identity
 
 
 class DatabaseUnavailableError(RuntimeError):
@@ -213,6 +214,44 @@ class LibraryService:
             except OSError:
                 restored = False
         return restored
+
+
+    async def recommendation_weak_identities(self) -> set[str]:
+        """Return canonical title/artist identities for active library songs."""
+        database = Path(self._settings.navidrome_db_path)
+        if not database.is_file():
+            raise DatabaseUnavailableError("Navidrome database is not available")
+
+        async with aiosqlite.connect(f"file:{database}?mode=ro", uri=True) as db:
+            cursor = await db.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'media_file'"
+            )
+            if await cursor.fetchone() is None:
+                raise DatabaseUnavailableError("Navidrome media_file table is missing")
+
+            try:
+                cursor = await db.execute(
+                    "SELECT title, artist, album_artist FROM media_file "
+                    "WHERE COALESCE(missing, 0)=0"
+                )
+            except aiosqlite.Error:
+                cursor = await db.execute(
+                    "SELECT title, artist, NULL FROM media_file "
+                    "WHERE COALESCE(missing, 0)=0"
+                )
+
+            identities: set[str] = set()
+            async for title, artist, album_artist in cursor:
+                title_text = title or ""
+                artist_text = artist or ""
+                album_artist_text = album_artist or ""
+                if not title_text and not artist_text and not album_artist_text:
+                    continue
+                if title_text or artist_text:
+                    identities.add(weak_identity(title_text, artist_text))
+                if album_artist_text and album_artist_text != artist_text:
+                    identities.add(weak_identity(title_text, album_artist_text))
+            return identities
 
     async def trigger_scan(self) -> dict:
         settings = self._settings
