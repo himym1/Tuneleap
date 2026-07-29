@@ -1,0 +1,26 @@
+# Deploy beside Navidrome. Replace local development mounts before NAS cutover.
+services:
+  navidrome-nas-agent:
+    build: .
+    image: navidrome-nas-agent:local
+    container_name: navidrome-nas-agent
+    init: true
+    ports:
+      - "${NAS_AGENT_BIND_ADDRESS:-127.0.0.1}:${PORT:-8503}:8503"
+    env_file:
+      - .env
+    volumes:
+      # Production examples:
+      # - /volume1/docker/navidrome_mo/data:/data:rw
+      # - /volume4/media3/music:/music:rw
+      - ./data:/data:rw
+      - ./data/music:/music:rw
+    environment:
+      - TZ=Asia/Shanghai
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    stop_grace_period: 20s
