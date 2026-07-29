@@ -3,8 +3,8 @@
 ## Target topology
 
 ```text
-Internet → HTTPS → navidrome-cloud :8600 → Postgres
-                         ↘ navidrome-nas-agent (Tailscale/tunnel, optional)
+Internet → HTTPS / Cloudflare Tunnel → 127.0.0.1:8600 → navidrome-cloud → Postgres
+                                                   ↘ restricted FRP/Tailscale → navidrome-nas-agent
 ```
 
 ## Required
@@ -29,6 +29,8 @@ cp .env.example .env
 docker compose up -d --build
 curl -fsS http://127.0.0.1:8600/health
 ```
+
+Compose binds both Cloud `8600` and Postgres `5432` to loopback by default. Publish Cloud through Nginx or Cloudflare Tunnel; do not change the Compose mapping to `0.0.0.0`.
 
 Postgres schema migrations run transactionally during application startup. Startup fails when Postgres is unavailable or a migration fails.
 

@@ -22,7 +22,7 @@ services:
     image: navidrome-cloud:local
     container_name: navidrome-cloud
     ports:
-      - "8600:8600"
+      - "127.0.0.1:8600:8600"
     env_file:
       - .env
     volumes:
