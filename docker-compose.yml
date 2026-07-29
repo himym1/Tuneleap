@@ -1,0 +1,32 @@
+# Local / VPS scaffold only. Does not mount NAS music volumes.
+services:
+  navidrome-cloud:
+    build: .
+    image: navidrome-cloud:local
+    container_name: navidrome-cloud
+    ports:
+      - "8600:8600"
+    env_file:
+      - .env
+    volumes:
+      - ./releases:/app/releases:ro
+      - ./data:/app/data
+    restart: unless-stopped
+    # Optional later if migrating auth/recommendations off SQLite:
+    # depends_on:
+    #   - postgres
+
+  # postgres:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_DB: navidrome_cloud
+  #     POSTGRES_USER: navidrome
+  #     POSTGRES_PASSWORD: change-me
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - cloud-pg:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+# volumes:
+#   cloud-pg:

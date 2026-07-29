@@ -1,0 +1,1 @@
+"""Upstream HTTP adapters only — not product cores."""
