@@ -2,7 +2,7 @@
 
 Base URL example: `http://192.168.x.x:8503` or a Tailscale address.
 
-All mutation endpoints require `X-API-Key: <NAS_AGENT_KEY>`. Query-string credentials are rejected.
+All endpoints except `/health` require `X-API-Key: <NAS_AGENT_KEY>`. Query-string credentials are rejected.
 
 ## `GET /health`
 
@@ -64,6 +64,19 @@ A repeated request for an existing regular file returns `message: "already impor
 | 507 | Reserved free-space threshold would be crossed |
 
 Cover download/tagging is best effort: an invalid or unavailable cover does not fail the audio import.
+
+## `GET /v1/songs/library-identities`
+
+Returns normalized title/artist identities for active Navidrome library songs. `navidrome-cloud` uses this read-only endpoint to suppress songs already stored on the NAS from recommendations.
+
+```json
+{
+  "count": 2,
+  "identities": ["song\u001fartist", "another song\u001fanother artist"]
+}
+```
+
+Missing database/table configuration returns 503. The endpoint never returns file paths or opens write transactions.
 
 ## `POST /v1/songs/delete`
 
