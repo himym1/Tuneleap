@@ -35,7 +35,9 @@ async def test_gdstudio_adapter_search_and_url_failover():
         if params.get("types") == "search":
             return httpx.Response(200, json=[_song(1)])
         if params.get("types") == "url":
-            return httpx.Response(200, json={"url": "https://media.test/a.mp3", "br": 320})
+            return httpx.Response(
+                200, json={"url": "https://media.test/a.mp3", "br": 320}
+            )
         if params.get("types") == "pic":
             return httpx.Response(200, json={"url": "https://media.test/a.jpg"})
         if params.get("types") == "lyric":
@@ -52,7 +54,9 @@ async def test_gdstudio_adapter_search_and_url_failover():
             upstream_strategy="ordered",
         )
         facade = MusicFacade(client, settings)
-        result = await facade.search_first_success("jay", source="netease", count=5, page=1)
+        result = await facade.search_first_success(
+            "jay", source="netease", count=5, page=1
+        )
         assert result.provider == "gdstudio"
         assert len(result.items) == 1
         assert result.items[0].title == "Song 1"
@@ -76,7 +80,9 @@ async def test_first_success_does_not_concatenate_providers():
             return httpx.Response(200, json={"url": "https://x"})
         if host == "gds.test":
             return httpx.Response(200, json=[_song(1), _song(2)])
-        return httpx.Response(200, json=[_song(9, provider="meting"), _song(10, provider="meting")])
+        return httpx.Response(
+            200, json=[_song(9, provider="meting"), _song(10, provider="meting")]
+        )
 
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as client:
@@ -106,8 +112,6 @@ def test_search_api_happy_path():
             kwargs["transport"] = transport
             super().__init__(*args, **kwargs)
 
-    import app.main as main_mod
-
     original = httpx.AsyncClient
     httpx.AsyncClient = _PatchedClient  # type: ignore[misc,assignment]
     try:
@@ -127,3 +131,21 @@ def test_search_api_happy_path():
     finally:
         httpx.AsyncClient = original  # type: ignore[misc]
         get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_empty_search_page_is_a_successful_terminal_page():
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=[]))
+    async with httpx.AsyncClient(transport=transport) as client:
+        settings = Settings(
+            api_key="k",
+            gdstudio_api_base_urls="https://gds.test/api.php",
+            meting_api_base_urls="",
+            upstream_strategy="ordered",
+        )
+        result = await MusicFacade(client, settings).search_first_success(
+            "q", source="netease", count=30, page=2
+        )
+
+    assert result.items == []
+    assert result.strategy == "first-success-empty"

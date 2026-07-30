@@ -11,7 +11,13 @@ from app.adapters.base import MusicAdapter
 from app.adapters.gdstudio import GdstudioAdapter
 from app.adapters.meting import MetingAdapter
 from app.core.config import Settings
-from app.models.schemas import CoverResponse, LyricResponse, SearchResponse, SongDTO, UrlResponse
+from app.models.schemas import (
+    CoverResponse,
+    LyricResponse,
+    SearchResponse,
+    SongDTO,
+    UrlResponse,
+)
 
 
 class MusicFacade:
@@ -67,6 +73,7 @@ class MusicFacade:
         self, query: str, *, source: str | None, count: int, page: int
     ) -> SearchResponse:
         last_error: Exception | None = None
+        empty_adapter: MusicAdapter | None = None
         for adapter in self._adapters:
             try:
                 items = await adapter.search(
@@ -84,27 +91,40 @@ class MusicFacade:
                     items=songs,
                     strategy="first-success",
                 )
+            empty_adapter = adapter
+        if empty_adapter is not None:
+            return SearchResponse(
+                query=query,
+                provider=empty_adapter.name,
+                source=source,
+                items=[],
+                strategy="first-success-empty",
+            )
         if last_error is not None:
             raise last_error
-        raise httpx.HTTPError("all music adapters returned empty results")
+        raise httpx.HTTPError("all music adapters failed")
 
     async def _search_race(
         self, query: str, *, source: str | None, count: int, page: int
     ) -> SearchResponse:
-        async def run(adapter: MusicAdapter) -> tuple[MusicAdapter, list[dict[str, Any]]]:
+        async def run(
+            adapter: MusicAdapter,
+        ) -> tuple[MusicAdapter, list[dict[str, Any]]]:
             items = await adapter.search(query, source=source, count=count, page=page)
-            if not items:
-                raise httpx.HTTPError(f"{adapter.name} returned empty")
             return adapter, items
 
         tasks = [asyncio.create_task(run(adapter)) for adapter in self._adapters]
         last_error: Exception | None = None
+        empty_adapter: MusicAdapter | None = None
         try:
             for finished in asyncio.as_completed(tasks):
                 try:
                     adapter, items = await finished
                 except Exception as exc:  # noqa: BLE001
                     last_error = exc
+                    continue
+                if not items:
+                    empty_adapter = adapter
                     continue
                 for task in tasks:
                     if not task.done():
@@ -125,9 +145,17 @@ class MusicFacade:
                     task.cancel()
             if tasks:
                 await asyncio.gather(*tasks, return_exceptions=True)
+        if empty_adapter is not None:
+            return SearchResponse(
+                query=query,
+                provider=empty_adapter.name,
+                source=source,
+                items=[],
+                strategy="first-success-race-empty",
+            )
         if last_error is not None:
             raise last_error
-        raise httpx.HTTPError("all music adapters returned empty results")
+        raise httpx.HTTPError("all music adapters failed")
 
     async def get_url(
         self, id: str, *, source: str, br: int, provider: str | None = None

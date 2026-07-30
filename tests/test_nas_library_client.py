@@ -45,3 +45,57 @@ async def test_nas_library_client_disabled_without_url():
         lib = NasLibraryClient(client, settings)
         assert not lib.enabled
         assert await lib.recommendation_weak_identities() == set()
+
+
+@pytest.mark.asyncio
+async def test_nas_library_client_retries_transport_error_once():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise httpx.RemoteProtocolError("disconnected", request=request)
+        return httpx.Response(200, json={"identities": ["a\x1fb"]})
+
+    settings = Settings(
+        api_key="cloud",
+        nas_agent_url="https://nas-agent.test",
+        nas_agent_key="nas-key",
+        recommendation_sources="netease",
+        _env_file=None,
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        identities = await NasLibraryClient(
+            client, settings
+        ).recommendation_weak_identities()
+
+    assert identities == {"a\x1fb"}
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_nas_library_client_uses_recent_cache_after_retry_failure():
+    calls = 0
+    now = 10.0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return httpx.Response(200, json={"identities": ["a\x1fb"]})
+        raise httpx.RemoteProtocolError("disconnected", request=request)
+
+    settings = Settings(
+        api_key="cloud",
+        nas_agent_url="https://nas-agent.test",
+        nas_agent_key="nas-key",
+        recommendation_sources="netease",
+        _env_file=None,
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        library = NasLibraryClient(client, settings, clock=lambda: now)
+        assert await library.recommendation_weak_identities() == {"a\x1fb"}
+        assert await library.recommendation_weak_identities() == {"a\x1fb"}
+
+    assert calls == 3

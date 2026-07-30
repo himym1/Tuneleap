@@ -59,14 +59,15 @@ adapters = [gdstudio, meting?]
 for each adapter (ordered) or race(N):
   search(query)
   first non-empty result wins
-all empty/fail → 502/504
+all successful adapters empty → 200 with []
+all adapters fail → 502/504
 ```
 
 Do not merge NetEase + Kuwo + JOOX lists.
 
 ## Recommendation library blocking
 
-Set `NAS_AGENT_URL` and `NAS_AGENT_KEY`. Cloud calls `GET /v1/songs/library-identities` and blocks those weak identities. Cloud still never touches NAS paths or `navidrome.db`.
+Set `NAS_AGENT_URL` and `NAS_AGENT_KEY`. Cloud calls `GET /v1/songs/library-identities` and blocks those weak identities. Transport failures are retried once, then use a recent in-memory identity cache; without a cache, filtering is skipped so the recommendation API remains available. Cloud still never touches NAS paths or `navidrome.db`.
 
 ## Verification
 

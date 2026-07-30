@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import math
 import secrets
 import sys
@@ -27,6 +28,8 @@ from app.services.recommendation_identity import (
     weak_identity,
 )
 from app.services.recommendation_store import FeedbackResult, Session, StaleSessionError
+
+_logger = logging.getLogger(__name__)
 
 
 class SearchResult(TypedDict, total=False):
@@ -255,10 +258,20 @@ class RecommendationService:
         self._refill_context: dict[str, _RefillContext] = {}
         self.background_errors: list[BaseException] = []
 
-    async def _block_library_candidates(self, session_id: str) -> None:
+    async def _library_weak_identities(self) -> set[str]:
         if self.library is None:
-            return
-        identities = await self.library.recommendation_weak_identities()
+            return set()
+        try:
+            return await self.library.recommendation_weak_identities()
+        except httpx.TransportError as exc:
+            _logger.warning(
+                "NAS identities unavailable; recommendation filtering skipped: %s",
+                type(exc).__name__,
+            )
+            return set()
+
+    async def _block_library_candidates(self, session_id: str) -> None:
+        identities = await self._library_weak_identities()
         await self.store.block_candidate_identities(session_id, identities)
 
     async def create_or_resume(
@@ -661,11 +674,7 @@ class RecommendationService:
             )
             self._refill_context[session.session_id] = context
         existing = await self.store.candidate_identities(session.session_id)
-        library_identities = (
-            await self.library.recommendation_weak_identities()
-            if self.library is not None
-            else set()
-        )
+        library_identities = await self._library_weak_identities()
         recent_strong = {
             f"{_recent_field(item, 'source', 'onlineSource')}:{_recent_field(item, 'sourceId', 'source_id', 'urlId', 'url_id')}"
             for item in recent
