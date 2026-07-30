@@ -5,6 +5,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/library_section_tabs.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
@@ -69,15 +70,11 @@ class PlaylistsScreen extends ConsumerWidget {
                 ),
               ),
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(40),
+                preferredSize: const Size.fromHeight(50),
                 child: Container(
                   color: Theme.of(context).colorScheme.surface,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  alignment: Alignment.centerLeft,
-                  child: _FilterChip(
-                    label: S.of(context).playlistCreatedList,
-                    selected: true,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: const LibrarySectionTabs(),
                 ),
               ),
             ),
@@ -145,18 +142,9 @@ class PlaylistsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          // 分类标签
           Padding(
             padding: EdgeInsets.symmetric(horizontal: h),
-            child: Row(
-              children: [
-                _FilterChip(
-                  label: S.of(context).playlistCreatedList,
-                  selected: true,
-                ),
-              ],
-            ),
+            child: const LibrarySectionTabs(),
           ),
           const SizedBox(height: 20),
           // 列表网格
@@ -846,37 +834,6 @@ class _PlaylistCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  const _FilterChip({required this.label, required this.selected});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: selected ? context.colors.primarySoft : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: selected
-              ? context.colors.primary
-              : Theme.of(context).colorScheme.outlineVariant,
-        ),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.chipLabel.copyWith(
-          fontWeight: FontWeight.w500,
-          color: selected
-              ? context.colors.primary
-              : Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
       ),
     );
   }

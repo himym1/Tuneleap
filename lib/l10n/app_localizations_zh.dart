@@ -18,7 +18,7 @@ class SZh extends S {
   String get navSearch => '搜索';
 
   @override
-  String get navPlaylists => '播放列表';
+  String get navPlaylists => '歌单';
 
   @override
   String get navSettings => '设置';
@@ -437,6 +437,15 @@ class SZh extends S {
   }
 
   @override
+  String get importAnyway => '仍然导入';
+
+  @override
+  String get importDuplicateCheckFailed => '无法核对 NAS 曲库，已停止导入';
+
+  @override
+  String get nasAgentConfigRequired => '请先配置局域网 NAS Agent 地址和 Key，再执行导入或删除';
+
+  @override
   String get commonContinue => '继续';
 
   @override
@@ -656,7 +665,7 @@ class SZh extends S {
   String get nasAgentUrl => 'NAS Agent 地址';
 
   @override
-  String get nasAgentUrlHint => '可选，默认使用 Navidrome 主机的 8504 端口';
+  String get nasAgentUrlHint => '导入/删除必填，请使用局域网地址，例如 http://192.168.1.10:8504';
 
   @override
   String get nasAgentKey => 'NAS Agent Key';
@@ -684,6 +693,15 @@ class SZh extends S {
 
   @override
   String get searchResults => '搜索结果';
+
+  @override
+  String get searchLoadMore => '加载更多';
+
+  @override
+  String get searchLoadingMore => '加载中…';
+
+  @override
+  String get searchLoadMoreFailed => '下一页加载失败';
 
   @override
   String get libraryNoArtists => '暂无艺术家';
@@ -770,6 +788,25 @@ class SZh extends S {
   }
 
   @override
+  String get playlistSaveQueue => '将队列保存为歌单';
+
+  @override
+  String playlistQueueSaved(String name) {
+    return '已将队列保存为「$name」';
+  }
+
+  @override
+  String playlistQueueSavedSkipped(String name, int count) {
+    return '已保存为「$name」，跳过 $count 首线上歌曲';
+  }
+
+  @override
+  String get playlistQueueNoLocalSongs => '只有本地曲库歌曲可以保存到歌单';
+
+  @override
+  String get playlistQueueSaveFailed => '保存队列失败';
+
+  @override
   String get defaultServerName => '我的服务器';
 
   @override
@@ -794,13 +831,31 @@ class SZh extends S {
   String get sidebarLibrary => '音乐库';
 
   @override
+  String get libraryBrowse => '浏览音乐库';
+
+  @override
   String get homeNewestAlbums => '最新专辑';
 
   @override
-  String get homeDailyRecommend => '为你推荐';
+  String get homeDailyRecommend => '发现新音乐';
 
   @override
   String get homeRecentlyPlayed => '最近播放';
+
+  @override
+  String get homeYourMusic => '我的音乐';
+
+  @override
+  String get homeContinueListening => '继续听';
+
+  @override
+  String get homeLocalMix => '本地 Mix';
+
+  @override
+  String get homeShuffleLocal => '随机播放曲库';
+
+  @override
+  String get homeLocalPlaybackFailed => '无法开始本地播放';
 
   @override
   String get homeViewMore => '更多';

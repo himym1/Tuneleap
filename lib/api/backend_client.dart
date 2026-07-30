@@ -6,6 +6,15 @@ import 'package:navidrome_player/api/subsonic_client.dart'
 
 typedef CloudTokenProvider = Future<String?> Function({bool forceRefresh});
 
+class NasDuplicateException implements Exception {
+  const NasDuplicateException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// Dual-endpoint companion client (ADR-0004):
 /// - cloud: Bearer-authenticated search, media, recommendations, and updates
 /// - nas agent: API-key-authenticated import/delete only
@@ -22,11 +31,21 @@ class BackendClient {
   BackendClient({Dio? dio, CloudTokenProvider? cloudTokenProvider})
     : _cloudTokenProvider = cloudTokenProvider {
     _dio = dio ?? Dio();
+    _dio.options.connectTimeout ??= const Duration(seconds: 10);
     if (cloudTokenProvider != null) _installCloudAuth();
   }
 
   bool get isConfigured => _cloudBaseUrl.isNotEmpty;
   bool get isNasConfigured => _nasBaseUrl.isNotEmpty;
+  bool get canMutateNas {
+    final uri = Uri.tryParse(_nasBaseUrl);
+    return _nasAgentKey.isNotEmpty &&
+        uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty &&
+        _isLanHost(uri.host);
+  }
+
   String get cloudBaseUrl => _cloudBaseUrl;
   String get nasBaseUrl => _nasBaseUrl;
 
@@ -53,13 +72,38 @@ class BackendClient {
   /// Infer the production LAN NAS agent endpoint on port 8504.
   static String inferBaseUrl(String serverUrl, {int port = 8504}) {
     final uri = Uri.tryParse(serverUrl);
-    if (uri == null || uri.host.isEmpty) return '';
+    if (uri == null ||
+        uri.host.isEmpty ||
+        (uri.scheme.isNotEmpty && uri.scheme != 'http' && uri.scheme != 'https') ||
+        !_isLanHost(uri.host)) {
+      return '';
+    }
 
     return Uri(
       scheme: uri.scheme.isEmpty ? 'http' : uri.scheme,
       host: uri.host,
       port: port,
     ).toString();
+  }
+
+  static bool _isLanHost(String host) {
+    final normalized = host.toLowerCase();
+    if (normalized == 'localhost' ||
+        normalized == '::1' ||
+        normalized.endsWith('.local') ||
+        (!normalized.contains('.') && !normalized.contains(':'))) {
+      return true;
+    }
+    final octets = normalized.split('.').map(int.tryParse).toList();
+    if (octets.length != 4 || octets.any((part) => part == null)) return false;
+    final first = octets[0]!;
+    final second = octets[1]!;
+    return first == 10 ||
+        first == 127 ||
+        (first == 100 && second >= 64 && second <= 127) ||
+        (first == 169 && second == 254) ||
+        (first == 172 && second >= 16 && second <= 31) ||
+        (first == 192 && second == 168);
   }
 
   void _installCloudAuth() {
@@ -250,10 +294,11 @@ class BackendClient {
     required Map<String, dynamic> song,
     String? picUrl,
     String? lyric,
+    bool force = false,
   }) async {
-    final base = _nasBaseUrl.isNotEmpty ? _nasBaseUrl : _cloudBaseUrl;
-    if (base.isEmpty) {
-      throw StateError('NAS agent is not configured');
+    final base = _nasBaseUrl;
+    if (!canMutateNas) {
+      throw StateError('NAS agent URL and key are not configured');
     }
 
     // Prefer nas-agent contract; fall back to legacy monorepo path.
@@ -265,6 +310,7 @@ class BackendClient {
       'song': song,
       if (picUrl != null && picUrl.isNotEmpty) 'picUrl': picUrl,
       if (lyric != null && lyric.isNotEmpty) 'lyric': lyric,
+      'force': force,
     };
 
     try {
@@ -275,6 +321,15 @@ class BackendClient {
       );
       return _parseImportResponse(response.data);
     } on DioException catch (error) {
+      if (error.response?.statusCode == 409) {
+        final data = error.response?.data;
+        final detail = data is Map ? data['detail']?.toString() : null;
+        throw NasDuplicateException(
+          detail == null || detail.isEmpty
+              ? 'Song already exists in the Navidrome library'
+              : detail,
+        );
+      }
       if (error.response?.statusCode == 404) {
         final response = await _dio.post(
           legacyPath,
@@ -366,8 +421,10 @@ class BackendClient {
   /// 按 Navidrome song ID 删除本地歌曲文件
   Future<bool> deleteSongById(String navidromeId) async {
     debugPrint('[Backend] deleting song via nas-agent');
-    final base = _nasBaseUrl.isNotEmpty ? _nasBaseUrl : _cloudBaseUrl;
-    if (base.isEmpty) return false;
+    final base = _nasBaseUrl;
+    if (!canMutateNas) {
+      throw StateError('NAS agent URL and key are not configured');
+    }
     try {
       final response = await _dio.post(
         '$base/v1/songs/delete',

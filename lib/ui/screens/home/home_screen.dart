@@ -12,6 +12,24 @@ import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/player/playback_origin.dart';
 
+List<Song> composeLocalMix(
+  List<Song> playHistory,
+  List<Song> randomSongs, {
+  int limit = 30,
+}) {
+  final olderLocalSongs = playHistory
+      .where((song) => !song.isOnline)
+      .skip(4)
+      .toList()
+      .reversed
+      .take(6);
+  final seen = <String>{};
+  return [
+    ...olderLocalSongs,
+    ...randomSongs,
+  ].where((song) => seen.add(song.storageKey)).take(limit).toList();
+}
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -20,6 +38,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _loadingLocalPlayback = false;
   @override
   void initState() {
     super.initState();
@@ -34,6 +53,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ref.read(newestAlbumsProvider.future),
       ref.read(recommendationProvider.notifier).refresh(),
     ]);
+  }
+
+  Future<void> _playLocalCollection({required bool mix}) async {
+    if (_loadingLocalPlayback) return;
+    setState(() => _loadingLocalPlayback = true);
+    try {
+      final player = ref.read(audioPlayerServiceProvider);
+      final random = await ref
+          .read(subsonicClientProvider)
+          .getRandomSongs(size: 30);
+      final songs = mix
+          ? composeLocalMix(player.playHistory, random)
+          : random.take(30).toList();
+      if (songs.isEmpty) throw StateError('empty local library');
+      await player.playAll(songs);
+      if (mounted) context.push('/player');
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(S.of(context).homeLocalPlaybackFailed),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loadingLocalPlayback = false);
+    }
+  }
+
+  Widget _buildLocalActions() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final buttonWidth = constraints.maxWidth >= 520
+            ? (constraints.maxWidth - 12) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            SizedBox(
+              width: buttonWidth,
+              height: 44,
+              child: FilledButton.icon(
+                onPressed: _loadingLocalPlayback
+                    ? null
+                    : () => _playLocalCollection(mix: true),
+                icon: _loadingLocalPlayback
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.auto_awesome, size: 19),
+                label: Text(S.of(context).homeLocalMix),
+              ),
+            ),
+            SizedBox(
+              width: buttonWidth,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: _loadingLocalPlayback
+                    ? null
+                    : () => _playLocalCollection(mix: false),
+                icon: const Icon(Icons.shuffle, size: 19),
+                label: Text(S.of(context).homeShuffleLocal),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _greeting() {
@@ -52,7 +142,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref.watch(cloudAuthProvider).value?.isAuthenticated == true;
     final recentSongs = ref
         .watch(recommendationRecentSongsProvider)
-        .take(2)
+        .take(1)
         .toList();
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile
@@ -81,17 +171,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Text(
-                      _greeting(),
-                      style: Theme.of(context).textTheme.pageTitle.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
+                    Expanded(
+                      child: Text(
+                        _greeting(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.pageTitle.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 12),
                     _buildWeather(),
                   ],
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
+                _buildSectionHeader(
+                  S.of(context).homeYourMusic,
+                  onMore: () => context.go('/library/songs'),
+                ),
+                const SizedBox(height: 8),
+                if (recentSongs.isNotEmpty) ...[
+                  Text(
+                    S.of(context).homeContinueListening,
+                    style: Theme.of(context).textTheme.chipLabel.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _buildRecentSongs(recentSongs),
+                  const SizedBox(height: 12),
+                ],
+                _buildLocalActions(),
+                const SizedBox(height: 20),
 
                 _buildSectionHeader(
                   S.of(context).homeDailyRecommend,
@@ -133,24 +245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _buildRecommendationList(
                     recommendations.visibleItems.take(6).toList(),
                   ),
-
-                if (recentSongs.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader(
-                          S.of(context).homeRecentlyPlayed,
-                          onMore: () => context.go('/scrobble'),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildRecentSongs(recentSongs),
-                      ],
-                    ),
-                  ),
-
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
                 _buildSectionHeader(
                   S.of(context).homeNewestAlbums,
                   onMore: () => context.go('/library/albums'),
@@ -200,10 +295,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.sectionTitle.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.sectionTitle.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ),
         if (onMore != null)

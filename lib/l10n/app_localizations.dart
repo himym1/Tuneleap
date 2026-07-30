@@ -118,7 +118,7 @@ abstract class S {
   /// No description provided for @navPlaylists.
   ///
   /// In zh, this message translates to:
-  /// **'播放列表'**
+  /// **'歌单'**
   String get navPlaylists;
 
   /// No description provided for @navSettings.
@@ -913,6 +913,24 @@ abstract class S {
   /// **'「{title}」({artist}) 在本地库中已存在，是否仍要导入？'**
   String importDuplicateMessage(String title, String artist);
 
+  /// No description provided for @importAnyway.
+  ///
+  /// In zh, this message translates to:
+  /// **'仍然导入'**
+  String get importAnyway;
+
+  /// No description provided for @importDuplicateCheckFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法核对 NAS 曲库，已停止导入'**
+  String get importDuplicateCheckFailed;
+
+  /// No description provided for @nasAgentConfigRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先配置局域网 NAS Agent 地址和 Key，再执行导入或删除'**
+  String get nasAgentConfigRequired;
+
   /// No description provided for @commonContinue.
   ///
   /// In zh, this message translates to:
@@ -1312,7 +1330,7 @@ abstract class S {
   /// No description provided for @nasAgentUrlHint.
   ///
   /// In zh, this message translates to:
-  /// **'可选，默认使用 Navidrome 主机的 8504 端口'**
+  /// **'导入/删除必填，请使用局域网地址，例如 http://192.168.1.10:8504'**
   String get nasAgentUrlHint;
 
   /// No description provided for @nasAgentKey.
@@ -1368,6 +1386,24 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'搜索结果'**
   String get searchResults;
+
+  /// No description provided for @searchLoadMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载更多'**
+  String get searchLoadMore;
+
+  /// No description provided for @searchLoadingMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载中…'**
+  String get searchLoadingMore;
+
+  /// No description provided for @searchLoadMoreFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一页加载失败'**
+  String get searchLoadMoreFailed;
 
   /// No description provided for @libraryNoArtists.
   ///
@@ -1513,6 +1549,36 @@ abstract class S {
   /// **'已添加到 {name}'**
   String songContextAddedToPlaylist(String name);
 
+  /// No description provided for @playlistSaveQueue.
+  ///
+  /// In zh, this message translates to:
+  /// **'将队列保存为歌单'**
+  String get playlistSaveQueue;
+
+  /// No description provided for @playlistQueueSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'已将队列保存为「{name}」'**
+  String playlistQueueSaved(String name);
+
+  /// No description provided for @playlistQueueSavedSkipped.
+  ///
+  /// In zh, this message translates to:
+  /// **'已保存为「{name}」，跳过 {count} 首线上歌曲'**
+  String playlistQueueSavedSkipped(String name, int count);
+
+  /// No description provided for @playlistQueueNoLocalSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'只有本地曲库歌曲可以保存到歌单'**
+  String get playlistQueueNoLocalSongs;
+
+  /// No description provided for @playlistQueueSaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存队列失败'**
+  String get playlistQueueSaveFailed;
+
   /// No description provided for @defaultServerName.
   ///
   /// In zh, this message translates to:
@@ -1561,6 +1627,12 @@ abstract class S {
   /// **'音乐库'**
   String get sidebarLibrary;
 
+  /// No description provided for @libraryBrowse.
+  ///
+  /// In zh, this message translates to:
+  /// **'浏览音乐库'**
+  String get libraryBrowse;
+
   /// No description provided for @homeNewestAlbums.
   ///
   /// In zh, this message translates to:
@@ -1570,7 +1642,7 @@ abstract class S {
   /// No description provided for @homeDailyRecommend.
   ///
   /// In zh, this message translates to:
-  /// **'为你推荐'**
+  /// **'发现新音乐'**
   String get homeDailyRecommend;
 
   /// No description provided for @homeRecentlyPlayed.
@@ -1578,6 +1650,36 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'最近播放'**
   String get homeRecentlyPlayed;
+
+  /// No description provided for @homeYourMusic.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的音乐'**
+  String get homeYourMusic;
+
+  /// No description provided for @homeContinueListening.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续听'**
+  String get homeContinueListening;
+
+  /// No description provided for @homeLocalMix.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地 Mix'**
+  String get homeLocalMix;
+
+  /// No description provided for @homeShuffleLocal.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机播放曲库'**
+  String get homeShuffleLocal;
+
+  /// No description provided for @homeLocalPlaybackFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法开始本地播放'**
+  String get homeLocalPlaybackFailed;
 
   /// No description provided for @homeViewMore.
   ///

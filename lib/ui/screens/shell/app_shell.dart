@@ -126,50 +126,16 @@ class _AppShellState extends ConsumerState<AppShell> {
       path: '/home',
     ),
     _NavItem(
+      icon: Icons.library_music_outlined,
+      activeIcon: Icons.library_music,
+      labelKey: 'library',
+      path: '/library',
+    ),
+    _NavItem(
       icon: Icons.search_outlined,
       activeIcon: Icons.search,
       labelKey: 'search',
       path: '/search',
-    ),
-  ];
-
-  // PC 端音乐库子类
-  static const _libraryItems = [
-    _NavItem(
-      icon: Icons.music_note_outlined,
-      activeIcon: Icons.music_note,
-      labelKey: 'songs',
-      path: '/library/songs',
-    ),
-    _NavItem(
-      icon: Icons.album_outlined,
-      activeIcon: Icons.album,
-      labelKey: 'albums',
-      path: '/library/albums',
-    ),
-    _NavItem(
-      icon: Icons.person_outline,
-      activeIcon: Icons.person,
-      labelKey: 'artists',
-      path: '/library/artists',
-    ),
-    _NavItem(
-      icon: Icons.people_outline,
-      activeIcon: Icons.people,
-      labelKey: 'albumArtists',
-      path: '/library/album-artists',
-    ),
-    _NavItem(
-      icon: Icons.category_outlined,
-      activeIcon: Icons.category,
-      labelKey: 'genres',
-      path: '/library/genres',
-    ),
-    _NavItem(
-      icon: Icons.radio_outlined,
-      activeIcon: Icons.radio,
-      labelKey: 'radio',
-      path: '/library/radio',
     ),
   ];
 
@@ -232,7 +198,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     final shell = widget.navigationShell;
     final branch = _branchIndexForPath(path);
     final isBranchRoot =
-        path == '/home' || path == '/search' || path == '/settings';
+        path == '/home' ||
+        path == '/library' ||
+        path == '/search' ||
+        path == '/settings';
     if (branch != null && isBranchRoot) {
       shell.goBranch(branch, initialLocation: branch == shell.currentIndex);
       return;
@@ -535,18 +504,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                         // ── NAV section ──
                         _buildSectionHeader(S.of(context).sidebarNav),
                         ..._navItems.map(
-                          (item) => _buildDesktopNavItem(
-                            item,
-                            _isPathSelected(item.path, location),
-                            () => _openDesktopPath(context, item.path),
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // ── LIBRARY section ──
-                        _buildSectionHeader(S.of(context).sidebarLibrary),
-                        ..._libraryItems.map(
                           (item) => _buildDesktopNavItem(
                             item,
                             _isPathSelected(item.path, location),

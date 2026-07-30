@@ -23,12 +23,18 @@ class NavidromeImportService {
 
   NavidromeImportService({required this.backendClient});
 
-  Future<NavidromeImportResult> importOnlineSong(Song song) async {
+  Future<NavidromeImportResult> importOnlineSong(
+    Song song, {
+    bool force = false,
+  }) async {
     if (!song.isOnline) {
       throw ArgumentError('Only online songs can be imported');
     }
     if (!backendClient.isConfigured) {
       throw StateError('Backend client is not configured');
+    }
+    if (!backendClient.canMutateNas) {
+      throw StateError('NAS agent URL and key are not configured');
     }
 
     debugPrint('[Import] started: source=${song.onlineSource ?? 'unknown'}');
@@ -62,6 +68,7 @@ class NavidromeImportService {
         song: buildNasDownloadSong(song),
         picUrl: picUrl,
         lyric: lrcText,
+        force: force,
       );
       debugPrint('[Import] queued successfully');
 

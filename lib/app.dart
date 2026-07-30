@@ -9,7 +9,6 @@ import 'package:navidrome_player/ui/screens/login/login_screen.dart';
 import 'package:navidrome_player/ui/screens/shell/app_shell.dart';
 import 'package:navidrome_player/ui/screens/home/home_screen.dart';
 import 'package:navidrome_player/ui/screens/recommendations/recommendations_screen.dart';
-import 'package:navidrome_player/ui/screens/library/library_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_songs_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_albums_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_artists_screen.dart';
@@ -173,7 +172,7 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
           builder: (context, state, navigationShell) =>
               AppShell(navigationShell: navigationShell),
           branches: [
-            // 0 Home hub — keeps recommendations/playlists with home stack
+            // 0 Home hub — recommendations and legacy playlist alias
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -216,12 +215,7 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                 ),
                 GoRoute(
                   path: '/playlists',
-                  pageBuilder: (context, state) => CustomTransitionPage(
-                    key: state.pageKey,
-                    child: const PlaylistsScreen(),
-                    transitionsBuilder: _fadeThroughTransition,
-                    transitionDuration: _kFadeDuration,
-                  ),
+                  redirect: (context, state) => '/library/playlists',
                 ),
               ],
             ),
@@ -230,74 +224,70 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
               routes: [
                 GoRoute(
                   path: '/library',
-                  redirect: (context, state) {
-                    if (state.uri.toString() == '/library') {
-                      return '/library/songs';
-                    }
-                    return null;
-                  },
+                  redirect: (context, state) => '/library/songs',
+                ),
+                GoRoute(
+                  path: '/library/playlists',
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
-                    child: const LibraryScreen(),
+                    child: const PlaylistsScreen(),
                     transitionsBuilder: _fadeThroughTransition,
                     transitionDuration: _kFadeDuration,
                   ),
-                  routes: [
-                    GoRoute(
-                      path: 'songs',
-                      pageBuilder: (context, state) => CustomTransitionPage(
-                        key: state.pageKey,
-                        child: const LibrarySongsScreen(),
-                        transitionsBuilder: _fadeThroughTransition,
-                        transitionDuration: _kFadeDuration,
-                      ),
-                    ),
-                    GoRoute(
-                      path: 'albums',
-                      pageBuilder: (context, state) => CustomTransitionPage(
-                        key: state.pageKey,
-                        child: const LibraryAlbumsScreen(),
-                        transitionsBuilder: _fadeThroughTransition,
-                        transitionDuration: _kFadeDuration,
-                      ),
-                    ),
-                    GoRoute(
-                      path: 'artists',
-                      pageBuilder: (context, state) => CustomTransitionPage(
-                        key: state.pageKey,
-                        child: const LibraryArtistsScreen(),
-                        transitionsBuilder: _fadeThroughTransition,
-                        transitionDuration: _kFadeDuration,
-                      ),
-                    ),
-                    GoRoute(
-                      path: 'album-artists',
-                      pageBuilder: (context, state) => CustomTransitionPage(
-                        key: state.pageKey,
-                        child: const LibraryAlbumArtistsScreen(),
-                        transitionsBuilder: _fadeThroughTransition,
-                        transitionDuration: _kFadeDuration,
-                      ),
-                    ),
-                    GoRoute(
-                      path: 'genres',
-                      pageBuilder: (context, state) => CustomTransitionPage(
-                        key: state.pageKey,
-                        child: const LibraryGenresScreen(),
-                        transitionsBuilder: _fadeThroughTransition,
-                        transitionDuration: _kFadeDuration,
-                      ),
-                    ),
-                    GoRoute(
-                      path: 'radio',
-                      pageBuilder: (context, state) => CustomTransitionPage(
-                        key: state.pageKey,
-                        child: const LibraryRadioScreen(),
-                        transitionsBuilder: _fadeThroughTransition,
-                        transitionDuration: _kFadeDuration,
-                      ),
-                    ),
-                  ],
+                ),
+                GoRoute(
+                  path: '/library/songs',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibrarySongsScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/library/albums',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryAlbumsScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/library/artists',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryArtistsScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/library/album-artists',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryAlbumArtistsScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/library/genres',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryGenresScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/library/radio',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryRadioScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
                 ),
                 GoRoute(
                   path: '/album/:id',

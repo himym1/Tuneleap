@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/widgets/save_queue_playlist_button.dart';
+import 'package:navidrome_player/ui/widgets/import_to_navidrome_button.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
@@ -197,13 +199,21 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          Text(
-                            S.of(context).commonSongs(queue.length),
-                            style: Theme.of(context).textTheme.chipLabel.copyWith(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                S.of(context).commonSongs(queue.length),
+                                style: Theme.of(context).textTheme.chipLabel.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              SaveQueuePlaylistButton(
+                                queue: playerService.queue,
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -740,6 +750,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       ),
                     ),
                     const SizedBox(width: 4),
+                    if (currentSong.isOnline)
+                      ImportToNavidromeButton(
+                        song: currentSong,
+                        iconColor: playerFgMuted,
+                      ),
                     IconButton(
                       onPressed: () => _showMobileQueue(context, playerService),
                       tooltip: S.of(context).playerQueue,
@@ -863,6 +878,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (currentSong.isOnline)
+                          ImportToNavidromeButton(song: currentSong),
                         // 播放速度
                         StreamBuilder<double>(
                           stream: playerService.player.speedStream,
@@ -1096,11 +1113,17 @@ class _QueuePanelState extends State<_QueuePanel> {
                   S.of(context).playerQueueTitle,
                   style: Theme.of(context).textTheme.playerQueueHeader,
                 ),
-                Text(
-                  S.of(context).commonSongs(ps.queue.length),
-                  style: Theme.of(context).textTheme.playerTimestamp.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      S.of(context).commonSongs(ps.queue.length),
+                      style: Theme.of(context).textTheme.playerTimestamp.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    SaveQueuePlaylistButton(queue: ps.queue),
+                  ],
                 ),
               ],
             ),

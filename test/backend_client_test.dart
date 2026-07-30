@@ -96,10 +96,7 @@ void main() {
         BackendClient.inferBaseUrl('http://192.168.1.10:4533'),
         'http://192.168.1.10:8504',
       );
-      expect(
-        BackendClient.inferBaseUrl('https://music.example.com'),
-        'https://music.example.com:8504',
-      );
+      expect(BackendClient.inferBaseUrl('https://music.example.com'), '');
       expect(BackendClient.inferBaseUrl('not-a-url'), '');
     });
 
@@ -230,6 +227,7 @@ void main() {
         filename: 'solara_netease_1.flac',
         song: {'id': '1', 'name': 'Track'},
         picUrl: 'http://cover/1',
+        force: true,
       );
 
       expect(message, 'queued');
@@ -239,6 +237,52 @@ void main() {
       expect(captured.data['filename'], 'solara_netease_1.flac');
       expect(captured.data['song'], {'id': '1', 'name': 'Track'});
       expect(captured.data['picUrl'], 'http://cover/1');
+      expect(captured.data['force'], isTrue);
+    });
+
+    test('queueNasDownload surfaces NAS duplicate conflict', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          return _jsonBody({
+            'detail': 'song already exists in the Navidrome library',
+          }, statusCode: 409);
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(
+          cloudBaseUrl: 'http://cloud:8600',
+          nasAgentUrl: 'http://nas:8504',
+          nasAgentKey: 'nas-key',
+        );
+
+      expect(
+        () => client.queueNasDownload(
+          url: 'https://cdn.example.com/song.mp3',
+          filename: 'song.mp3',
+          song: {'title': 'Song'},
+        ),
+        throwsA(isA<NasDuplicateException>()),
+      );
+    });
+
+    test('NAS mutations require an explicit URL and key', () async {
+      final client = BackendClient(dio: Dio())
+        ..configure(cloudBaseUrl: 'https://cloud.example.com');
+
+      expect(client.canMutateNas, isFalse);
+      expect(
+        () => client.queueNasDownload(
+          url: 'https://cdn.example.com/song.mp3',
+          filename: 'song.mp3',
+          song: {'title': 'Song'},
+        ),
+        throwsStateError,
+      );
+      client.configure(
+        cloudBaseUrl: 'https://cloud.example.com',
+        nasAgentUrl: 'http://navidrome.example:8504',
+        nasAgentKey: 'nas-key',
+      );
+      expect(client.canMutateNas, isFalse);
     });
 
     test('getRawLyrics sends fallback song context', () async {
