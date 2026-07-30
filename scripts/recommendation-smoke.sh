@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Task 13 smoke harness (DO NOT run against prod/NAS without explicit approval).
-# Requires a local/test Backend with API_KEY and optional OPENAI_API_KEY already in the
-# process environment. This script never prints secret values.
+# Local navidrome-cloud recommendation smoke harness.
+# Requires RECOMMENDATION_SMOKE_API_KEY (or API_KEY) in the environment.
+# It mutates recommendation sessions/profile; do not point it at production unintentionally.
 set -euo pipefail
 
-BASE_URL="${RECOMMENDATION_SMOKE_BASE_URL:-http://127.0.0.1:8503}"
+BASE_URL="${RECOMMENDATION_SMOKE_BASE_URL:-http://127.0.0.1:8600}"
 API_KEY="${API_KEY:-${RECOMMENDATION_SMOKE_API_KEY:-}}"
 
 if [[ -z "${API_KEY}" ]]; then

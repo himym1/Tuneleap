@@ -94,11 +94,11 @@ void main() {
     test('inferBaseUrl reuses host and replaces port', () {
       expect(
         BackendClient.inferBaseUrl('http://192.168.1.10:4533'),
-        'http://192.168.1.10:8503',
+        'http://192.168.1.10:8504',
       );
       expect(
         BackendClient.inferBaseUrl('https://music.example.com'),
-        'https://music.example.com:8503',
+        'https://music.example.com:8504',
       );
       expect(BackendClient.inferBaseUrl('not-a-url'), '');
     });
@@ -315,8 +315,11 @@ void main() {
             captured = options;
             return _jsonBody(_pageJson());
           });
-        final client = BackendClient(dio: dio)
-          ..configure(baseUrl: 'http://nas:10086', apiKey: 'secret-key');
+        final client = BackendClient(
+          dio: dio,
+          cloudTokenProvider: ({bool forceRefresh = false}) async =>
+              'access-token',
+        )..configure(baseUrl: 'http://nas:10086');
 
         final recent = <Song>[
           for (var i = 0; i < 35; i++)
@@ -338,7 +341,7 @@ void main() {
         expect(page.mode, RecommendationMode.ai);
         expect(captured.method, 'POST');
         expect(captured.path, 'http://nas:10086/v1/recommendations/sessions');
-        expect(captured.headers['X-API-Key'], 'secret-key');
+        expect(captured.headers['Authorization'], 'Bearer access-token');
         expect(captured.queryParameters, isEmpty);
         expect(captured.data['refresh'], isTrue);
         expect(captured.data['pageSize'], 7);
@@ -631,6 +634,36 @@ void main() {
         throwsA(isA<ArgumentError>()),
       );
       expect(called, isFalse);
+    });
+    test('refreshes Bearer token once after a Cloud 401', () async {
+      var requests = 0;
+      final refreshFlags = <bool>[];
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          requests += 1;
+          if (requests == 1) {
+            expect(options.headers['Authorization'], 'Bearer access-old');
+            return ResponseBody.fromString('{}', 401);
+          }
+          expect(options.headers['Authorization'], 'Bearer access-new');
+          return _jsonBody(_pageJson());
+        });
+      final client = BackendClient(
+        dio: dio,
+        cloudTokenProvider: ({bool forceRefresh = false}) async {
+          refreshFlags.add(forceRefresh);
+          return forceRefresh ? 'access-new' : 'access-old';
+        },
+      )..configure(baseUrl: 'http://cloud:8600');
+
+      final page = await client.createRecommendationSession(
+        const [],
+        pageSize: 1,
+      );
+
+      expect(page.sessionId, 'session-1');
+      expect(refreshFlags, [false, true]);
+      expect(requests, 2);
     });
   });
 }

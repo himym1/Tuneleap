@@ -3,68 +3,82 @@
 ## 环境要求
 
 | 工具 | 最低版本 | 说明 |
-|------|---------|------|
-| Flutter | 3.38+ | `flutter --version` 确认 |
+|---|---:|---|
+| Flutter | 3.38+ | `flutter --version` |
 | Dart | 3.10+ | 随 Flutter 安装 |
-| Android SDK | API 21+ | Android 开发 |
-| Xcode | 15+ | macOS 开发 |
-| CocoaPods | 1.14+ | macOS 依赖管理 |
-| Navidrome | 0.49+ | 测试用服务端 |
+| Android SDK | API 24+ | Android 构建 |
+| Xcode | 15+ | macOS 构建 |
+| CocoaPods | 1.14+ | macOS 插件依赖 |
+| Navidrome | 0.49+ | 本地曲库与 Subsonic API |
 
-## 项目搭建
+## 初始化
 
 ```bash
-# 1. 克隆项目
 git clone <repo-url>
 cd navidrome_player
-
-# 2. 安装 Flutter 依赖
 flutter pub get
-
-# 3. macOS 额外步骤
-cd macos && pod install && cd ..
-
-# 4. 验证环境
 flutter doctor
 ```
 
-## 构建与运行
+Flutter 构建会处理 macOS Pods；只有排查 CocoaPods 时才需要进入 `macos/` 手工运行 `pod install`。
+
+## 运行
 
 ```bash
-# Android 调试运行
 flutter run -d android
-
-# macOS 调试运行
 flutter run -d macos
-
-# Android Release 构建
-flutter build apk --release
-
-# macOS Release 构建
-flutter build macos --release
 ```
 
-### 调试 Navidrome 连接
+App 需要三组独立配置：
 
-1. 确保 Navidrome 服务端运行中
-2. 确认设备与服务端在同一网络（或有公网访问）
-3. 在登录页输入完整 URL（含端口，如 `http://192.168.1.100:4533`）
-4. 点击连接测试，查看控制台日志排查问题
+| 配置 | 用途 | 生产示例 |
+|---|---|---|
+| Navidrome URL / 用户名 / 密码 | 曲库和播放 | 用户自己的 Subsonic 地址 |
+| Cloud URL / Cloud 账号 | 搜索、推荐、歌词、更新 | `https://player.himym.us.ci` |
+| NAS Agent URL / NAS Agent Key | 导入、删除 | `http://192.168.1.10:8504` |
 
-## 代码规范
+Cloud 的服务端 API Key 只保存在 Cloud `.env`，不得写入 App、仓库、命令输出或测试 fixture。App 通过 Cloud 注册/登录获取 Bearer Token；Refresh Token 存入平台安全存储。NAS Agent Key 只用于局域网导入/删除。
 
-- 使用 `flutter_lints` 默认规则
-- 运行 `flutter analyze` 检查代码问题
-- 注释语言：中文
-- 变量/类名：英文，遵循 Dart 命名规范
-- 文件命名：`snake_case.dart`
-- 类命名：`PascalCase`
+## 验证
+
+```bash
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze
+flutter test
+```
+
+针对推荐 API 的本地 smoke：
+
+```bash
+export RECOMMENDATION_SMOKE_BASE_URL=http://127.0.0.1:8600
+export RECOMMENDATION_SMOKE_API_KEY=...
+./scripts/recommendation-smoke.sh
+```
+
+该脚本会修改推荐 session/profile，不要误指向生产环境。
+
+## 构建
+
+```bash
+make android
+make macos
+```
+
+产物写入 `dist/`。Android/macOS 版本统一由 `scripts/versions.env` 管理，`pubspec.yaml` 必须同步提升。
+
+## 发布
+
+```bash
+make publish
+```
+
+发布目标默认为 Cloud 服务器，不再上传 NAS 旧 Backend。详见 [私有更新发布](./release.md)。
 
 ## 项目约定
 
-- 状态管理统一使用 Riverpod Provider
-- 网络请求统一通过 SubsonicClient
-- 图片加载使用 CoverArt 组件（封装 CachedNetworkImage）
-- 主题色通过 AppTheme 统一管理
-- 平台判断使用 `utils/platform_utils.dart`
-
+- Riverpod 管理应用状态；Widget `build()` 不触发网络或持久化副作用。
+- `NavidromeAudioHandler` 是播放队列、当前歌曲和播放历史的唯一 owner。
+- Subsonic、Cloud、NAS Agent 使用各自客户端和凭据边界。
+- 在线搜索结果由 Cloud first-success 决定，客户端不合并多个来源。
+- 图片 URL 统一通过 `CoverArt` / `ResolvedSongCoverArt` 处理。
+- 平台差异统一通过既有平台工具与插件封装处理。

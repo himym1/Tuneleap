@@ -623,22 +623,46 @@ class SZh extends S {
       'navidrome-cloud 公网地址，例如 https://cloud.example.com';
 
   @override
-  String get backendApiKey => '云端 API Key';
+  String get cloudAccount => 'Cloud 账号';
 
   @override
-  String get backendApiKeyHint => '与 Navidrome 密码、NAS Agent Key 分开保存';
+  String get cloudSignedIn => '已登录';
+
+  @override
+  String get cloudSignedOut => '未登录';
+
+  @override
+  String get cloudSignIn => '登录';
+
+  @override
+  String get cloudRegister => '注册';
+
+  @override
+  String get cloudUsername => 'Cloud 用户名';
+
+  @override
+  String get cloudCredential => 'Cloud 账号凭据';
+
+  @override
+  String get cloudSignOut => '退出 Cloud';
+
+  @override
+  String get cloudAuthFailed => 'Cloud 认证失败';
+
+  @override
+  String get cloudAuthRequired => '登录 Cloud 后加载推荐';
 
   @override
   String get nasAgentUrl => 'NAS Agent 地址';
 
   @override
-  String get nasAgentUrlHint => '可选，默认使用 Navidrome 主机的 8503 端口';
+  String get nasAgentUrlHint => '可选，默认使用 Navidrome 主机的 8504 端口';
 
   @override
   String get nasAgentKey => 'NAS Agent Key';
 
   @override
-  String get nasAgentKeyHint => '仅用于导入/删除，与云端 API Key 分开';
+  String get nasAgentKeyHint => '仅用于局域网导入/删除';
 
   @override
   String get serverUrlExample => 'https://music.example.com';

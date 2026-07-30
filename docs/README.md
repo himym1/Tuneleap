@@ -1,53 +1,35 @@
 # Navidrome Player 文档中心
 
-欢迎来到 Navidrome Player 项目文档。本文档体系参考[音流 (Stream Music)](https://music.aqzscn.cn/) 项目的文档组织方式，分为六大板块。
+这里维护当前产品、架构、开发和发布文档。已完成任务的临时计划、证据草稿和旧 `navidrome-backend` 操作手册不再保留在主文档树中。
 
-## 文档导航
+## 首选入口
 
-### [项目介绍](./intro.md)
-项目概述、设计理念、支持的功能和平台。
+- [项目介绍](./intro.md)
+- [系统架构](./architecture.md)
+- [开发环境与验证](./development-guide.md)
+- [私有更新发布](./release.md)
+- [产品完整功能文档](./navidrome-player-prd.md)
 
-### [功能特性](./features/)
-四阶段功能规格文档，从基础播放到高级特性的完整规划。
-- [Phase 1: 能听 — 基础播放](./features/phase1-playback.md)
-- [Phase 2: 好用 — 完整功能](./features/phase2-usability.md)
-- [Phase 3: 好看 — 视觉体验](./features/phase3-polish.md)
-- [Phase 4: 完善 — 高级特性](./features/phase4-advanced.md)
-- [PC 端功能文档](./navidrome-player-prd-pc.md)
-- [移动端功能文档](./navidrome-player-prd-mobile.md)
-- [产品完整功能文档（统一版）](./navidrome-player-prd.md)
+## 架构决策
 
-### [服务适配](./services/)
-Subsonic/Navidrome API 对接文档和服务端兼容性说明。
-- [Subsonic API 参考](./services/subsonic-api.md)
+- [ADR-0001 多服务器会话隔离](./adr/0001-multi-server-session-isolation.md)
+- [ADR-0002 在线推荐管线（已由 0003 取代）](./adr/0002-verified-online-recommendation-pipeline.md)
+- [ADR-0003 确定性在线推荐算法](./adr/0003-deterministic-online-recommendation-algorithm.md)
+- [ADR-0004 Cloud 控制面 + NAS Agent](./adr/0004-cloud-control-plane-and-nas-agent.md)
 
-### [开发指南](./guides/)
-面向开发者的技术指南，涵盖 API 使用、状态管理、音频架构等。
-- [Subsonic API 使用指南](./guides/subsonic-api.md)
-- [状态管理 (Riverpod)](./guides/state-management.md)
+ADR 记录决策演进。已被取代的 ADR 只作为历史依据，不代表当前实现。
+
+## 专题指南
+
+- [Subsonic API](./guides/subsonic-api.md)
+- [Riverpod 状态管理](./guides/state-management.md)
 - [音频播放架构](./guides/audio-playback.md)
 - [平台适配](./guides/platform-adaptation.md)
+- [Pencil 设计稿管理](./designs/pencil/README.md)
 
-### [架构决策 ADR](./adr/)
-已接受的架构决策记录（不是开发排期）。
-- [0001 多服务器会话隔离](./adr/0001-multi-server-session-isolation.md)
-- [0002 在线推荐管线（已由 0003 取代）](./adr/0002-verified-online-recommendation-pipeline.md)
-- [0003 确定性在线推荐算法](./adr/0003-deterministic-online-recommendation-algorithm.md)
-- [0004 云端控制面 + NAS Agent](./adr/0004-cloud-control-plane-and-nas-agent.md)
+## 产品资料
 
-### [开发笔记](./notes/)
-技术决策记录、插件选型、架构演进等开发过程中的思考。
-- [路由方案决策](./notes/routing-decision.md)
-
-### [设计稿管理](./designs/pencil/README.md)
-Pencil `.pen` 设计稿的目录规范、命名规则与导出流程。
-
-### [版本记录](./versions/)
-版本更新日志和发布说明。
-
-## 快速开始
-
-1. 阅读[项目介绍](./intro.md)了解项目背景
-2. 查看[系统架构](./architecture.md)理解代码结构
-3. 参考[开发指南](./development-guide.md)搭建开发环境
-4. 浏览[功能特性](./features/)了解开发路线图
+- [统一 PRD](./navidrome-player-prd.md)
+- [PC PRD](./navidrome-player-prd-pc.md)
+- [移动端 PRD](./navidrome-player-prd-mobile.md)
+- [功能规格](./features/README.md)

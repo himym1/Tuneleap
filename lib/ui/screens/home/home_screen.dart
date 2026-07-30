@@ -8,6 +8,7 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
+import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/player/playback_origin.dart';
 
@@ -47,6 +48,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final newestAlbums = ref.watch(newestAlbumsProvider);
     final recommendations = ref.watch(recommendationProvider);
+    final cloudAuthenticated =
+        ref.watch(cloudAuthProvider).value?.isAuthenticated == true;
     final recentSongs = ref
         .watch(recommendationRecentSongsProvider)
         .take(2)
@@ -104,10 +107,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 else if (recommendations.error != null &&
                     recommendations.visibleItems.isEmpty)
                   ErrorState(
-                    message: S.of(context).commonError,
-                    onRetry: () =>
-                        ref.read(recommendationProvider.notifier).refresh(),
-                    retryLabel: S.of(context).recommendationsRetry,
+                    message: cloudAuthenticated
+                        ? S.of(context).commonError
+                        : S.of(context).cloudAuthRequired,
+                    onRetry: () async {
+                      if (!cloudAuthenticated) {
+                        final ok = await CloudAuthDialog.show(context);
+                        if (!ok || !mounted) return;
+                      }
+                      await ref.read(recommendationProvider.notifier).refresh();
+                    },
+                    retryLabel: cloudAuthenticated
+                        ? S.of(context).recommendationsRetry
+                        : S.of(context).cloudSignIn,
                   )
                 else if (recommendations.visibleItems.isEmpty)
                   EmptyState(

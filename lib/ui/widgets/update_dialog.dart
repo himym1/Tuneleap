@@ -1,36 +1,32 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:navidrome_player/providers/cloud_auth_provider.dart';
 import 'package:navidrome_player/services/update_checker.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// 统一的更新弹窗 — 发现新版本 → 复用本地包 / 下载 → 安装
-class UpdateDialog extends StatefulWidget {
+class UpdateDialog extends ConsumerStatefulWidget {
   final AppUpdateInfo info;
-  final String apiKey;
 
-  const UpdateDialog({super.key, required this.info, required this.apiKey});
+  const UpdateDialog({super.key, required this.info});
 
-  /// 显示更新弹窗的便捷方法
-  static void show(
-    BuildContext context,
-    AppUpdateInfo info, {
-    required String apiKey,
-  }) {
+  static void show(BuildContext context, AppUpdateInfo info) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => UpdateDialog(info: info, apiKey: apiKey),
+      builder: (_) => UpdateDialog(info: info),
     );
   }
 
   @override
-  State<UpdateDialog> createState() => _UpdateDialogState();
+  ConsumerState<UpdateDialog> createState() => _UpdateDialogState();
 }
 
 enum _UpdateState { info, downloading, installing, manualInstall, failed }
 
-class _UpdateDialogState extends State<UpdateDialog> {
+class _UpdateDialogState extends ConsumerState<UpdateDialog> {
   _UpdateState _state = _UpdateState.info;
   double _progress = 0;
   String? _error;
@@ -62,7 +58,9 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
     final filePath = await downloadUpdate(
       widget.info,
-      apiKey: widget.apiKey,
+      accessTokenProvider: ({bool forceRefresh = false}) => ref
+          .read(cloudAuthProvider.notifier)
+          .getAccessToken(forceRefresh: forceRefresh),
       onProgress: (progress) {
         if (mounted) setState(() => _progress = progress);
       },

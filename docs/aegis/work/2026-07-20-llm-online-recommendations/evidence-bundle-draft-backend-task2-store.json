@@ -1,8 +1,0 @@
-{
-  "schemaVersion": "aegis.schema.v0",
-  "artifactKey": "backend-task2-store",
-  "type": "test",
-  "source": "backend commit 89492c9",
-  "summary": "Store 21 targeted and 33 full unittest passed; compileall/diff check passed; spec and quality reviewers approved.",
-  "verifier": "main agent fresh commands and independent reviewers"
-}

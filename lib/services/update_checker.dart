@@ -7,6 +7,8 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
 const _legacyUpdateOrigin = 'https://player.himym.us.ci';
+typedef UpdateAccessTokenProvider =
+    Future<String?> Function({bool forceRefresh});
 
 String _normalizeUpdateOrigin(String? value) {
   final raw = value?.trim() ?? '';
@@ -124,34 +126,39 @@ List<int> _versionParts(String value) {
 }
 
 Future<AppUpdateInfo?> checkForUpdate({
-  required String apiKey,
+  required UpdateAccessTokenProvider accessTokenProvider,
   String updateOrigin = '',
   Dio? dio,
 }) async {
-  if (apiKey.isEmpty) return null;
   try {
     final origin = _normalizeUpdateOrigin(updateOrigin);
     _trustedUpdateOrigin(origin);
     final client = dio ?? Dio();
-    final response = await client.get<dynamic>(
-      '$origin/version.json',
-      options: Options(
-        headers: {'X-API-Key': apiKey},
-        followRedirects: false,
-        validateStatus: (status) => status == 200,
-        sendTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-      ),
-    );
-    final data = response.data;
-    if (data is Map<String, dynamic>) {
-      return AppUpdateInfo.fromJson(data, trustedOrigin: origin);
-    }
-    if (data is Map) {
-      return AppUpdateInfo.fromJson(
-        Map<String, dynamic>.from(data),
-        trustedOrigin: origin,
+    for (final forceRefresh in [false, true]) {
+      final token = await accessTokenProvider(forceRefresh: forceRefresh);
+      if (token == null || token.isEmpty) return null;
+      final response = await client.get<dynamic>(
+        '$origin/version.json',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          followRedirects: false,
+          validateStatus: (status) => status == 200 || status == 401,
+          sendTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+        ),
       );
+      if (response.statusCode == 401) continue;
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return AppUpdateInfo.fromJson(data, trustedOrigin: origin);
+      }
+      if (data is Map) {
+        return AppUpdateInfo.fromJson(
+          Map<String, dynamic>.from(data),
+          trustedOrigin: origin,
+        );
+      }
+      return null;
     }
   } catch (error) {
     debugPrint('Update check failed: ${error.runtimeType}');
@@ -186,12 +193,11 @@ Future<String?> findCachedUpdate(AppUpdateInfo info, {String? savePath}) async {
 
 Future<String?> downloadUpdate(
   AppUpdateInfo info, {
-  required String apiKey,
+  required UpdateAccessTokenProvider accessTokenProvider,
   void Function(double progress)? onProgress,
   Dio? dio,
   @visibleForTesting String? savePathOverride,
 }) async {
-  if (apiKey.isEmpty) return null;
   _validatePrivateDownloadUrl(info.url, info.trustedOrigin);
   final savePath = savePathOverride ?? await defaultUpdateSavePath();
   final file = File(savePath);
@@ -203,31 +209,36 @@ Future<String?> downloadUpdate(
   }
 
   try {
-    if (file.existsSync()) file.deleteSync();
     final client = dio ?? Dio();
-    await client.download(
-      info.url,
-      savePath,
-      options: Options(
-        headers: {'X-API-Key': apiKey},
-        followRedirects: false,
-        validateStatus: (status) => status == 200,
-      ),
-      onReceiveProgress: (received, total) {
-        if (total > 0) onProgress?.call(received / total);
-      },
-    );
-    if (!await verifyFileSha256(savePath, info.sha256)) {
-      await file.delete();
-      return null;
+    for (final forceRefresh in [false, true]) {
+      final token = await accessTokenProvider(forceRefresh: forceRefresh);
+      if (token == null || token.isEmpty) return null;
+      if (file.existsSync()) file.deleteSync();
+      final response = await client.download(
+        info.url,
+        savePath,
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          followRedirects: false,
+          validateStatus: (status) => status == 200 || status == 401,
+        ),
+        onReceiveProgress: (received, total) {
+          if (total > 0) onProgress?.call(received / total);
+        },
+      );
+      if (response.statusCode == 401) continue;
+      if (!await verifyFileSha256(savePath, info.sha256)) {
+        await file.delete();
+        return null;
+      }
+      onProgress?.call(1);
+      return savePath;
     }
-    onProgress?.call(1);
-    return savePath;
   } catch (error) {
     debugPrint('Download update failed: ${error.runtimeType}');
-    if (await file.exists()) await file.delete();
-    return null;
   }
+  if (await file.exists()) await file.delete();
+  return null;
 }
 
 Future<bool> installUpdate(String filePath) async {

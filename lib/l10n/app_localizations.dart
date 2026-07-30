@@ -1243,17 +1243,65 @@ abstract class S {
   /// **'navidrome-cloud 公网地址，例如 https://cloud.example.com'**
   String get backendUrlHint;
 
-  /// No description provided for @backendApiKey.
+  /// No description provided for @cloudAccount.
   ///
   /// In zh, this message translates to:
-  /// **'云端 API Key'**
-  String get backendApiKey;
+  /// **'Cloud 账号'**
+  String get cloudAccount;
 
-  /// No description provided for @backendApiKeyHint.
+  /// No description provided for @cloudSignedIn.
   ///
   /// In zh, this message translates to:
-  /// **'与 Navidrome 密码、NAS Agent Key 分开保存'**
-  String get backendApiKeyHint;
+  /// **'已登录'**
+  String get cloudSignedIn;
+
+  /// No description provided for @cloudSignedOut.
+  ///
+  /// In zh, this message translates to:
+  /// **'未登录'**
+  String get cloudSignedOut;
+
+  /// No description provided for @cloudSignIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录'**
+  String get cloudSignIn;
+
+  /// No description provided for @cloudRegister.
+  ///
+  /// In zh, this message translates to:
+  /// **'注册'**
+  String get cloudRegister;
+
+  /// No description provided for @cloudUsername.
+  ///
+  /// In zh, this message translates to:
+  /// **'Cloud 用户名'**
+  String get cloudUsername;
+
+  /// No description provided for @cloudCredential.
+  ///
+  /// In zh, this message translates to:
+  /// **'Cloud 账号凭据'**
+  String get cloudCredential;
+
+  /// No description provided for @cloudSignOut.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出 Cloud'**
+  String get cloudSignOut;
+
+  /// No description provided for @cloudAuthFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'Cloud 认证失败'**
+  String get cloudAuthFailed;
+
+  /// No description provided for @cloudAuthRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录 Cloud 后加载推荐'**
+  String get cloudAuthRequired;
 
   /// No description provided for @nasAgentUrl.
   ///
@@ -1264,7 +1312,7 @@ abstract class S {
   /// No description provided for @nasAgentUrlHint.
   ///
   /// In zh, this message translates to:
-  /// **'可选，默认使用 Navidrome 主机的 8503 端口'**
+  /// **'可选，默认使用 Navidrome 主机的 8504 端口'**
   String get nasAgentUrlHint;
 
   /// No description provided for @nasAgentKey.
@@ -1276,7 +1324,7 @@ abstract class S {
   /// No description provided for @nasAgentKeyHint.
   ///
   /// In zh, this message translates to:
-  /// **'仅用于导入/删除，与云端 API Key 分开'**
+  /// **'仅用于局域网导入/删除'**
   String get nasAgentKeyHint;
 
   /// No description provided for @serverUrlExample.
