@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "重构首页与音乐库导航；修复 NAS 导入、删除及重复歌曲判断；推荐过滤已有歌曲；搜索支持分页；播放器新增导入入口。",
+    "changelog": "修复首页内容不足一屏时下拉刷新不生效；增加刷新进度、结果提示和手动刷新按钮。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
