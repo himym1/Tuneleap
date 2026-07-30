@@ -51,7 +51,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "Cloud 与 NAS Agent 端点拆分；推荐屏蔽 NAS 曲库歌曲；Postgres 控制面上线。",
+    "changelog": "首页优先展示具体歌曲；最近播放改为歌曲列表；修复推荐空白、首屏过长和大字体溢出。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
