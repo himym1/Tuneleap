@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import socket
+import sqlite3
 import tempfile
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
@@ -18,6 +19,7 @@ from mutagen.mp4 import MP4, MP4Cover
 from app.core.audit import audit_event
 from app.core.config import Settings
 from app.models.schemas import ImportResult, SongMeta
+from app.services.recommendation_identity import weak_identity
 
 _logger = logging.getLogger(__name__)
 _SUPPORTED_EXTENSIONS = frozenset({".mp3", ".flac", ".m4a", ".mp4"})
@@ -33,6 +35,14 @@ class InsufficientStorageError(RuntimeError):
 
 
 class UpstreamContentError(RuntimeError):
+    pass
+
+
+class DuplicateTrackError(RuntimeError):
+    pass
+
+
+class DuplicateCheckUnavailableError(RuntimeError):
     pass
 
 
@@ -52,6 +62,7 @@ class ImporterService:
         song: SongMeta | None = None,
         pic_url: str | None = None,
         lyric: str | None = None,
+        force: bool = False,
     ) -> ImportResult:
         async with self._import_lock:
             download_root, target = self._resolve_target(filename)
@@ -64,6 +75,14 @@ class ImporterService:
                     self._write_text_atomic(sidecar, lyric)
                 audit_event("import_idempotent", filename=target.name)
                 return ImportResult(ok=True, path=str(target), message="already imported")
+
+            if not force and self._has_duplicate(song):
+                audit_event(
+                    "import_duplicate_rejected",
+                    title=song.title if song else None,
+                    artist=song.artist if song else None,
+                )
+                raise DuplicateTrackError("song already exists in the Navidrome library")
 
             await self._validate_remote_url(url)
             self._ensure_disk_space(download_root)
@@ -106,6 +125,30 @@ class ImporterService:
                     sidecar.unlink(missing_ok=True)
                 audit_event("import_failed", filename=target.name)
                 raise
+
+    def _has_duplicate(self, song: SongMeta | None) -> bool:
+        if song is None or not song.title:
+            return False
+        database = Path(self._settings.navidrome_db_path)
+        if not database.is_file():
+            return False
+
+        identity = weak_identity(song.title, song.artist or "")
+        try:
+            with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as db:
+                try:
+                    rows = db.execute(
+                        "SELECT title, artist FROM media_file WHERE COALESCE(missing, 0)=0"
+                    )
+                except sqlite3.OperationalError:
+                    rows = db.execute("SELECT title, artist FROM media_file")
+                return any(
+                    weak_identity(title or "", artist or "") == identity for title, artist in rows
+                )
+        except sqlite3.Error as exc:
+            raise DuplicateCheckUnavailableError(
+                "Navidrome duplicate check is unavailable"
+            ) from exc
 
     def _resolve_target(self, filename: str) -> tuple[Path, Path]:
         if (

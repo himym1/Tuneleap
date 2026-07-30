@@ -5,6 +5,8 @@ from app.core.auth import verify_agent_key
 from app.models.schemas import ImportRequest, ImportResult, ScanResult
 from app.services.importer import (
     DownloadTooLargeError,
+    DuplicateCheckUnavailableError,
+    DuplicateTrackError,
     InsufficientStorageError,
     UpstreamContentError,
 )
@@ -41,7 +43,12 @@ async def nas_import(request: Request, body: ImportRequest):
             song=body.song,
             pic_url=body.pic_url,
             lyric=body.lyric,
+            force=body.force,
         )
+    except DuplicateTrackError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except DuplicateCheckUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except DownloadTooLargeError as exc:
         raise HTTPException(status_code=413, detail=str(exc)) from exc
     except InsufficientStorageError as exc:
