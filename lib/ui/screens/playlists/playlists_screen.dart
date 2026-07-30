@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/models.dart';
+import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
@@ -383,7 +384,7 @@ class PlaylistsScreen extends ConsumerWidget {
       final client = ref.read(subsonicClientProvider);
       final detail = await client.getPlaylist(playlist.id);
       if (!context.mounted) return;
-      final playerService = ref.read(audioPlayerServiceProvider);
+      // Lazy-read player only when user presses play, so management UI works in tests.
       final songs = List<Song>.from(detail.songs);
       var playlistName = detail.name;
 
@@ -472,12 +473,28 @@ class PlaylistsScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
+                        IconButton(
+                          key: const Key('playlist-add-songs-button'),
+                          tooltip: S.of(context).playlistAddSongs,
+                          onPressed: () => _addSongsToPlaylist(
+                            context: context,
+                            dialogContext: ctx,
+                            ref: ref,
+                            client: client,
+                            playlistId: playlist.id,
+                            songs: songs,
+                            setDialogState: setDialogState,
+                          ),
+                          icon: const Icon(Icons.playlist_add),
+                        ),
                         IconButton.filled(
                           tooltip: S.of(context).playlistPlay,
                           onPressed: songs.isEmpty
                               ? null
                               : () {
-                                  playerService.playAll(songs);
+                                  ref
+                                      .read(audioPlayerServiceProvider)
+                                      .playAll(songs);
                                   Navigator.pop(ctx);
                                 },
                           icon: const Icon(Icons.play_arrow),
@@ -491,14 +508,38 @@ class PlaylistsScreen extends ConsumerWidget {
                         ? Center(
                             child: Padding(
                               padding: const EdgeInsets.all(32),
-                              child: Text(
-                                S.of(context).playlistListEmpty,
-                                style: Theme.of(context).textTheme.songSubtitle
-                                    .copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    S.of(context).playlistListEmpty,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .songSubtitle
+                                        .copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  FilledButton.tonalIcon(
+                                    key: const Key(
+                                      'playlist-empty-add-songs-button',
                                     ),
+                                    onPressed: () => _addSongsToPlaylist(
+                                      context: context,
+                                      dialogContext: ctx,
+                                      ref: ref,
+                                      client: client,
+                                      playlistId: playlist.id,
+                                      songs: songs,
+                                      setDialogState: setDialogState,
+                                    ),
+                                    icon: const Icon(Icons.playlist_add),
+                                    label: Text(S.of(context).playlistAddSongs),
+                                  ),
+                                ],
                               ),
                             ),
                           )
@@ -633,7 +674,9 @@ class PlaylistsScreen extends ConsumerWidget {
                                   ],
                                 ),
                                 onTap: () {
-                                  playerService.playAll(songs, startIndex: i);
+                                  ref
+                                      .read(audioPlayerServiceProvider)
+                                      .playAll(songs, startIndex: i);
                                   Navigator.pop(ctx);
                                 },
                               );
@@ -646,6 +689,53 @@ class PlaylistsScreen extends ConsumerWidget {
           ),
         ),
       );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(S.of(context).commonError)));
+      }
+    }
+  }
+
+  Future<void> _addSongsToPlaylist({
+    required BuildContext context,
+    required BuildContext dialogContext,
+    required WidgetRef ref,
+    required SubsonicClient client,
+    required String playlistId,
+    required List<Song> songs,
+    required void Function(VoidCallback) setDialogState,
+  }) async {
+    final selected = await showDialog<List<Song>>(
+      context: dialogContext,
+      builder: (pickerCtx) => _PlaylistSongPickerDialog(
+        client: client,
+        existingIds: songs.map((song) => song.id).toSet(),
+      ),
+    );
+    if (selected == null || selected.isEmpty) return;
+
+    final existing = songs.map((song) => song.id).toSet();
+    final toAdd = selected
+        .where((song) => !existing.contains(song.id))
+        .toList(growable: false);
+    if (toAdd.isEmpty) return;
+
+    try {
+      await client.updatePlaylist(
+        playlistId,
+        songIdsToAdd: toAdd.map((song) => song.id).toList(),
+      );
+      setDialogState(() => songs.addAll(toAdd));
+      ref.invalidate(playlistsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(S.of(context).playlistSongsAdded(toAdd.length)),
+          ),
+        );
+      }
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -962,6 +1052,222 @@ class _PlaylistMenu extends StatelessWidget {
         const SizedBox(width: 12),
         Text(label, style: color == null ? null : TextStyle(color: color)),
       ],
+    );
+  }
+}
+
+class _PlaylistSongPickerDialog extends StatefulWidget {
+  const _PlaylistSongPickerDialog({
+    required this.client,
+    required this.existingIds,
+  });
+
+  final SubsonicClient client;
+  final Set<String> existingIds;
+
+  @override
+  State<_PlaylistSongPickerDialog> createState() =>
+      _PlaylistSongPickerDialogState();
+}
+
+class _PlaylistSongPickerDialogState extends State<_PlaylistSongPickerDialog> {
+  static const _pageSize = 50;
+
+  final _searchController = TextEditingController();
+  final _selected = <String, Song>{};
+  List<Song> _songs = const [];
+  bool _loading = true;
+  Object? _error;
+  int _requestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSongs();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSongs([String query = '']) async {
+    final requestId = ++_requestId;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = await widget.client.search3(
+        query.trim().isEmpty ? '' : query.trim(),
+        songCount: _pageSize,
+        songOffset: 0,
+        artistCount: 0,
+        albumCount: 0,
+      );
+      if (!mounted || requestId != _requestId) return;
+      setState(() {
+        _songs = result.songs;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted || requestId != _requestId) return;
+      setState(() {
+        _error = error;
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 640),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      S.of(context).playlistAddSongsTitle,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.songTitle.copyWith(fontSize: 17),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: TextField(
+                key: const Key('playlist-song-picker-search'),
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: S.of(context).playlistSearchSongsHint,
+                  prefixIcon: const Icon(Icons.search),
+                  isDense: true,
+                ),
+                textInputAction: TextInputAction.search,
+                onChanged: (value) => _loadSongs(value),
+                onSubmitted: (value) => _loadSongs(value),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? Center(
+                      child: Text(
+                        S.of(context).commonLoadFailed,
+                        style: Theme.of(context).textTheme.songSubtitle
+                            .copyWith(color: colors.onSurfaceVariant),
+                      ),
+                    )
+                  : _songs.isEmpty
+                  ? Center(
+                      child: Text(
+                        S.of(context).playlistNoMatchingSongs,
+                        style: Theme.of(context).textTheme.songSubtitle
+                            .copyWith(color: colors.onSurfaceVariant),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _songs.length,
+                      itemBuilder: (context, index) {
+                        final song = _songs[index];
+                        final alreadyInPlaylist = widget.existingIds.contains(
+                          song.id,
+                        );
+                        final selected = _selected.containsKey(song.id);
+                        return CheckboxListTile(
+                          key: ValueKey('picker-song-${song.id}'),
+                          value: alreadyInPlaylist ? true : selected,
+                          onChanged: alreadyInPlaylist
+                              ? null
+                              : (checked) {
+                                  setState(() {
+                                    if (checked == true) {
+                                      _selected[song.id] = song;
+                                    } else {
+                                      _selected.remove(song.id);
+                                    }
+                                  });
+                                },
+                          secondary: CoverArt(
+                            url: widget.client.coverArtUrl(
+                              song.coverArt,
+                              size: 80,
+                            ),
+                            size: 40,
+                            borderRadius: 6,
+                          ),
+                          title: Text(
+                            song.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.songTitle.copyWith(fontSize: 13),
+                          ),
+                          subtitle: Text(
+                            song.artist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.songSubtitle
+                                .copyWith(
+                                  fontSize: 11,
+                                  color: colors.onSurfaceVariant,
+                                ),
+                          ),
+                          controlAffinity: ListTileControlAffinity.trailing,
+                        );
+                      },
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Text(
+                    '${_selected.length}',
+                    style: Theme.of(context).textTheme.songSubtitle,
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(S.of(context).commonCancel),
+                  ),
+                  FilledButton(
+                    key: const Key('playlist-song-picker-confirm'),
+                    onPressed: _selected.isEmpty
+                        ? null
+                        : () => Navigator.pop(
+                            context,
+                            _selected.values.toList(growable: false),
+                          ),
+                    child: Text(S.of(context).playlistAddSelected),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
