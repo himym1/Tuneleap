@@ -49,7 +49,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final recommendations = ref.watch(recommendationProvider);
     final recentSongs = ref
         .watch(recommendationRecentSongsProvider)
-        .take(8)
+        .take(2)
         .toList();
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile
@@ -119,7 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   )
                 else
                   _buildRecommendationList(
-                    recommendations.visibleItems.take(12).toList(),
+                    recommendations.visibleItems.take(6).toList(),
                   ),
 
                 if (recentSongs.isNotEmpty)
