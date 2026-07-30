@@ -465,6 +465,7 @@
     "homeShuffleLocal": "随机播放曲库",
     "homeLocalPlaybackFailed": "无法开始本地播放",
     "homeViewMore": "更多",
+    "homeRefreshed": "首页已刷新",
 
     "libraryGenresTitle": "流派",
     "libraryRadioTitle": "网络电台",

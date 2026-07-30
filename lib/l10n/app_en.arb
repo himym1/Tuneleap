@@ -326,6 +326,7 @@
     "homeShuffleLocal": "Shuffle Library",
     "homeLocalPlaybackFailed": "Could not start local playback",
     "homeViewMore": "More",
+    "homeRefreshed": "Home refreshed",
 
     "libraryGenresTitle": "Genres",
     "libraryRadioTitle": "Radio Stations",

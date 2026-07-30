@@ -43,6 +43,8 @@ const _recentSongs = [
   ),
 ];
 
+int _recommendationRefreshCalls = 0;
+
 class _StaticRecommendationNotifier extends RecommendationNotifier {
   @override
   RecommendationState build() => RecommendationState(
@@ -57,28 +59,36 @@ class _StaticRecommendationNotifier extends RecommendationNotifier {
     sessionId: 'session-1',
     hasMore: false,
   );
+
+  @override
+  Future<void> refresh() async {
+    _recommendationRefreshCalls++;
+  }
 }
 
 Future<void> _pumpHome(
   WidgetTester tester, {
   required Size size,
   TextScaler textScaler = TextScaler.noScaling,
+  VoidCallback? onNewestLoad,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  _recommendationRefreshCalls = 0;
 
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      newestAlbumsProvider.overrideWith(
-        (ref) async => const [
+      newestAlbumsProvider.overrideWith((ref) async {
+        onNewestLoad?.call();
+        return const [
           Album(id: 'album-1', name: 'Newest Album', artist: 'Album Artist'),
-        ],
-      ),
+        ];
+      }),
       weatherProvider.overrideWith((ref) async => null),
       recommendationProvider.overrideWith(_StaticRecommendationNotifier.new),
       recommendationRecentSongsProvider.overrideWithValue(_recentSongs),
@@ -186,6 +196,37 @@ void main() {
     expect(find.text('Local Mix'), findsOneWidget);
     expect(find.text('Shuffle Library'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('pull and button refresh reload home data', (tester) async {
+    var newestLoads = 0;
+    await _pumpHome(
+      tester,
+      size: const Size(1200, 1400),
+      onNewestLoad: () => newestLoads++,
+    );
+
+    expect(newestLoads, 1);
+    expect(_recommendationRefreshCalls, 0);
+
+    await tester.drag(
+      find.byKey(const Key('home-scroll-view')),
+      const Offset(0, 400),
+      touchSlopY: 0,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+
+    expect(newestLoads, 2);
+    expect(_recommendationRefreshCalls, 1);
+    expect(find.text('Home refreshed'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('home-refresh-button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+
+    expect(newestLoads, 3);
+    expect(_recommendationRefreshCalls, 2);
   });
 
   testWidgets('desktop home summary fits in a 1200x820 viewport', (
