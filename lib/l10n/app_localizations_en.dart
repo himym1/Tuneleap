@@ -875,6 +875,9 @@ class SEn extends S {
   String get homeViewMore => 'More';
 
   @override
+  String get homeRefreshed => 'Home refreshed';
+
+  @override
   String get libraryGenresTitle => 'Genres';
 
   @override

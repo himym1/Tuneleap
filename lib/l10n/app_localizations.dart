@@ -1687,6 +1687,12 @@ abstract class S {
   /// **'更多'**
   String get homeViewMore;
 
+  /// No description provided for @homeRefreshed.
+  ///
+  /// In zh, this message translates to:
+  /// **'首页已刷新'**
+  String get homeRefreshed;
+
   /// No description provided for @libraryGenresTitle.
   ///
   /// In zh, this message translates to:

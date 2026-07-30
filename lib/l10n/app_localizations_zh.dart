@@ -861,6 +861,9 @@ class SZh extends S {
   String get homeViewMore => '更多';
 
   @override
+  String get homeRefreshed => '首页已刷新';
+
+  @override
   String get libraryGenresTitle => '流派';
 
   @override

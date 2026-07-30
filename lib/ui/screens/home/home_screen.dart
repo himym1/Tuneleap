@@ -39,6 +39,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _loadingLocalPlayback = false;
+  bool _refreshingHome = false;
+
   @override
   void initState() {
     super.initState();
@@ -48,11 +50,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _refresh() async {
-    ref.invalidate(newestAlbumsProvider);
-    await Future.wait([
-      ref.read(newestAlbumsProvider.future),
-      ref.read(recommendationProvider.notifier).refresh(),
-    ]);
+    if (_refreshingHome) return;
+    setState(() => _refreshingHome = true);
+    var succeeded = false;
+    try {
+      ref.invalidate(newestAlbumsProvider);
+      await Future.wait([
+        ref.read(newestAlbumsProvider.future),
+        ref.read(recommendationProvider.notifier).refresh(),
+      ]);
+      succeeded = ref.read(recommendationProvider).error == null;
+    } catch (_) {
+      succeeded = false;
+    } finally {
+      if (mounted) {
+        setState(() => _refreshingHome = false);
+        final messenger = ScaffoldMessenger.of(context);
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                succeeded
+                    ? S.of(context).homeRefreshed
+                    : S.of(context).commonError,
+              ),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+      }
+    }
   }
 
   Future<void> _playLocalCollection({required bool mix}) async {
@@ -159,17 +186,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           retryLabel: S.of(context).commonRetry,
         ),
         data: (newest) => RefreshIndicator(
+          key: const Key('home-refresh-indicator'),
           onRefresh: _refresh,
           child: ScrollConfiguration(
             behavior: ScrollConfiguration.of(
               context,
             ).copyWith(scrollbars: false),
             child: ListView(
+              key: const Key('home-scroll-view'),
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(h, h, h, h),
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Text(
@@ -181,7 +210,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
+                    SizedBox.square(
+                      dimension: 40,
+                      child: _refreshingHome
+                          ? const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : IconButton(
+                              key: const Key('home-refresh-button'),
+                              tooltip: S.of(context).commonRefresh,
+                              onPressed: _refresh,
+                              icon: const Icon(Icons.refresh),
+                            ),
+                    ),
+                    const SizedBox(width: 4),
                     _buildWeather(),
                   ],
                 ),
