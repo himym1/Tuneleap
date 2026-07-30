@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "Cloud 改用账号登录与 Bearer Token；支持 Refresh Token 自动轮换；修复旧 8503 配置导致推荐无法加载。",
+    "changelog": "重构首页与音乐库导航；修复 NAS 导入、删除及重复歌曲判断；推荐过滤已有歌曲；搜索支持分页；播放器新增导入入口。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
