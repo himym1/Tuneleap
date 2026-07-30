@@ -15,6 +15,8 @@ class _FakeBackendClient extends BackendClient {
 
   @override
   bool get isConfigured => true;
+  @override
+  bool get canMutateNas => true;
 
   @override
   Future<String> getPlaybackUrl(Song song, {int? maxBitRate}) async {
@@ -33,6 +35,7 @@ class _FakeBackendClient extends BackendClient {
     required Map<String, dynamic> song,
     String? picUrl,
     String? lyric,
+    bool force = false,
   }) async {
     queuedUrl = url;
     queuedFilename = filename;

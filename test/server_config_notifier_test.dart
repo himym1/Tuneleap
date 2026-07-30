@@ -167,4 +167,13 @@ void main() {
       'http://music.local:8504',
     );
   });
+
+  test('NAS agent inference is limited to LAN and private-overlay hosts', () {
+    expect(inferNasAgentUrl('https://music.example.com'), isEmpty);
+    expect(inferNasAgentUrl('http://154.21.95.143:4533'), isEmpty);
+    expect(
+      inferNasAgentUrl('http://100.64.10.20:4533'),
+      'http://100.64.10.20:8504',
+    );
+  });
 }

@@ -444,6 +444,17 @@ class SEn extends S {
   }
 
   @override
+  String get importAnyway => 'Import Anyway';
+
+  @override
+  String get importDuplicateCheckFailed =>
+      'Could not verify the NAS library. Import was stopped.';
+
+  @override
+  String get nasAgentConfigRequired =>
+      'Configure the LAN NAS agent URL and key before importing or deleting';
+
+  @override
   String get commonContinue => 'Continue';
 
   @override
@@ -666,7 +677,7 @@ class SEn extends S {
 
   @override
   String get nasAgentUrlHint =>
-      'Optional; defaults to the Navidrome host on port 8504';
+      'Required for import/delete; use a LAN URL such as http://192.168.1.10:8504';
 
   @override
   String get nasAgentKey => 'NAS agent key';
@@ -695,6 +706,15 @@ class SEn extends S {
 
   @override
   String get searchResults => 'Search Results';
+
+  @override
+  String get searchLoadMore => 'Load More';
+
+  @override
+  String get searchLoadingMore => 'Loading...';
+
+  @override
+  String get searchLoadMoreFailed => 'Could not load the next page';
 
   @override
   String get libraryNoArtists => 'No artists';
@@ -781,6 +801,26 @@ class SEn extends S {
   }
 
   @override
+  String get playlistSaveQueue => 'Save Queue as Playlist';
+
+  @override
+  String playlistQueueSaved(String name) {
+    return 'Saved queue as \"$name\"';
+  }
+
+  @override
+  String playlistQueueSavedSkipped(String name, int count) {
+    return 'Saved as \"$name\"; skipped $count online songs';
+  }
+
+  @override
+  String get playlistQueueNoLocalSongs =>
+      'Only local library songs can be saved to a playlist';
+
+  @override
+  String get playlistQueueSaveFailed => 'Failed to save queue';
+
+  @override
   String get defaultServerName => 'My Server';
 
   @override
@@ -805,13 +845,31 @@ class SEn extends S {
   String get sidebarLibrary => 'LIBRARY';
 
   @override
+  String get libraryBrowse => 'Browse library';
+
+  @override
   String get homeNewestAlbums => 'Latest Albums';
 
   @override
-  String get homeDailyRecommend => 'For You';
+  String get homeDailyRecommend => 'Discover New Music';
 
   @override
   String get homeRecentlyPlayed => 'Recently Played';
+
+  @override
+  String get homeYourMusic => 'Your Music';
+
+  @override
+  String get homeContinueListening => 'Continue Listening';
+
+  @override
+  String get homeLocalMix => 'Local Mix';
+
+  @override
+  String get homeShuffleLocal => 'Shuffle Library';
+
+  @override
+  String get homeLocalPlaybackFailed => 'Could not start local playback';
 
   @override
   String get homeViewMore => 'More';

@@ -6,6 +6,7 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/library_section_tabs.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 class LibraryArtistsScreen extends ConsumerStatefulWidget {
@@ -94,6 +95,10 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(h, 0, h, 16),
+            child: const LibrarySectionTabs(),
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(h, 0, h, 16),

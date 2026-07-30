@@ -161,7 +161,10 @@ class FakeImportService extends NavidromeImportService {
   int calls = 0;
 
   @override
-  Future<NavidromeImportResult> importOnlineSong(Song song) async {
+  Future<NavidromeImportResult> importOnlineSong(
+    Song song, {
+    bool force = false,
+  }) async {
     calls++;
     final err = error;
     if (err != null) throw err;

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/library_section_tabs.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
@@ -91,6 +92,10 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(h, 0, h, 16),
+            child: const LibrarySectionTabs(),
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(h, 0, h, 16),

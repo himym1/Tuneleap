@@ -18,7 +18,7 @@ class ServerConfig {
   final String backendUrl;
   final String backendApiKey;
 
-  /// NAS agent URL (import/delete). Defaults to same-host :8504 when empty.
+  /// NAS agent URL (import/delete). Required unless the Navidrome URL is a LAN host.
   final String nasAgentUrl;
   final String nasAgentKey;
 
@@ -65,12 +65,37 @@ String _serverNasAgentKey(String serverId) =>
 /// Infer NAS agent URL from Navidrome host (production LAN port 8504).
 String inferBackendUrl(String serverUrl, {int port = 8504}) {
   final uri = Uri.tryParse(serverUrl);
-  if (uri == null || uri.host.isEmpty) return '';
+  if (uri == null ||
+      uri.host.isEmpty ||
+      (uri.scheme.isNotEmpty && uri.scheme != 'http' && uri.scheme != 'https') ||
+      !_isLanHost(uri.host)) {
+    return '';
+  }
   return Uri(
     scheme: uri.scheme.isEmpty ? 'http' : uri.scheme,
     host: uri.host,
     port: port,
   ).toString();
+}
+
+bool _isLanHost(String host) {
+  final normalized = host.toLowerCase();
+  if (normalized == 'localhost' ||
+      normalized == '::1' ||
+      normalized.endsWith('.local') ||
+      (!normalized.contains('.') && !normalized.contains(':'))) {
+    return true;
+  }
+  final octets = normalized.split('.').map(int.tryParse).toList();
+  if (octets.length != 4 || octets.any((part) => part == null)) return false;
+  final first = octets[0]!;
+  final second = octets[1]!;
+  return first == 10 ||
+      first == 127 ||
+      (first == 100 && second >= 64 && second <= 127) ||
+      (first == 169 && second == 254) ||
+      (first == 172 && second >= 16 && second <= 31) ||
+      (first == 192 && second == 168);
 }
 
 /// Alias kept for ADR-0004 naming.

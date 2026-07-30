@@ -110,7 +110,41 @@ void main() {
 
   setUpAll(initializeAppColors);
 
-  testWidgets('home prioritizes concrete songs over the album rail', (
+  test('local mix favors older local songs and removes duplicates', () {
+    final history = List.generate(
+      7,
+      (index) => Song(
+        id: 'history-$index',
+        title: 'History $index',
+        album: 'Album',
+        albumId: 'album',
+        artist: 'Artist',
+        artistId: 'artist',
+      ),
+    );
+    final random = [
+      history[6],
+      const Song(
+        id: 'random',
+        title: 'Random',
+        album: 'Album',
+        albumId: 'album',
+        artist: 'Artist',
+        artistId: 'artist',
+      ),
+    ];
+
+    final mix = composeLocalMix(history, random, limit: 4);
+
+    expect(mix.map((song) => song.id), [
+      'history-6',
+      'history-5',
+      'history-4',
+      'random',
+    ]);
+  });
+
+  testWidgets('home separates local listening from online discovery', (
     tester,
   ) async {
     await _pumpHome(
@@ -119,22 +153,39 @@ void main() {
       textScaler: const TextScaler.linear(1.8),
     );
 
+    expect(find.text('Your Music'), findsOneWidget);
+    expect(find.text('Continue Listening'), findsOneWidget);
+    expect(find.text('Local Mix'), findsOneWidget);
+    expect(find.text('Shuffle Library'), findsOneWidget);
+    expect(find.text('Recently Played Song 1'), findsOneWidget);
+    expect(find.text('Recently Played Song 2'), findsNothing);
     expect(find.text('Recommended Song 1'), findsOneWidget);
     expect(
       find.text('Recommended Artist 1 · Recommended Album 1'),
       findsOneWidget,
     );
     expect(find.text('4:01'), findsOneWidget);
-    expect(find.text('Recently Played Song 1'), findsOneWidget);
-    expect(find.text('Recent Artist 1 · Recent Album 1'), findsOneWidget);
-    expect(find.text('3:01'), findsOneWidget);
     expect(find.text('Newest Album'), findsOneWidget);
 
-    final forYouY = tester.getTopLeft(find.text('For You')).dy;
-    final recentlyPlayedY = tester.getTopLeft(find.text('Recently Played')).dy;
+    final yourMusicY = tester.getTopLeft(find.text('Your Music')).dy;
+    final discoveryY = tester.getTopLeft(find.text('Discover New Music')).dy;
     final latestAlbumsY = tester.getTopLeft(find.text('Latest Albums')).dy;
-    expect(forYouY, lessThan(recentlyPlayedY));
-    expect(recentlyPlayedY, lessThan(latestAlbumsY));
+    expect(yourMusicY, lessThan(discoveryY));
+    expect(discoveryY, lessThan(latestAlbumsY));
+  });
+
+  testWidgets('mobile local listening actions fit without overflow', (
+    tester,
+  ) async {
+    await _pumpHome(
+      tester,
+      size: const Size(360, 800),
+      textScaler: const TextScaler.linear(1.3),
+    );
+
+    expect(find.text('Local Mix'), findsOneWidget);
+    expect(find.text('Shuffle Library'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('desktop home summary fits in a 1200x820 viewport', (
@@ -144,7 +195,7 @@ void main() {
     await _pumpHome(tester, size: size);
 
     expect(find.text('Recommended Song 6'), findsOneWidget);
-    expect(find.text('Recently Played Song 2'), findsOneWidget);
+    expect(find.text('Recently Played Song 1'), findsOneWidget);
     expect(find.text('Newest Album'), findsOneWidget);
     expect(
       tester.getBottomRight(find.text('Newest Album')).dy,

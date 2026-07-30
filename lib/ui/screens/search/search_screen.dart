@@ -167,10 +167,48 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
     }
 
+    final showLoadMore = searchState.hasMore || searchState.loadingMore;
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      itemCount: searchState.songs.length,
+      itemCount: searchState.songs.length + (showLoadMore ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index == searchState.songs.length) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: OutlinedButton.icon(
+                onPressed: searchState.loadingMore
+                    ? null
+                    : () async {
+                        try {
+                          await ref.read(searchProvider.notifier).loadMore();
+                        } catch (_) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  S.of(context).searchLoadMoreFailed,
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                icon: searchState.loadingMore
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.expand_more),
+                label: Text(
+                  searchState.loadingMore
+                      ? S.of(context).searchLoadingMore
+                      : S.of(context).searchLoadMore,
+                ),
+              ),
+            ),
+          );
+        }
         final song = searchState.songs[index];
         return _SongResultTile(
           song: song,

@@ -95,6 +95,8 @@ App 从 Cloud 获取在线歌曲元数据
   -> Navidrome 扫描后进入本地曲库
 ```
 
+导入与删除必须使用显式的局域网 NAS Agent 地址和独立 Key；公网 Navidrome 地址不会自动推断为 Agent。重复导入默认按归一化标题/歌手拒绝，只有用户确认“仍然导入”后才发送 `force: true`。
+
 ### 推荐
 
 ```text
