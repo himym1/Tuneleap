@@ -24,16 +24,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(recommendationProvider.notifier).ensureLoaded();
-      ref.read(recommendationPlaybackTrackerProvider);
     });
   }
 
   Future<void> _refresh() async {
     ref.invalidate(newestAlbumsProvider);
-    ref.invalidate(recentAlbumsProvider);
     await Future.wait([
       ref.read(newestAlbumsProvider.future),
-      ref.read(recentAlbumsProvider.future),
       ref.read(recommendationProvider.notifier).refresh(),
     ]);
   }
@@ -50,7 +47,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final newestAlbums = ref.watch(newestAlbumsProvider);
     final recommendations = ref.watch(recommendationProvider);
-    final recentAlbums = ref.watch(recentAlbumsProvider);
+    final recentSongs = ref
+        .watch(recommendationRecentSongsProvider)
+        .take(8)
+        .toList();
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile
         ? AppDimensions.paddingMobile
@@ -59,7 +59,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: newestAlbums.when(
-        loading: () => Center(child: const CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => ErrorState(
           message: S.of(context).commonError,
           onRetry: _refresh,
@@ -74,7 +74,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: ListView(
               padding: EdgeInsets.fromLTRB(h, h, h, h),
               children: [
-                // Greeting + Weather
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
@@ -91,51 +90,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // ── 最新专辑 ──
-                _buildSectionHeader(
-                  S.of(context).homeNewestAlbums,
-                  onMore: () => context.go('/library/albums'),
-                ),
-                const SizedBox(height: 12),
-                _buildAlbumRow(newest),
-                const SizedBox(height: 28),
-
-                // ── 推荐 ──
                 _buildSectionHeader(
                   S.of(context).homeDailyRecommend,
                   onMore: () => context.go('/recommendations'),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 if (recommendations.initialLoading &&
                     recommendations.visibleItems.isEmpty)
                   const SizedBox(
                     height: 80,
                     child: Center(child: CircularProgressIndicator()),
                   )
+                else if (recommendations.error != null &&
+                    recommendations.visibleItems.isEmpty)
+                  ErrorState(
+                    message: S.of(context).commonError,
+                    onRetry: () =>
+                        ref.read(recommendationProvider.notifier).refresh(),
+                    retryLabel: S.of(context).recommendationsRetry,
+                  )
+                else if (recommendations.visibleItems.isEmpty)
+                  EmptyState(
+                    icon: Icons.queue_music_rounded,
+                    message: S.of(context).recommendationsEmpty,
+                    actionLabel: S.of(context).recommendationsRetry,
+                    onAction: () =>
+                        ref.read(recommendationProvider.notifier).refresh(),
+                  )
                 else
-                  _buildRecommendationGrid(
+                  _buildRecommendationList(
                     recommendations.visibleItems.take(12).toList(),
                   ),
-                const SizedBox(height: 28),
 
-                // ── 最近播放 ──
-                recentAlbums.when(
-                  data: (recent) => recent.isNotEmpty
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionHeader(
-                              S.of(context).homeRecentlyPlayed,
-                              onMore: () => context.go('/scrobble'),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildAlbumRow(recent),
-                          ],
-                        )
-                      : const SizedBox.shrink(),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, _) => const SizedBox.shrink(),
+                if (recentSongs.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 28),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(
+                          S.of(context).homeRecentlyPlayed,
+                          onMore: () => context.go('/scrobble'),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildRecentSongs(recentSongs),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 28),
+                _buildSectionHeader(
+                  S.of(context).homeNewestAlbums,
+                  onMore: () => context.go('/library/albums'),
                 ),
+                const SizedBox(height: 12),
+                _buildAlbumRow(newest),
               ],
             ),
           ),
@@ -201,8 +210,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildAlbumRow(List<Album> albums) {
     final client = ref.read(subsonicClientProvider);
+    final rowHeight = MediaQuery.textScalerOf(context).scale(36) + 144;
     return SizedBox(
-      height: 180,
+      height: rowHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: albums.length,
@@ -273,6 +283,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   ) async {
     final sessionId = ref.read(recommendationProvider).sessionId;
     if (sessionId == null || items.isEmpty) return;
+    ref.read(recommendationPlaybackTrackerProvider);
     final songs = items.map((e) => e.song).toList();
     final origins = [for (final item in items) _homeOrigin(item, sessionId)];
     await ref
@@ -281,61 +292,95 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (mounted) context.push('/player');
   }
 
-  Widget _buildRecommendationGrid(List<RecommendationItem> items) {
-    if (items.isEmpty) return const SizedBox.shrink();
-    final sessionId = ref.read(recommendationProvider).sessionId;
+  Future<void> _playRecentSongs(List<Song> songs, int index) async {
+    if (songs.isEmpty) return;
+    await ref
+        .read(audioPlayerServiceProvider)
+        .playAll(songs, startIndex: index);
+    if (mounted) context.push('/player');
+  }
+
+  Widget _buildSongRows(List<Widget> rows) {
+    if (rows.isEmpty) return const SizedBox.shrink();
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = (constraints.maxWidth / 300).floor().clamp(1, 3);
+        final crossAxisCount = constraints.maxWidth >= 760 ? 2 : 1;
+        final rowExtent = MediaQuery.textScalerOf(context).scale(32) + 36;
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            childAspectRatio: 4.0,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 8,
+            mainAxisExtent: rowExtent,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 4,
           ),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            final origin = _homeOrigin(item, sessionId);
-            return SongContextMenu(
-              song: item.song,
-              playbackOrigin: origin,
-              onImported: () {
-                ref
-                    .read(recommendationProvider.notifier)
-                    .recordFeedback(item, RecommendationFeedbackEvent.imported);
-              },
-              onPlay: () => _playRecommendations(items, index),
-              child: _DailyRecommendTile(
-                song: item.song,
-                onTap: () => _playRecommendations(items, index),
-              ),
-            );
-          },
+          itemCount: rows.length,
+          itemBuilder: (context, index) => rows[index],
         );
       },
     );
   }
+
+  Widget _buildRecommendationList(List<RecommendationItem> items) {
+    final sessionId = ref.read(recommendationProvider).sessionId;
+    return _buildSongRows([
+      for (final entry in items.asMap().entries)
+        SongContextMenu(
+          song: entry.value.song,
+          playbackOrigin: _homeOrigin(entry.value, sessionId),
+          onImported: () {
+            ref
+                .read(recommendationProvider.notifier)
+                .recordFeedback(
+                  entry.value,
+                  RecommendationFeedbackEvent.imported,
+                );
+          },
+          onPlay: () => _playRecommendations(items, entry.key),
+          child: _HomeSongTile(
+            song: entry.value.song,
+            onTap: () => _playRecommendations(items, entry.key),
+          ),
+        ),
+    ]);
+  }
+
+  Widget _buildRecentSongs(List<Song> songs) {
+    return _buildSongRows([
+      for (final entry in songs.asMap().entries)
+        SongContextMenu(
+          song: entry.value,
+          onPlay: () => _playRecentSongs(songs, entry.key),
+          child: _HomeSongTile(
+            song: entry.value,
+            onTap: () => _playRecentSongs(songs, entry.key),
+          ),
+        ),
+    ]);
+  }
 }
 
-class _DailyRecommendTile extends StatefulWidget {
+class _HomeSongTile extends StatefulWidget {
   final Song song;
   final VoidCallback onTap;
 
-  const _DailyRecommendTile({required this.song, required this.onTap});
+  const _HomeSongTile({required this.song, required this.onTap});
 
   @override
-  State<_DailyRecommendTile> createState() => _DailyRecommendTileState();
+  State<_HomeSongTile> createState() => _HomeSongTileState();
 }
 
-class _DailyRecommendTileState extends State<_DailyRecommendTile> {
+class _HomeSongTileState extends State<_HomeSongTile> {
   bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
+    final metadata = [
+      widget.song.artist,
+      widget.song.album,
+    ].where((value) => value.trim().isNotEmpty).join(' · ');
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -343,25 +388,25 @@ class _DailyRecommendTileState extends State<_DailyRecommendTile> {
         color: _hovered
             ? Theme.of(
                 context,
-              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.8)
+              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.75)
             : Theme.of(
                 context,
-              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(8),
+              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(6),
         child: Semantics(
           button: true,
-          label: widget.song.title,
+          label: '${widget.song.title}, $metadata',
           child: InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(6),
             onTap: widget.onTap,
             child: Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
                 children: [
                   ResolvedSongCoverArt(
                     song: widget.song,
                     size: 44,
-                    borderRadius: 6,
+                    borderRadius: 5,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -373,26 +418,37 @@ class _DailyRecommendTileState extends State<_DailyRecommendTile> {
                           widget.song.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.chipLabel.copyWith(
+                          style: Theme.of(context).textTheme.songTitle.copyWith(
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        Text(
-                          widget.song.artist,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.songSubtitle
-                              .copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
+                        if (metadata.isNotEmpty)
+                          Text(
+                            metadata,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.songSubtitle
+                                .copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
                       ],
                     ),
                   ),
+                  if (widget.song.duration != null) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      widget.song.formattedDuration,
+                      style: Theme.of(context).textTheme.songDuration.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: 8),
                   AnimatedOpacity(
-                    opacity: _hovered ? 1.0 : 0.3,
+                    opacity: _hovered ? 1.0 : 0.6,
                     duration: const Duration(milliseconds: 150),
                     child: Icon(
                       Icons.play_circle_outline,
