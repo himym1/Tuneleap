@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "修复首页内容不足一屏时下拉刷新不生效；增加刷新进度、结果提示和手动刷新按钮。",
+    "changelog": "修复首页下拉刷新；修复移动端歌单标题遮挡，完善新建、编辑、重命名、删除和歌曲排序管理。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
