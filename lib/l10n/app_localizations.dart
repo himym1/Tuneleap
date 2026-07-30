@@ -1531,6 +1531,42 @@ abstract class S {
   /// **'播放列表为空'**
   String get playlistListEmpty;
 
+  /// No description provided for @playlistAddSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加歌曲'**
+  String get playlistAddSongs;
+
+  /// No description provided for @playlistAddSongsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加歌曲到歌单'**
+  String get playlistAddSongsTitle;
+
+  /// No description provided for @playlistSearchSongsHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索本地曲库'**
+  String get playlistSearchSongsHint;
+
+  /// No description provided for @playlistNoMatchingSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有匹配的歌曲'**
+  String get playlistNoMatchingSongs;
+
+  /// No description provided for @playlistAddSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加所选'**
+  String get playlistAddSelected;
+
+  /// No description provided for @playlistSongsAdded.
+  ///
+  /// In zh, this message translates to:
+  /// **'已添加 {count} 首'**
+  String playlistSongsAdded(int count);
+
   /// No description provided for @playlistRenameTitle.
   ///
   /// In zh, this message translates to:

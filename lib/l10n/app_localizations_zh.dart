@@ -777,6 +777,26 @@ class SZh extends S {
   String get playlistListEmpty => '播放列表为空';
 
   @override
+  String get playlistAddSongs => '添加歌曲';
+
+  @override
+  String get playlistAddSongsTitle => '添加歌曲到歌单';
+
+  @override
+  String get playlistSearchSongsHint => '搜索本地曲库';
+
+  @override
+  String get playlistNoMatchingSongs => '没有匹配的歌曲';
+
+  @override
+  String get playlistAddSelected => '添加所选';
+
+  @override
+  String playlistSongsAdded(int count) {
+    return '已添加 $count 首';
+  }
+
+  @override
   String get playlistRenameTitle => '重命名播放列表';
 
   @override

@@ -419,6 +419,17 @@
     },
     "playlistPlay": "播放",
     "playlistListEmpty": "播放列表为空",
+    "playlistAddSongs": "添加歌曲",
+    "playlistAddSongsTitle": "添加歌曲到歌单",
+    "playlistSearchSongsHint": "搜索本地曲库",
+    "playlistNoMatchingSongs": "没有匹配的歌曲",
+    "playlistAddSelected": "添加所选",
+    "playlistSongsAdded": "已添加 {count} 首",
+    "@playlistSongsAdded": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
     "playlistRenameTitle": "重命名播放列表",
     "playlistNewName": "新名称",
     "songContextAddedToPlaylist": "已添加到 {name}",

@@ -287,6 +287,17 @@
     "playlistSongCountLabel": "{count} songs",
     "playlistPlay": "Play",
     "playlistListEmpty": "Playlist is empty",
+    "playlistAddSongs": "Add Songs",
+    "playlistAddSongsTitle": "Add Songs to Playlist",
+    "playlistSearchSongsHint": "Search local library",
+    "playlistNoMatchingSongs": "No matching songs",
+    "playlistAddSelected": "Add Selected",
+    "playlistSongsAdded": "Added {count} songs",
+    "@playlistSongsAdded": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
     "playlistRenameTitle": "Rename Playlist",
     "playlistNewName": "New Name",
     "songContextAddedToPlaylist": "Added to {name}",

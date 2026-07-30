@@ -10,6 +10,15 @@ import 'package:navidrome_player/ui/screens/playlists/playlists_screen.dart';
 import 'package:navidrome_player/ui/theme/app_color_loader.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 
+const _librarySong = Song(
+  id: 's1',
+  title: 'Spring',
+  album: 'Album',
+  albumId: 'a1',
+  artist: 'Artist',
+  artistId: 'ar1',
+);
+
 class _RecordingPlaylistClient extends SubsonicClient {
   _RecordingPlaylistClient() {
     configure(serverUrl: 'http://server', username: 'user', password: 'pass');
@@ -19,10 +28,13 @@ class _RecordingPlaylistClient extends SubsonicClient {
     const Playlist(id: 'p1', name: 'Morning', songCount: 0),
     const Playlist(id: 'p2', name: 'Road Trip', songCount: 0),
   ];
+  final librarySongs = <Song>[_librarySong];
   String? createdName;
   String? renamedId;
   String? renamedName;
   String? deletedId;
+  List<String>? addedSongIds;
+  String? addedToPlaylistId;
 
   @override
   Future<List<Playlist>> getPlaylists() async => List.of(playlists);
@@ -30,6 +42,30 @@ class _RecordingPlaylistClient extends SubsonicClient {
   @override
   Future<Playlist> getPlaylist(String id) async =>
       playlists.firstWhere((playlist) => playlist.id == id);
+
+  @override
+  Future<SearchResult> search3(
+    String query, {
+    int artistCount = 10,
+    int albumCount = 10,
+    int songCount = 20,
+    int artistOffset = 0,
+    int albumOffset = 0,
+    int songOffset = 0,
+  }) async {
+    final q = query.trim().toLowerCase();
+    final songs = librarySongs
+        .where(
+          (song) =>
+              q.isEmpty ||
+              song.title.toLowerCase().contains(q) ||
+              song.artist.toLowerCase().contains(q),
+        )
+        .skip(songOffset)
+        .take(songCount)
+        .toList();
+    return SearchResult(songs: songs);
+  }
 
   @override
   Future<void> createPlaylist(String name, {List<String>? songIds}) async {
@@ -46,19 +82,50 @@ class _RecordingPlaylistClient extends SubsonicClient {
     List<String>? songIdsToAdd,
     List<int>? songIndexesToRemove,
   }) async {
-    if (name == null) return;
-    renamedId = id;
-    renamedName = name;
     final index = playlists.indexWhere((playlist) => playlist.id == id);
     final current = playlists[index];
+    var songs = List<Song>.from(current.songs);
+
+    if (songIndexesToRemove != null && songIndexesToRemove.isNotEmpty) {
+      final remove = songIndexesToRemove.toSet();
+      songs = [
+        for (var i = 0; i < songs.length; i++)
+          if (!remove.contains(i)) songs[i],
+      ];
+    }
+    if (songIdsToAdd != null && songIdsToAdd.isNotEmpty) {
+      addedToPlaylistId = id;
+      addedSongIds = List.of(songIdsToAdd);
+      for (final songId in songIdsToAdd) {
+        final match = librarySongs.where((song) => song.id == songId);
+        if (match.isNotEmpty) {
+          songs.add(match.first);
+        } else {
+          songs.add(
+            Song(
+              id: songId,
+              title: songId,
+              album: '',
+              albumId: '',
+              artist: '',
+              artistId: '',
+            ),
+          );
+        }
+      }
+    }
+    if (name != null) {
+      renamedId = id;
+      renamedName = name;
+    }
     playlists[index] = Playlist(
       id: current.id,
-      name: name,
-      songCount: current.songCount,
+      name: name ?? current.name,
+      songCount: songs.length,
       duration: current.duration,
       coverArt: current.coverArt,
       owner: current.owner,
-      songs: current.songs,
+      songs: songs,
     );
   }
 
@@ -70,7 +137,7 @@ class _RecordingPlaylistClient extends SubsonicClient {
 }
 
 Future<_RecordingPlaylistClient> _pumpPlaylists(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(360, 800);
+  tester.view.physicalSize = const Size(400, 900);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -166,5 +233,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(client.deletedId, 'p1');
     expect(find.text('2 playlists'), findsOneWidget);
+  });
+
+  testWidgets('empty playlist can add local library songs', (tester) async {
+    final client = await _pumpPlaylists(tester);
+
+    await tester.tap(find.text('Morning'));
+    // Avoid pumpAndSettle: CoverArt shimmer keeps animating.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(
+      find.byKey(const Key('playlist-empty-add-songs-button')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('playlist-empty-add-songs-button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text('Add Songs to Playlist'), findsOneWidget);
+    expect(find.text('Spring'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('picker-song-s1')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('playlist-song-picker-confirm')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(client.addedToPlaylistId, 'p1');
+    expect(client.addedSongIds, ['s1']);
+    expect(find.text('Spring'), findsWidgets);
+    expect(find.text('Added 1 songs'), findsOneWidget);
   });
 }

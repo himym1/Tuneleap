@@ -790,6 +790,26 @@ class SEn extends S {
   String get playlistListEmpty => 'Playlist is empty';
 
   @override
+  String get playlistAddSongs => 'Add Songs';
+
+  @override
+  String get playlistAddSongsTitle => 'Add Songs to Playlist';
+
+  @override
+  String get playlistSearchSongsHint => 'Search local library';
+
+  @override
+  String get playlistNoMatchingSongs => 'No matching songs';
+
+  @override
+  String get playlistAddSelected => 'Add Selected';
+
+  @override
+  String playlistSongsAdded(int count) {
+    return 'Added $count songs';
+  }
+
+  @override
   String get playlistRenameTitle => 'Rename Playlist';
 
   @override
