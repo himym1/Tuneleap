@@ -3,7 +3,7 @@ import 'package:navidrome_player/providers/server_config_provider.dart';
 
 void main() {
   test(
-    'ServerEntry keeps cloud and NAS credentials separate from Navidrome credentials',
+    'ServerEntry strips retired Cloud shared keys from client storage',
     () {
       const entry = ServerEntry(
         id: 'server-a',
@@ -30,7 +30,7 @@ void main() {
       expect(json.containsKey('backendApiKey'), isFalse);
       expect(json.containsKey('nasAgentKey'), isFalse);
       expect(restored.backendUrl, 'https://cloud.example.com');
-      expect(restored.backendApiKey, 'cloud-key');
+      expect(restored.backendApiKey, isEmpty);
       expect(restored.nasAgentUrl, 'http://nas.example.com:8503');
       expect(restored.nasAgentKey, 'nas-key');
       expect(restored.password, 'nav-password');

@@ -632,25 +632,47 @@ class SEn extends S {
       'navidrome-cloud public URL, e.g. https://cloud.example.com';
 
   @override
-  String get backendApiKey => 'Cloud API key';
+  String get cloudAccount => 'Cloud account';
 
   @override
-  String get backendApiKeyHint =>
-      'Stored separately from the Navidrome password and NAS agent key';
+  String get cloudSignedIn => 'Signed in';
+
+  @override
+  String get cloudSignedOut => 'Not signed in';
+
+  @override
+  String get cloudSignIn => 'Sign in';
+
+  @override
+  String get cloudRegister => 'Register';
+
+  @override
+  String get cloudUsername => 'Cloud username';
+
+  @override
+  String get cloudCredential => 'Cloud account credential';
+
+  @override
+  String get cloudSignOut => 'Sign out';
+
+  @override
+  String get cloudAuthFailed => 'Cloud authentication failed';
+
+  @override
+  String get cloudAuthRequired => 'Sign in to Cloud to load recommendations';
 
   @override
   String get nasAgentUrl => 'NAS agent URL';
 
   @override
   String get nasAgentUrlHint =>
-      'Optional; defaults to the Navidrome host on port 8503';
+      'Optional; defaults to the Navidrome host on port 8504';
 
   @override
   String get nasAgentKey => 'NAS agent key';
 
   @override
-  String get nasAgentKeyHint =>
-      'Import/delete only; separate from the cloud API key';
+  String get nasAgentKeyHint => 'Used only for LAN import/delete';
 
   @override
   String get serverUrlExample => 'https://music.example.com';

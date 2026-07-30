@@ -1,33 +1,39 @@
-# ADR 0003: Deterministic Online Recommendation Algorithm
+# ADR-0003: Deterministic online recommendation algorithm
 
-- Status: Accepted
+- Status: Accepted and implemented
 - Date: 2026-07-28
-- Supersedes: ADR 0002
+- Updated: 2026-07-30
+- Supersedes: ADR-0002
 
 ## Context
 
-The LLM planner added deployment configuration, latency, cost, cache state, and background replanning without creating a clear user-visible improvement. The existing verified source recall, feedback history, deduplication, and pagination already provide the inputs needed for useful recommendations.
+The earlier LLM planner added deployment configuration, latency, cost, cache state, and background replanning without a clear user-visible improvement. Verified source recall, recent playback, feedback, deduplication, and pagination already provide enough inputs for useful recommendations.
+
+The recommendation owner has since moved from the retired NAS backend to `navidrome-cloud`; runtime state has moved from SQLite to Postgres.
 
 ## Decision
 
-1. `navidrome-backend` owns a deterministic recommendation algorithm with no OpenAI or LLM dependency.
-2. Recent artists and trusted `completed`/`imported` feedback produce similar-content search seeds.
-3. Configured discovery seeds always produce exploration candidates.
+1. `navidrome-cloud` owns a deterministic recommendation algorithm with no OpenAI or LLM dependency.
+2. Recent artists and trusted `completed` / `imported` feedback produce similar-content search seeds.
+3. Configured discovery seeds produce exploration candidates.
 4. Candidate pages target 70% similar content and 30% exploration, fill quota shortfalls from the other bucket, and limit each primary artist to two songs per batch.
-5. Every candidate must still resolve through a real online source and pass availability, library, history, feedback exclusion, strong-identity, and weak-identity filters.
-6. The existing recommendation SQLite keeps sessions, bounded recent context, candidates, feedback, profile generation, and refill leases so any worker can continue a session. Planner cache and feedback watermark fields are retired; legacy columns are ignored, and legacy active `ai` sessions migrate to `fallback`.
-7. API `contractVersion=1` remains compatible. New Backend responses use the existing `fallback` mode value as the algorithm mode; Flutter does not display or store that implementation detail.
-8. Feedback changes future refill and refresh queries through the derived positive profile. It does not reorder the visible queue.
+5. Every candidate resolves through a real online source and must pass availability, library, history, feedback, strong-identity, and weak-identity exclusions.
+6. Cloud reads library identities from `navidrome-nas-agent`; it never opens `navidrome.db` directly.
+7. Postgres stores sessions, bounded recent context, candidates, feedback, profile generation, and refill leases so any Cloud worker can continue a session.
+8. API `contractVersion=1` remains compatible. The legacy `fallback` mode value continues to identify deterministic generation until a future versioned contract removes that name.
+9. Feedback affects future refill and refresh queries; it does not reorder the visible queue.
 
 ## Consequences
 
-- No model key, endpoint, timeout, prompt, planner task, or model-specific test remains.
-- Recommendation startup and refill depend only on the configured music sources.
-- Recommendation quality is explainable and reproducible from recent history, positive feedback, exploration seeds, and filters.
-- The protocol's `fallback` name is retained until a future versioned API removes the legacy mode field.
+- Recommendation startup and refill depend only on configured music-source adapters and NAS identity availability.
+- Recommendation behavior is explainable from recent history, positive feedback, exploration seeds, filters, and session generation.
+- Cloud Postgres is the only recommendation runtime store.
+- Flutter owns presentation, pagination, playback-origin attribution, and feedback outbox; it does not own recommendation ranking.
+- The App may display the server mode as status information but does not branch recommendation behavior on it.
 
 ## Verification
 
-- Backend service tests cover seed derivation, 70/30 mixing, artist diversity, exclusions, source verification, refill, feedback persistence, and lease cleanup.
-- Backend API and store tests prove the v1 contract and legacy-database compatibility.
-- Flutter tests prove recommendation state no longer exposes the Backend mode while old v1 responses remain parseable.
+- Cloud service tests cover seed derivation, 70/30 mixing, artist diversity, exclusions, source verification, refill, feedback persistence, and lease cleanup.
+- Postgres store tests prove transaction, concurrency, and contract behavior.
+- NAS Agent tests prove library identity normalization and access boundaries.
+- Flutter tests cover recommendation state, pagination, refresh, feedback retry, playback attribution, and v1 response parsing.

@@ -1,4 +1,4 @@
-.PHONY: android ios macos windows all clean deps
+.PHONY: android ios macos windows all publish clean deps
 
 SHELL := /bin/bash
 
@@ -16,6 +16,9 @@ windows:
 
 all:
 	@bash scripts/build.sh all
+
+publish:
+	@bash scripts/deploy-private-update.sh
 
 clean:
 	@bash scripts/build.sh clean

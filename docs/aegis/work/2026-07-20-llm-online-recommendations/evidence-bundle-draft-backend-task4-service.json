@@ -1,8 +1,0 @@
-{
-  "schemaVersion": "aegis.schema.v0",
-  "artifactKey": "backend-task4-service",
-  "type": "test",
-  "source": "backend commit 73b0201",
-  "summary": "Service 39 targeted and Backend 84 full unittest passed; real SQLite lease/five-page/dynamic pool covered; two-stage reviews approved.",
-  "verifier": "main fresh commands and independent reviewers"
-}

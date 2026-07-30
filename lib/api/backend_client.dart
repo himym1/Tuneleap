@@ -4,18 +4,26 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/api/subsonic_client.dart'
     show LyricsList, LyricsLine;
 
+typedef CloudTokenProvider = Future<String?> Function({bool forceRefresh});
+
 /// Dual-endpoint companion client (ADR-0004):
-/// - cloud: search / url / cover / lyric / recommendations / updates auth
-/// - nas agent: import / delete only
+/// - cloud: Bearer-authenticated search, media, recommendations, and updates
+/// - nas agent: API-key-authenticated import/delete only
 class BackendClient {
-  final Dio _dio;
+  static const _cloudRetryKey = 'cloud-auth-retried';
+
+  late final Dio _dio;
+  final CloudTokenProvider? _cloudTokenProvider;
   String _cloudBaseUrl = '';
   String _nasBaseUrl = '';
-  String _cloudApiKey = '';
   String _nasAgentKey = '';
   final Map<String, String> _coverArtCache = {};
 
-  BackendClient({Dio? dio}) : _dio = dio ?? Dio();
+  BackendClient({Dio? dio, CloudTokenProvider? cloudTokenProvider})
+    : _cloudTokenProvider = cloudTokenProvider {
+    _dio = dio ?? Dio();
+    if (cloudTokenProvider != null) _installCloudAuth();
+  }
 
   bool get isConfigured => _cloudBaseUrl.isNotEmpty;
   bool get isNasConfigured => _nasBaseUrl.isNotEmpty;
@@ -27,25 +35,23 @@ class BackendClient {
     String cloudApiKey = '',
     String nasAgentUrl = '',
     String nasAgentKey = '',
-    // Backward-compatible aliases used by older call sites / tests.
+    // Backward-compatible URL aliases for older call sites/tests.
     String? baseUrl,
     String apiKey = '',
   }) {
     final resolvedCloud = cloudBaseUrl.isNotEmpty
         ? cloudBaseUrl
         : (baseUrl ?? '');
-    final resolvedCloudKey = cloudApiKey.isNotEmpty ? cloudApiKey : apiKey;
     _cloudBaseUrl = _normalizeBaseUrl(resolvedCloud);
     _nasBaseUrl = _normalizeBaseUrl(nasAgentUrl);
-    _cloudApiKey = resolvedCloudKey;
     _nasAgentKey = nasAgentKey;
     debugPrint(
       '[Backend] configured cloud=${_cloudBaseUrl.isNotEmpty} nas=${_nasBaseUrl.isNotEmpty}',
     );
   }
 
-  /// Legacy helper: same-host NAS agent on port 8503.
-  static String inferBaseUrl(String serverUrl, {int port = 8503}) {
+  /// Infer the production LAN NAS agent endpoint on port 8504.
+  static String inferBaseUrl(String serverUrl, {int port = 8504}) {
     final uri = Uri.tryParse(serverUrl);
     if (uri == null || uri.host.isEmpty) return '';
 
@@ -56,13 +62,64 @@ class BackendClient {
     ).toString();
   }
 
-  Options _cloudOptions() {
-    final headers = <String, dynamic>{};
-    if (_cloudApiKey.isNotEmpty) {
-      headers['X-API-Key'] = _cloudApiKey;
-    }
-    return Options(headers: headers);
+  void _installCloudAuth() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (!_isCloudRequest(options)) {
+            handler.next(options);
+            return;
+          }
+          if (options.headers['Authorization'] != null) {
+            handler.next(options);
+            return;
+          }
+          try {
+            final token = await _cloudTokenProvider!(forceRefresh: false);
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          } on Exception {
+            // Let the request surface its normal 401/network error.
+          }
+          handler.next(options);
+        },
+        onError: (error, handler) async {
+          final request = error.requestOptions;
+          if (error.response?.statusCode != 401 ||
+              !_isCloudRequest(request) ||
+              request.extra[_cloudRetryKey] == true) {
+            handler.next(error);
+            return;
+          }
+          try {
+            final token = await _cloudTokenProvider!(forceRefresh: true);
+            if (token == null || token.isEmpty) {
+              handler.next(error);
+              return;
+            }
+            request.extra[_cloudRetryKey] = true;
+            request.headers['Authorization'] = 'Bearer $token';
+            handler.resolve(await _dio.fetch<dynamic>(request));
+          } on Exception {
+            handler.next(error);
+          }
+        },
+      ),
+    );
   }
+
+  bool _isCloudRequest(RequestOptions options) {
+    final cloud = Uri.tryParse(_cloudBaseUrl);
+    final request = options.uri;
+    return cloud != null &&
+        cloud.host.isNotEmpty &&
+        request.scheme == cloud.scheme &&
+        request.host == cloud.host &&
+        request.port == cloud.port;
+  }
+
+  Options _cloudOptions() => Options();
 
   Options _nasOptions({String? contentType}) {
     final headers = <String, dynamic>{};
@@ -150,7 +207,6 @@ class BackendClient {
         'id': coverArtId,
         'source': song.onlineSource ?? 'netease',
         'size': '$size',
-        if (_cloudApiKey.isNotEmpty) 'api_key': _cloudApiKey,
       },
     ).query;
 

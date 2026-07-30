@@ -59,12 +59,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (!mounted) return;
 
     final config = ref.read(serverConfigProvider);
-    final apiKey = config.backendApiKey;
-    if (apiKey.isEmpty) return;
-
     final info = await checkForUpdate(
-      apiKey: apiKey,
-      updateOrigin: config.backendUrl,
+      accessTokenProvider: ({bool forceRefresh = false}) => ref
+          .read(cloudAuthProvider.notifier)
+          .getAccessToken(forceRefresh: forceRefresh),
+      updateOrigin: resolveCloudOrigin(config.backendUrl),
     );
     if (!mounted || info == null) return;
 
@@ -80,7 +79,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
 
     if (!mounted) return;
-    UpdateDialog.show(context, info, apiKey: apiKey);
+    UpdateDialog.show(context, info);
   }
 
   @override

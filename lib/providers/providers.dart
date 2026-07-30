@@ -9,6 +9,7 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 
 export 'server_config_provider.dart';
 export 'auth_provider.dart';
+export 'cloud_auth_provider.dart';
 export 'audio_providers.dart';
 export 'theme_provider.dart';
 export 'download_provider.dart';

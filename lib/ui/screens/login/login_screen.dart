@@ -16,7 +16,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _backendUrlController = TextEditingController();
-  final _backendApiKeyController = TextEditingController();
   final _nasAgentUrlController = TextEditingController();
   final _nasAgentKeyController = TextEditingController();
   bool _loading = false;
@@ -30,7 +29,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _usernameController.text = config.username;
     _passwordController.text = config.password;
     _backendUrlController.text = config.backendUrl;
-    _backendApiKeyController.text = config.backendApiKey;
     _nasAgentUrlController.text = config.nasAgentUrl;
     _nasAgentKeyController.text = config.nasAgentKey;
   }
@@ -41,7 +39,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _usernameController.dispose();
     _passwordController.dispose();
     _backendUrlController.dispose();
-    _backendApiKeyController.dispose();
     _nasAgentUrlController.dispose();
     _nasAgentKeyController.dispose();
     super.dispose();
@@ -59,7 +56,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final username = _usernameController.text.trim();
       final password = _passwordController.text.trim();
       final backendUrl = _backendUrlController.text.trim();
-      final backendApiKey = _backendApiKeyController.text;
       final nasAgentUrl = _nasAgentUrlController.text.trim();
       final nasAgentKey = _nasAgentKeyController.text;
 
@@ -75,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             username: username,
             password: password,
             backendUrl: backendUrl,
-            backendApiKey: backendApiKey,
+            backendApiKey: '',
             nasAgentUrl: nasAgentUrl,
             nasAgentKey: nasAgentKey,
           );
@@ -165,16 +161,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         prefixIcon: const Icon(Icons.cloud_outlined),
                       ),
                       keyboardType: TextInputType.url,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _backendApiKeyController,
-                      decoration: InputDecoration(
-                        labelText: s.backendApiKey,
-                        hintText: s.backendApiKeyHint,
-                        prefixIcon: const Icon(Icons.key_outlined),
-                      ),
-                      obscureText: true,
                     ),
                     const SizedBox(height: 16),
                     TextField(

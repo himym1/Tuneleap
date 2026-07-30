@@ -218,7 +218,6 @@ class _ServerDialogState extends State<_ServerDialog> {
   late final TextEditingController _username;
   late final TextEditingController _password;
   late final TextEditingController _backendUrl;
-  late final TextEditingController _backendApiKey;
   late final TextEditingController _nasAgentUrl;
   late final TextEditingController _nasAgentKey;
   bool _saving = false;
@@ -232,9 +231,6 @@ class _ServerDialogState extends State<_ServerDialog> {
     _password = TextEditingController(text: widget.existing?.password ?? '');
     _backendUrl = TextEditingController(
       text: widget.existing?.backendUrl ?? '',
-    );
-    _backendApiKey = TextEditingController(
-      text: widget.existing?.backendApiKey ?? '',
     );
     _nasAgentUrl = TextEditingController(
       text: widget.existing?.nasAgentUrl ?? '',
@@ -251,7 +247,6 @@ class _ServerDialogState extends State<_ServerDialog> {
     _username.dispose();
     _password.dispose();
     _backendUrl.dispose();
-    _backendApiKey.dispose();
     _nasAgentUrl.dispose();
     _nasAgentKey.dispose();
     super.dispose();
@@ -313,15 +308,6 @@ class _ServerDialogState extends State<_ServerDialog> {
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: _backendApiKey,
-              decoration: InputDecoration(
-                labelText: S.of(context).backendApiKey,
-                hintText: S.of(context).backendApiKeyHint,
-              ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 12),
-            TextField(
               controller: _nasAgentUrl,
               decoration: InputDecoration(
                 labelText: S.of(context).nasAgentUrl,
@@ -369,7 +355,6 @@ class _ServerDialogState extends State<_ServerDialog> {
     final username = _username.text.trim();
     final password = _password.text;
     final backendUrl = _backendUrl.text.trim();
-    final backendApiKey = _backendApiKey.text;
     final nasAgentUrl = _nasAgentUrl.text.trim();
     final nasAgentKey = _nasAgentKey.text;
     if (name.isEmpty || url.isEmpty || username.isEmpty) return;
@@ -381,7 +366,7 @@ class _ServerDialogState extends State<_ServerDialog> {
         username,
         password,
         backendUrl,
-        backendApiKey,
+        '',
         nasAgentUrl,
         nasAgentKey,
       );
