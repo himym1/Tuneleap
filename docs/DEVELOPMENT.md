@@ -33,7 +33,7 @@ Agent -> tags + cover + optional .lrc -> atomic rename
 App/Agent -> optional POST /v1/nas/scan
 ```
 
-Imports are serialized by one process-wide lock. This is intentional for a personal NAS: it prevents duplicate writes and disk thrash. Replace it with per-target locks only after measured concurrent demand.
+Imports are serialized by one process-wide lock. Inside that lock, the agent first preserves filename idempotency, then rejects matching normalized title/artist identities with HTTP 409. The client may send `force: true` only after the user explicitly chooses to import the duplicate.
 
 ## Delete flow
 
