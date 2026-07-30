@@ -51,7 +51,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "修复更新包重复下载：已下载可直接安装；启动自动检查更新；推荐过滤库内歌曲更准。",
+    "changelog": "Cloud 与 NAS Agent 端点拆分；推荐屏蔽 NAS 曲库歌曲；Postgres 控制面上线。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
