@@ -149,6 +149,7 @@ void main() {
         expect(songs, hasLength(1));
         expect(songs.first.isOnline, isTrue);
         expect(songs.first.onlineSource, 'netease');
+        expect(songs.first.onlineProvider, 'gdstudio');
         expect(songs.first.storageKey, 'solara:netease:5257138');
       },
     );
@@ -171,6 +172,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'kuwo',
+        onlineProvider: 'meting',
       );
 
       final url = await client.getPlaybackUrl(targetSong, maxBitRate: 192);
@@ -178,6 +180,7 @@ void main() {
       expect(url, 'https://cdn.example.com/song.mp3');
       expect(captured.path, 'http://nas:10086/v1/music/url');
       expect(captured.queryParameters['source'], 'kuwo');
+      expect(captured.queryParameters['provider'], 'meting');
       expect(captured.queryParameters['br'], '192');
     });
 
@@ -192,6 +195,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'netease',
+        onlineProvider: 'meting',
         coverArt: '109951166681216835',
       );
 
@@ -204,7 +208,37 @@ void main() {
       );
       expect(uri.queryParameters['id'], '109951166681216835');
       expect(uri.queryParameters['source'], 'netease');
+      expect(uri.queryParameters['provider'], 'meting');
       expect(uri.queryParameters['size'], '640');
+    });
+
+    test('resolveCoverArtUrl pins the winning provider', () async {
+      late RequestOptions captured;
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          captured = options;
+          return _jsonBody({'url': 'https://cdn.example.com/cover.jpg'});
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(baseUrl: 'http://nas:10086');
+      const song = Song(
+        id: '1',
+        title: 'Track',
+        album: '',
+        albumId: '',
+        artist: 'Artist',
+        artistId: '',
+        backend: SongBackend.solara,
+        onlineSource: 'netease',
+        onlineProvider: 'meting',
+        coverArt: 'cover-1',
+      );
+
+      final url = await client.resolveCoverArtUrl(song);
+
+      expect(url, 'https://cdn.example.com/cover.jpg');
+      expect(captured.queryParameters['source'], 'netease');
+      expect(captured.queryParameters['provider'], 'meting');
     });
 
     test('queueNasDownload posts expected payload', () async {
@@ -309,6 +343,7 @@ void main() {
           expect(options.path, 'http://nas:10086/v1/music/lyric');
           expect(options.queryParameters['id'], '5257138');
           expect(options.queryParameters['source'], 'joox');
+          expect(options.queryParameters['provider'], 'meting');
           return _jsonBody({
             'lyric': '[00:01]第一句',
             'provider': 'gdstudio',
@@ -326,6 +361,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'joox',
+        onlineProvider: 'meting',
       );
 
       expect(await client.getRawLyrics(song), '[00:01]第一句');
@@ -336,6 +372,7 @@ void main() {
         ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
           expect(options.path, 'http://nas:10086/v1/music/lyric');
           expect(options.queryParameters['source'], 'netease');
+          expect(options.queryParameters['provider'], 'gdstudio');
           return _jsonBody({
             'lyric': '[00:01.23]第一句\n[00:02.50]第二句\n纯文本结尾',
             'provider': 'gdstudio',
@@ -353,6 +390,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'netease',
+        onlineProvider: 'gdstudio',
       );
 
       final lyrics = await client.getLyrics(song);

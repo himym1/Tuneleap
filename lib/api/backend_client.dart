@@ -228,6 +228,8 @@ class BackendClient {
       queryParameters: {
         'id': song.urlId ?? song.id,
         'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
         'br': _qualityFromBitRate(maxBitRate),
       },
       options: _cloudOptions(),
@@ -252,6 +254,8 @@ class BackendClient {
       queryParameters: {
         'id': coverArtId,
         'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
         'size': '$size',
       },
     ).query;
@@ -264,7 +268,8 @@ class BackendClient {
     final coverArtId = song.coverArt;
     if (coverArtId == null || coverArtId.isEmpty) return '';
 
-    final cacheKey = '${song.onlineSource}:$coverArtId:$size';
+    final cacheKey =
+        '${song.onlineProvider}:${song.onlineSource}:$coverArtId:$size';
     final cached = _coverArtCache[cacheKey];
     if (cached != null) return cached;
 
@@ -273,6 +278,8 @@ class BackendClient {
       queryParameters: {
         'id': coverArtId,
         'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
         'size': size,
       },
       options: _cloudOptions(),
@@ -368,6 +375,8 @@ class BackendClient {
       queryParameters: {
         'id': lyricId,
         'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
       },
       options: _cloudOptions(),
     );
@@ -387,6 +396,8 @@ class BackendClient {
       queryParameters: {
         'id': lyricId,
         'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
       },
       options: _cloudOptions(),
     );
