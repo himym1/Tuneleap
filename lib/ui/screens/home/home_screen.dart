@@ -44,7 +44,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Wait for silent Cloud restore so first recommendations are not 401.
+      await ref.read(cloudAuthProvider.future);
+      if (!mounted) return;
       ref.read(recommendationProvider.notifier).ensureLoaded();
     });
   }
