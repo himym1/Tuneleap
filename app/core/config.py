@@ -48,8 +48,8 @@ class Settings(BaseSettings):
 
     # Auth / JWT
     jwt_secret: str = "change-me-jwt-secret"
-    jwt_access_ttl_minutes: int = 60
-    jwt_refresh_ttl_days: int = 30
+    jwt_access_ttl_minutes: int = 1440
+    jwt_refresh_ttl_days: int = 90
 
     # Legacy SQLite sources used only by scripts/migrate_sqlite_to_postgres.py.
     auth_db_path: str = "./data/auth.db"
