@@ -41,9 +41,9 @@ class BackendClient {
     final uri = Uri.tryParse(_nasBaseUrl);
     return _nasAgentKey.isNotEmpty &&
         uri != null &&
-        (uri.scheme == 'http' || uri.scheme == 'https') &&
         uri.host.isNotEmpty &&
-        _isLanHost(uri.host);
+        (uri.scheme == 'https' ||
+            (uri.scheme == 'http' && _isLanHost(uri.host)));
   }
 
   String get cloudBaseUrl => _cloudBaseUrl;
@@ -74,7 +74,9 @@ class BackendClient {
     final uri = Uri.tryParse(serverUrl);
     if (uri == null ||
         uri.host.isEmpty ||
-        (uri.scheme.isNotEmpty && uri.scheme != 'http' && uri.scheme != 'https') ||
+        (uri.scheme.isNotEmpty &&
+            uri.scheme != 'http' &&
+            uri.scheme != 'https') ||
         !_isLanHost(uri.host)) {
       return '';
     }

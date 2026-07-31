@@ -264,7 +264,7 @@ void main() {
       );
     });
 
-    test('NAS mutations require an explicit URL and key', () async {
+    test('NAS mutations require a key and a secure endpoint', () async {
       final client = BackendClient(dio: Dio())
         ..configure(cloudBaseUrl: 'https://cloud.example.com');
 
@@ -277,10 +277,28 @@ void main() {
         ),
         throwsStateError,
       );
+
       client.configure(
-        cloudBaseUrl: 'https://cloud.example.com',
+        nasAgentUrl: 'https://nas-agent.himym.us.ci',
+        nasAgentKey: 'nas-key',
+      );
+      expect(client.canMutateNas, isTrue);
+
+      client.configure(
+        nasAgentUrl: 'http://192.168.8.146:8504',
+        nasAgentKey: 'nas-key',
+      );
+      expect(client.canMutateNas, isTrue);
+
+      client.configure(
         nasAgentUrl: 'http://154.21.95.143:8504',
         nasAgentKey: 'nas-key',
+      );
+      expect(client.canMutateNas, isFalse);
+
+      client.configure(
+        nasAgentUrl: 'https://nas-agent.himym.us.ci',
+        nasAgentKey: '',
       );
       expect(client.canMutateNas, isFalse);
     });
