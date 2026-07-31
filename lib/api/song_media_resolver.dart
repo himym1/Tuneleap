@@ -70,6 +70,7 @@ class SongMediaResolver {
           albumId: song.albumId,
           backend: SongBackend.solara,
           onlineSource: solaraInfo.source,
+          onlineProvider: solaraInfo.provider,
           lyricId: solaraInfo.lyricId,
         ),
       );
@@ -145,19 +146,41 @@ class SongMediaResolver {
   }
 
   /// 从本地歌曲的文件路径中解析 solara 来源信息。
-  /// 导入文件名格式: solara_{source}_{id}.{ext}
+  /// 新格式: solara_{source}_via-{provider}_{id}.{ext}；兼容旧格式。
   static _SolaraInfo? _parseSolaraInfo(Song song) {
     final path = song.path;
     if (path == null || path.isEmpty) return null;
-    final filename = path.split('/').last.split('.').first;
-    final match = RegExp(r'^solara_(\w+?)_(.+)$').firstMatch(filename);
-    if (match == null) return null;
-    return _SolaraInfo(source: match.group(1)!, lyricId: match.group(2)!);
+    final basename = path.split('/').last;
+    final extensionIndex = basename.lastIndexOf('.');
+    final filename = extensionIndex > 0
+        ? basename.substring(0, extensionIndex)
+        : basename;
+    final providerMatch = RegExp(
+      r'^solara_(\w+?)_via-([A-Za-z0-9.-]+)_(.+)$',
+    ).firstMatch(filename);
+    if (providerMatch != null) {
+      return _SolaraInfo(
+        source: providerMatch.group(1)!,
+        provider: providerMatch.group(2)!,
+        lyricId: providerMatch.group(3)!,
+      );
+    }
+    final legacyMatch = RegExp(r'^solara_(\w+?)_(.+)$').firstMatch(filename);
+    if (legacyMatch == null) return null;
+    return _SolaraInfo(
+      source: legacyMatch.group(1)!,
+      lyricId: legacyMatch.group(2)!,
+    );
   }
 }
 
 class _SolaraInfo {
   final String source;
+  final String? provider;
   final String lyricId;
-  const _SolaraInfo({required this.source, required this.lyricId});
+  const _SolaraInfo({
+    required this.source,
+    this.provider,
+    required this.lyricId,
+  });
 }

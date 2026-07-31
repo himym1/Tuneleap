@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class _PagedBackendClient extends BackendClient {
   final pages = <int>[];
+  final sources = <String?>[];
 
   @override
   Future<List<Song>> searchSongs(
@@ -22,10 +23,30 @@ class _PagedBackendClient extends BackendClient {
     CancelToken? cancelToken,
   }) async {
     pages.add(page);
+    sources.add(source);
     if (page == 1) {
-      return [for (var index = 0; index < 30; index++) _song('$index')];
+      return [_song('0', source: 'migu'), _song('1', source: 'migu')];
     }
-    return [_song('0'), _song('30')];
+    if (page == 2) {
+      return [_song('1', source: 'migu'), _song('2', source: 'migu')];
+    }
+    return [];
+  }
+}
+
+class _RepeatingBackendClient extends BackendClient {
+  final pages = <int>[];
+
+  @override
+  Future<List<Song>> searchSongs(
+    String query, {
+    String? source,
+    int count = 20,
+    int page = 1,
+    CancelToken? cancelToken,
+  }) async {
+    pages.add(page);
+    return [_song('same')];
   }
 }
 
@@ -48,19 +69,22 @@ class _DelayedBackendClient extends BackendClient {
   }
 }
 
-Song _song(String id) => Song(
+Song _song(String id, {String? source}) => Song(
   id: id,
   title: 'Song $id',
   album: 'Album',
   albumId: 'album',
   artist: 'Artist',
   artistId: 'artist',
+  backend: source == null ? SongBackend.subsonic : SongBackend.solara,
+  onlineSource: source,
+  urlId: source == null ? null : id,
 );
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('loadMore requests the next page and appends unique songs', () async {
+  test('short pages keep loading until an empty page', () async {
     SharedPreferences.setMockInitialValues({
       'active_server_id': 'server-a',
       'server_url': 'http://music.local',
@@ -79,15 +103,51 @@ void main() {
 
     final notifier = container.read(searchProvider.notifier);
     await notifier.search('query');
-    expect(container.read(searchProvider).songs, hasLength(30));
+    expect(container.read(searchProvider).songs, hasLength(2));
     expect(container.read(searchProvider).hasMore, isTrue);
 
     await notifier.loadMore();
 
+    var state = container.read(searchProvider);
+    expect(backend.pages, [1, 2]);
+    expect(backend.sources, ['netease', 'migu']);
+    expect(state.songs.map((song) => song.id), ['0', '1', '2']);
+    expect(state.hasMore, isTrue);
+
+    await notifier.loadMore();
+
+    state = container.read(searchProvider);
+    expect(backend.pages, [1, 2, 3]);
+    expect(backend.sources, ['netease', 'migu', 'migu']);
+    expect(state.songs, hasLength(3));
+    expect(state.hasMore, isFalse);
+    expect(state.loadingMore, isFalse);
+  });
+
+  test('a page with no new songs stops pagination', () async {
+    SharedPreferences.setMockInitialValues({
+      'active_server_id': 'server-a',
+      'server_url': 'http://music.local',
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final backend = _RepeatingBackendClient();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        backendClientProvider.overrideWithValue(backend),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(searchProvider, (_, _) {});
+    addTearDown(subscription.close);
+
+    final notifier = container.read(searchProvider.notifier);
+    await notifier.search('query');
+    await notifier.loadMore();
+
     final state = container.read(searchProvider);
     expect(backend.pages, [1, 2]);
-    expect(state.songs, hasLength(31));
-    expect(state.songs.last.id, '30');
+    expect(state.songs.map((song) => song.id), ['same']);
     expect(state.hasMore, isFalse);
     expect(state.loadingMore, isFalse);
   });

@@ -12,7 +12,7 @@ class SearchState {
   final bool searching;
   final bool loadingMore;
   final bool hasMore;
-  final String? provider;
+  final String? source;
   final String? error;
 
   const SearchState({
@@ -20,7 +20,7 @@ class SearchState {
     this.searching = false,
     this.loadingMore = false,
     this.hasMore = false,
-    this.provider,
+    this.source,
     this.error,
   });
 
@@ -29,7 +29,7 @@ class SearchState {
     bool? searching,
     bool? loadingMore,
     bool? hasMore,
-    String? provider,
+    String? source,
     String? error,
     bool clearResult = false,
   }) {
@@ -38,7 +38,7 @@ class SearchState {
       searching: clearResult ? false : (searching ?? this.searching),
       loadingMore: clearResult ? false : (loadingMore ?? this.loadingMore),
       hasMore: clearResult ? false : (hasMore ?? this.hasMore),
-      provider: clearResult ? null : (provider ?? this.provider),
+      source: clearResult ? null : (source ?? this.source),
       error: clearResult ? null : error,
     );
   }
@@ -105,8 +105,8 @@ class SearchNotifier extends Notifier<SearchState> {
         _page = 1;
         state = SearchState(
           songs: result,
-          provider: result.isEmpty ? null : result.first.onlineSource,
-          hasMore: result.length >= _searchPageSize,
+          source: result.isEmpty ? null : result.first.onlineSource,
+          hasMore: result.isNotEmpty,
         );
       }
     } catch (error) {
@@ -134,7 +134,7 @@ class SearchNotifier extends Notifier<SearchState> {
           .read(backendClientProvider)
           .searchSongs(
             query,
-            source: 'netease',
+            source: state.source ?? 'netease',
             count: _searchPageSize,
             page: nextPage,
           );
@@ -147,7 +147,7 @@ class SearchNotifier extends Notifier<SearchState> {
       state = state.copyWith(
         songs: [...existing, ...appended],
         loadingMore: false,
-        hasMore: result.length >= _searchPageSize,
+        hasMore: appended.isNotEmpty,
         error: null,
       );
     } catch (error) {

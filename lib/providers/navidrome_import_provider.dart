@@ -86,8 +86,12 @@ class NavidromeImportService {
 
   static String buildFileName(Song song, {required String extension}) {
     final source = safeSegment(song.onlineSource ?? 'online');
+    final provider = song.onlineProvider;
+    final providerSuffix = provider == null || provider.isEmpty
+        ? ''
+        : '_via-${safeSegment(provider)}';
     final id = safeSegment(song.urlId ?? song.id);
-    return 'solara_${source}_$id.$extension';
+    return 'solara_$source${providerSuffix}_$id.$extension';
   }
 
   static Map<String, dynamic> buildNasDownloadSong(Song song) {
@@ -101,6 +105,8 @@ class NavidromeImportService {
       'artist': song.artist,
       'album': song.album,
       'source': song.onlineSource ?? 'netease',
+      if (song.onlineProvider?.isNotEmpty ?? false)
+        'provider': song.onlineProvider,
       if (song.coverArt != null && song.coverArt!.isNotEmpty)
         'pic_id': song.coverArt,
     };

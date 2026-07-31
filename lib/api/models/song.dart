@@ -19,6 +19,7 @@ class Song {
   final String? comment; // comment tag (may contain solara source info)
   final SongBackend backend;
   final String? onlineSource;
+  final String? onlineProvider;
   final String? urlId;
   final String? lyricId;
 
@@ -39,6 +40,7 @@ class Song {
     this.comment,
     this.backend = SongBackend.subsonic,
     this.onlineSource,
+    this.onlineProvider,
     this.urlId,
     this.lyricId,
   });
@@ -87,6 +89,7 @@ class Song {
       comment: json['comment'] as String?,
       backend: _parseBackend(json['backend'] as String?),
       onlineSource: json['onlineSource'] as String?,
+      onlineProvider: json['onlineProvider'] as String?,
       urlId: json['urlId'] as String?,
       lyricId: json['lyricId'] as String?,
     );
@@ -100,6 +103,7 @@ class Song {
     };
     final coverArt = json['pic_id']?.toString();
     final source = json['source']?.toString();
+    final provider = json['provider']?.toString();
     final urlId = json['url_id']?.toString();
     final lyricId = json['lyric_id']?.toString();
 
@@ -113,6 +117,7 @@ class Song {
       coverArt: coverArt == null || coverArt.isEmpty ? null : coverArt,
       backend: SongBackend.solara,
       onlineSource: source == null || source.isEmpty ? null : source,
+      onlineProvider: provider == null || provider.isEmpty ? null : provider,
       urlId: urlId == null || urlId.isEmpty ? null : urlId,
       lyricId: lyricId == null || lyricId.isEmpty ? null : lyricId,
     );
@@ -128,6 +133,7 @@ class Song {
     final coverArt = (json['cover_id'] ?? json['coverId'] ?? json['pic_id'])
         ?.toString();
     final source = json['source']?.toString();
+    final provider = json['provider']?.toString();
     final urlId = (json['url_id'] ?? json['urlId'] ?? json['id'])?.toString();
     final lyricId = (json['lyric_id'] ?? json['lyricId'] ?? json['id'])
         ?.toString();
@@ -150,6 +156,7 @@ class Song {
       coverArt: coverArt == null || coverArt.isEmpty ? null : coverArt,
       backend: SongBackend.solara,
       onlineSource: source == null || source.isEmpty ? null : source,
+      onlineProvider: provider == null || provider.isEmpty ? null : provider,
       urlId: urlId == null || urlId.isEmpty ? null : urlId,
       lyricId: lyricId == null || lyricId.isEmpty ? null : lyricId,
     );
@@ -172,6 +179,7 @@ class Song {
     if (comment != null) 'comment': comment,
     if (backend != SongBackend.subsonic) 'backend': backend.name,
     if (onlineSource != null) 'onlineSource': onlineSource,
+    if (onlineProvider != null) 'onlineProvider': onlineProvider,
     if (urlId != null) 'urlId': urlId,
     if (lyricId != null) 'lyricId': lyricId,
   };

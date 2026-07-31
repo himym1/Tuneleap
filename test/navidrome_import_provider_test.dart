@@ -57,6 +57,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'netease',
+        onlineProvider: 'gdstudio',
         urlId: 'id+/=123',
       );
 
@@ -65,7 +66,7 @@ void main() {
         extension: 'mp3',
       );
 
-      expect(filename, 'solara_netease_id_123.mp3');
+      expect(filename, 'solara_netease_via-gdstudio_id_123.mp3');
     });
 
     test('inferFileExtension prefers playback url extension', () {
@@ -105,6 +106,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'kuwo',
+        onlineProvider: 'meting',
         urlId: 'url-123',
         lyricId: 'lyric-456',
         coverArt: 'pic-789',
@@ -120,6 +122,7 @@ void main() {
       expect(payload['artist'], 'Artist');
       expect(payload['album'], 'Album');
       expect(payload['source'], 'kuwo');
+      expect(payload['provider'], 'meting');
       expect(payload['pic_id'], 'pic-789');
     });
   });
@@ -135,6 +138,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'netease',
+        onlineProvider: 'gdstudio',
         urlId: '1899989255',
         lyricId: '1899989255',
         coverArt: '109951166681216835',
@@ -147,15 +151,19 @@ void main() {
 
       final result = await service.importOnlineSong(song);
 
-      expect(result.filename, 'solara_netease_1899989255.flac');
+      expect(result.filename, 'solara_netease_via-gdstudio_1899989255.flac');
       expect(result.message, 'queued');
       expect(
         backendClient.queuedUrl,
         'https://cdn.example.com/song.flac?token=1',
       );
-      expect(backendClient.queuedFilename, 'solara_netease_1899989255.flac');
+      expect(
+        backendClient.queuedFilename,
+        'solara_netease_via-gdstudio_1899989255.flac',
+      );
       expect(backendClient.queuedSong['name'], '天地龙鳞');
       expect(backendClient.queuedSong['source'], 'netease');
+      expect(backendClient.queuedSong['provider'], 'gdstudio');
       expect(
         backendClient.queuedPicUrl,
         'http://solara.local/proxy?types=pic&id=109951166681216835&size=300',
