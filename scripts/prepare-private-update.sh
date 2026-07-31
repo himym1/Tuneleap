@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "修复 HTTPS NAS Agent 域名被误判为未配置，恢复安全穿透下的导入与删除。",
+    "changelog": "修复在线搜索短页分页和来源回退，启用双上游搜索，并提升响应式布局与跨服务器操作稳定性。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
