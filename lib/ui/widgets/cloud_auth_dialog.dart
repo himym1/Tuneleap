@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +6,14 @@ import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/cloud_auth_provider.dart';
 
 enum _CloudAuthMode { login, register }
+
+enum _CloudAuthFailure {
+  invalidInput,
+  invalidCredentials,
+  usernameExists,
+  network,
+  other,
+}
 
 class CloudAuthDialog extends ConsumerStatefulWidget {
   const CloudAuthDialog({super.key});
@@ -26,7 +35,7 @@ class _CloudAuthDialogState extends ConsumerState<CloudAuthDialog> {
   final _credential = TextEditingController();
   _CloudAuthMode _mode = _CloudAuthMode.login;
   bool _submitting = false;
-  bool _failed = false;
+  _CloudAuthFailure? _failure;
 
   @override
   void dispose() {
@@ -35,28 +44,47 @@ class _CloudAuthDialogState extends ConsumerState<CloudAuthDialog> {
     super.dispose();
   }
 
+  _CloudAuthFailure _failureFrom(Object? error) {
+    if (error is DioException) {
+      final statusCode = error.response?.statusCode;
+      if (statusCode == 401) return _CloudAuthFailure.invalidCredentials;
+      if (statusCode == 409) return _CloudAuthFailure.usernameExists;
+      if (statusCode == 422) return _CloudAuthFailure.invalidInput;
+      if (error.response == null) return _CloudAuthFailure.network;
+    }
+    return _CloudAuthFailure.other;
+  }
+
+  String _failureText(S s) => switch (_failure) {
+    _CloudAuthFailure.invalidInput => s.cloudInvalidInput,
+    _CloudAuthFailure.invalidCredentials => s.cloudInvalidCredentials,
+    _CloudAuthFailure.usernameExists => s.cloudUsernameExists,
+    _CloudAuthFailure.network => s.cloudNetworkError,
+    _CloudAuthFailure.other || null => s.cloudAuthFailed,
+  };
+
   Future<void> _submit() async {
     final username = _username.text.trim();
     final credential = _credential.text;
     if (username.length < 2 || credential.length < 8) {
-      setState(() => _failed = true);
+      setState(() => _failure = _CloudAuthFailure.invalidInput);
       return;
     }
     setState(() {
       _submitting = true;
-      _failed = false;
+      _failure = null;
     });
     final notifier = ref.read(cloudAuthProvider.notifier);
     final ok = _mode == _CloudAuthMode.login
         ? await notifier.login(username: username, credential: credential)
         : await notifier.register(username: username, credential: credential);
     if (!mounted) return;
-    setState(() => _submitting = false);
-    if (ok) {
-      Navigator.pop(context, true);
-    } else {
-      setState(() => _failed = true);
-    }
+    final error = ref.read(cloudAuthProvider).error;
+    setState(() {
+      _submitting = false;
+      if (!ok) _failure = _failureFrom(error);
+    });
+    if (ok) Navigator.pop(context, true);
   }
 
   @override
@@ -85,7 +113,7 @@ class _CloudAuthDialogState extends ConsumerState<CloudAuthDialog> {
                   ? null
                   : (value) => setState(() {
                       _mode = value.first;
-                      _failed = false;
+                      _failure = null;
                     }),
             ),
             const SizedBox(height: 16),
@@ -110,12 +138,12 @@ class _CloudAuthDialogState extends ConsumerState<CloudAuthDialog> {
                 prefixIcon: const Icon(Icons.lock_outline),
               ),
             ),
-            if (_failed) ...[
+            if (_failure != null) ...[
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  s.cloudAuthFailed,
+                  _failureText(s),
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),

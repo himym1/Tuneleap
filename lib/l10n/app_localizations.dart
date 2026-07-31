@@ -1315,6 +1315,30 @@ abstract class S {
   /// **'Cloud 认证失败'**
   String get cloudAuthFailed;
 
+  /// No description provided for @cloudInvalidInput.
+  ///
+  /// In zh, this message translates to:
+  /// **'用户名至少 2 个字符，账号凭据至少 8 个字符'**
+  String get cloudInvalidInput;
+
+  /// No description provided for @cloudInvalidCredentials.
+  ///
+  /// In zh, this message translates to:
+  /// **'Cloud 用户名或账号凭据错误'**
+  String get cloudInvalidCredentials;
+
+  /// No description provided for @cloudUsernameExists.
+  ///
+  /// In zh, this message translates to:
+  /// **'该 Cloud 用户名已存在，请直接登录或更换用户名'**
+  String get cloudUsernameExists;
+
+  /// No description provided for @cloudNetworkError.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法连接 Cloud，请检查网络后重试'**
+  String get cloudNetworkError;
+
   /// No description provided for @cloudAuthRequired.
   ///
   /// In zh, this message translates to:
