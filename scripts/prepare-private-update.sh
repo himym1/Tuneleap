@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "修复 Cloud 登录失效提示；登录时明确提示账号凭据错误，注册时明确提示用户名已存在，并区分网络异常。",
+    "changelog": "修复 macOS Cloud 注册或登录成功后无法保存会话的问题；切换到 Developer ID 签名可用的系统 Keychain 存储模式。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
