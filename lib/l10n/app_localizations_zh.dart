@@ -662,7 +662,7 @@ class SZh extends S {
   String get cloudAuthRequired => '登录 Cloud 后加载推荐';
 
   @override
-  String get searchAuthRequired => '登录 Cloud 后才能搜索';
+  String get searchAuthRequired => 'Cloud 登录已失效，请重新登录后再搜索';
 
   @override
   String get nasAgentUrl => 'NAS Agent 地址';
