@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,54 +18,20 @@ class LibraryArtistsScreen extends ConsumerStatefulWidget {
 
 class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
   final _searchController = TextEditingController();
-  String _searchQuery = '';
-  Timer? _searchDebounce;
-  List<Artist>? _searchResults;
-  String? _searchResultsServerId;
 
   @override
   void dispose() {
     _searchController.dispose();
-    _searchDebounce?.cancel();
     super.dispose();
   }
 
   void _onSearchChanged(String value) {
-    _searchDebounce?.cancel();
-    _searchQuery = value;
-    if (value.trim().isEmpty) {
-      setState(() {
-        _searchResults = null;
-        _searchResultsServerId = null;
-      });
-      return;
-    }
-    if (_searchController.value.composing != TextRange.empty) return;
-    _searchDebounce = Timer(const Duration(milliseconds: 500), _doApiSearch);
-  }
-
-  Future<void> _doApiSearch() async {
-    final query = _searchQuery.trim();
-    if (query.isEmpty) return;
-    final serverId = ref.read(serverConfigProvider).serverId;
-    try {
-      final client = ref.read(subsonicClientProvider);
-      final result = await client.search3(
-        query,
-        artistCount: 50,
-        albumCount: 0,
-        songCount: 0,
-      );
-      if (!mounted ||
-          _searchQuery.trim() != query ||
-          ref.read(serverConfigProvider).serverId != serverId) {
-        return;
-      }
-      setState(() {
-        _searchResults = result.artists;
-        _searchResultsServerId = serverId;
-      });
-    } catch (_) {}
+    ref
+        .read(librarySearchProvider(LibrarySearchType.artists).notifier)
+        .onQueryChanged(
+          value,
+          composing: _searchController.value.composing != TextRange.empty,
+        );
   }
 
   void _playArtist(Artist artist) {
@@ -76,6 +41,7 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
   @override
   Widget build(BuildContext context) {
     final artistsAsync = ref.watch(artistsProvider);
+    final searchState = ref.watch(librarySearchProvider(LibrarySearchType.artists));
     final serverId = ref.watch(
       serverConfigProvider.select((config) => config.serverId),
     );
@@ -125,8 +91,8 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
                 ),
               ),
               data: (artists) {
-                final display = _searchResultsServerId == serverId
-                    ? (_searchResults ?? artists)
+                final display = searchState.serverId == serverId
+                    ? (searchState.artists ?? artists)
                     : artists;
                 return display.isEmpty
                     ? Center(
