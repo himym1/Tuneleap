@@ -349,7 +349,7 @@
     "cloudSignOut": "退出 Cloud",
     "cloudAuthFailed": "Cloud 认证失败",
     "cloudAuthRequired": "登录 Cloud 后加载推荐",
-  "searchAuthRequired": "登录 Cloud 后才能搜索",
+  "searchAuthRequired": "Cloud 登录已失效，请重新登录后再搜索",
     "nasAgentUrl": "NAS Agent 地址",
     "nasAgentUrlHint": "导入/删除必填，请使用局域网地址，例如 http://192.168.1.10:8504",
     "nasAgentKey": "NAS Agent Key",

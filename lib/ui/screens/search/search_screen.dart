@@ -7,6 +7,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
@@ -151,6 +152,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         message: isAuth
             ? S.of(context).searchAuthRequired
             : S.of(context).searchError(raw),
+        actionLabel: isAuth ? S.of(context).cloudSignIn : null,
+        onAction: isAuth
+            ? () async {
+                final ok = await CloudAuthDialog.show(context);
+                if (!ok || !mounted) return;
+                final q = _searchController.text.trim();
+                if (q.isNotEmpty) {
+                  await ref.read(searchProvider.notifier).search(q);
+                }
+              }
+            : null,
       );
     }
 

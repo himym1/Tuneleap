@@ -673,7 +673,8 @@ class SEn extends S {
   String get cloudAuthRequired => 'Sign in to Cloud to load recommendations';
 
   @override
-  String get searchAuthRequired => 'Sign in to Cloud to search';
+  String get searchAuthRequired =>
+      'Cloud session expired. Sign in again to search.';
 
   @override
   String get nasAgentUrl => 'NAS agent URL';

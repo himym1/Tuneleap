@@ -1324,7 +1324,7 @@ abstract class S {
   /// No description provided for @searchAuthRequired.
   ///
   /// In zh, this message translates to:
-  /// **'登录 Cloud 后才能搜索'**
+  /// **'Cloud 登录已失效，请重新登录后再搜索'**
   String get searchAuthRequired;
 
   /// No description provided for @nasAgentUrl.
