@@ -16,6 +16,7 @@ export 'download_provider.dart';
 export 'navidrome_import_provider.dart';
 export 'cover_color_provider.dart';
 export 'library_cache_provider.dart';
+export 'playlist_provider.dart';
 export 'search_provider.dart';
 export 'library_provider.dart';
 export 'library_search_provider.dart';
