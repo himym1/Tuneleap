@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "登录页合并 Cloud 账号；启动静默恢复会话，避免反复弹出登录。",
+    "changelog": "修复 HTTPS NAS Agent 域名被误判为未配置，恢复安全穿透下的导入与删除。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
