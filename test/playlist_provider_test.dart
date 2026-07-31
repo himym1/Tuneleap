@@ -94,6 +94,19 @@ class _RecordingClient extends SubsonicClient {
   }
 }
 
+class _ScopeChangingClient extends _RecordingClient {
+  _ScopeChangingClient(this.onRequestCompleted);
+
+  final void Function() onRequestCompleted;
+
+  @override
+  Future<List<Playlist>> getPlaylists() async {
+    final result = await super.getPlaylists();
+    onRequestCompleted();
+    return result;
+  }
+}
+
 void main() {
   test('playlist provider service delegates CRUD parameters', () async {
     final client = _RecordingClient();
@@ -165,5 +178,30 @@ void main() {
     );
     await expectLater(service.deletePlaylist('p1'), throwsA(isA<StateError>()));
     await expectLater(service.searchSongs('query'), throwsA(isA<StateError>()));
+  });
+
+  test(
+    'playlist service rejects a result after server scope changes',
+    () async {
+      var current = true;
+      final client = _ScopeChangingClient(() => current = false);
+      final service = PlaylistService(client, isCurrent: () => current);
+
+      await expectLater(
+        service.getPlaylists(),
+        throwsA(isA<StaleServerOperationException>()),
+      );
+    },
+  );
+
+  test('playlist service blocks writes from a stale server scope', () async {
+    final client = _RecordingClient();
+    final service = PlaylistService(client, isCurrent: () => false);
+
+    await expectLater(
+      service.createPlaylist('Wrong server'),
+      throwsA(isA<StaleServerOperationException>()),
+    );
+    expect(client.createdName, isNull);
   });
 }

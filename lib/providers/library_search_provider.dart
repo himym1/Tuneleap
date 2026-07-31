@@ -39,7 +39,7 @@ class LibrarySearchNotifier extends Notifier<LibrarySearchState> {
 
   @override
   LibrarySearchState build() {
-    ref.watch(serverConfigProvider.select((config) => config.serverId));
+    ref.watch(serverConfigProvider);
     _debounce?.cancel();
     _requests.begin();
     ref.onDispose(() {
@@ -70,7 +70,8 @@ class LibrarySearchNotifier extends Notifier<LibrarySearchState> {
 
   Future<void> _search(String query, int request) async {
     if (!_requests.isCurrent(request)) return;
-    final serverId = ref.read(serverConfigProvider).serverId;
+    final config = ref.read(serverConfigProvider);
+    final serverId = config.serverId;
     try {
       final result = await ref
           .read(subsonicClientProvider)
@@ -81,7 +82,7 @@ class LibrarySearchNotifier extends Notifier<LibrarySearchState> {
             songCount: 0,
           );
       if (!_requests.isCurrent(request) ||
-          ref.read(serverConfigProvider).serverId != serverId) {
+          !identical(ref.read(serverConfigProvider), config)) {
         return;
       }
       state = type == LibrarySearchType.albums

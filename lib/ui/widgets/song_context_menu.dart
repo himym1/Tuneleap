@@ -269,9 +269,9 @@ class SongContextMenu extends ConsumerWidget {
   }
 
   void _showPlaylistPicker(BuildContext context, WidgetRef ref) async {
-    final client = ref.read(subsonicClientProvider);
+    final service = ref.read(playlistServiceProvider);
     try {
-      final playlists = await client.getPlaylists();
+      final playlists = await service.getPlaylists();
       if (!context.mounted) return;
 
       showDialog(
@@ -297,15 +297,24 @@ class SongContextMenu extends ConsumerWidget {
                         ),
                         onTap: () async {
                           Navigator.pop(ctx);
-                          await client.updatePlaylist(
-                            p.id,
-                            songIdsToAdd: [song.id],
-                          );
-                          if (context.mounted) {
+                          try {
+                            await service.updatePlaylist(
+                              p.id,
+                              songIdsToAdd: [song.id],
+                            );
+                            if (!context.mounted) return;
+                            ref.invalidate(playlistsProvider);
                             _showSnackBar(
                               context,
                               S.of(context).songContextAddedToPlaylist(p.name),
                             );
+                          } catch (_) {
+                            if (context.mounted) {
+                              _showSnackBar(
+                                context,
+                                S.of(context).contextMenuLoadFailed,
+                              );
+                            }
                           }
                         },
                       );
