@@ -1,0 +1,36 @@
+{
+  "rows": [
+    {
+      "query": "周杰伦",
+      "results": 5,
+      "resolvedUrls": 5,
+      "resolvedRate": 1.0,
+      "playableUrls": 5,
+      "playableRate": 1.0
+    },
+    {
+      "query": "晴天 周杰伦",
+      "results": 5,
+      "resolvedUrls": 5,
+      "resolvedRate": 1.0,
+      "playableUrls": 5,
+      "playableRate": 1.0
+    },
+    {
+      "query": "Taylor Swift",
+      "results": 5,
+      "resolvedUrls": 5,
+      "resolvedRate": 1.0,
+      "playableUrls": 5,
+      "playableRate": 1.0
+    },
+    {
+      "query": "海阔天空 Beyond",
+      "results": 5,
+      "resolvedUrls": 5,
+      "resolvedRate": 1.0,
+      "playableUrls": 5,
+      "playableRate": 1.0
+    }
+  ]
+}

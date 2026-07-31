@@ -24,27 +24,30 @@ class MusicFacade:
     def __init__(self, client: httpx.AsyncClient, settings: Settings):
         self._client = client
         self._settings = settings
-        self._adapters: list[MusicAdapter] = []
+        available: dict[str, MusicAdapter] = {}
         timeout = settings.http_timeout_seconds
         cooldown = settings.upstream_cooldown_seconds
         if settings.gdstudio_bases:
-            self._adapters.append(
-                GdstudioAdapter(
-                    client,
-                    settings.gdstudio_bases,
-                    cooldown_seconds=cooldown,
-                    timeout=timeout,
-                )
+            available["gdstudio"] = GdstudioAdapter(
+                client,
+                settings.gdstudio_bases,
+                cooldown_seconds=cooldown,
+                timeout=timeout,
             )
         if settings.meting_bases:
-            self._adapters.append(
-                MetingAdapter(
-                    client,
-                    settings.meting_bases,
-                    cooldown_seconds=cooldown,
-                    timeout=timeout,
-                )
+            available["meting"] = MetingAdapter(
+                client,
+                settings.meting_bases,
+                token=settings.meting_api_token,
+                cooldown_seconds=cooldown,
+                timeout=timeout,
             )
+        self._adapters = [
+            available.pop(name)
+            for name in settings.music_adapter_order_list
+            if name in available
+        ]
+        self._adapters.extend(available.values())
 
     @property
     def adapters(self) -> list[MusicAdapter]:
@@ -251,17 +254,34 @@ class MusicFacade:
             raise last_error
         return []
 
-    async def is_playable(self, id: str, source: str, br: int = 999) -> bool:
+    async def is_playable(
+        self,
+        id: str,
+        source: str,
+        br: int = 999,
+        provider: str | None = None,
+    ) -> bool:
+        preferred = self._adapter_by_name(provider)
+        order = [preferred] if preferred is not None else []
+        order.extend(adapter for adapter in self._adapters if adapter is not preferred)
         last_error: Exception | None = None
-        for adapter in self._adapters:
+        saw_result = False
+        for adapter in order:
             probe = getattr(adapter, "is_playable", None)
             if probe is None:
                 continue
             try:
-                return bool(await probe(id, source=source, br=br))
+                playable = bool(await probe(id, source=source, br=br))
             except Exception as exc:  # noqa: BLE001
                 last_error = exc
                 continue
+            saw_result = True
+            if playable:
+                return True
+            if adapter is preferred:
+                return False
+        if saw_result:
+            return False
         if last_error is not None:
             raise last_error
         return False

@@ -91,12 +91,26 @@ async def test_first_success_does_not_concatenate_providers():
             api_key="k",
             gdstudio_api_base_urls="https://gds.test/api.php",
             meting_api_base_urls="https://meting.test/",
+            music_adapter_order="gdstudio,meting",
             upstream_strategy="ordered",
         )
         facade = MusicFacade(client, settings)
         result = await facade.search_first_success("q", source=None, count=20, page=1)
         assert result.provider == "gdstudio"
         assert [item.id for item in result.items] == ["1", "2"]
+
+
+@pytest.mark.asyncio
+async def test_default_adapter_order_prefers_meting():
+    async with httpx.AsyncClient() as client:
+        settings = Settings(
+            _env_file=None,
+            gdstudio_api_base_urls="https://gds.test/api.php",
+            meting_api_base_urls="https://meting.test/api",
+        )
+        facade = MusicFacade(client, settings)
+
+    assert [adapter.name for adapter in facade.adapters] == ["meting", "gdstudio"]
 
 
 @pytest.mark.asyncio
@@ -205,3 +219,93 @@ def test_recommendation_item_keeps_winning_provider():
     assert item is not None
     assert item.song.online_provider == "meting"
     assert item.song.model_dump(by_alias=True)["onlineProvider"] == "meting"
+
+
+class _PlayableAdapter:
+    def __init__(self, name: str, result: bool | Exception, calls: list[str]) -> None:
+        self.name = name
+        self.result = result
+        self.calls = calls
+
+    async def is_playable(self, id: str, *, source: str, br: int) -> bool:
+        self.calls.append(self.name)
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.result
+
+
+@pytest.mark.asyncio
+async def test_is_playable_pins_false_to_winning_provider():
+    calls: list[str] = []
+    async with httpx.AsyncClient() as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                gdstudio_api_base_urls="",
+                meting_api_base_urls="",
+            ),
+        )
+        facade._adapters = [  # type: ignore[assignment]
+            _PlayableAdapter("meting", False, calls),
+            _PlayableAdapter("gdstudio", True, calls),
+        ]
+        playable = await facade.is_playable("1", "netease", provider="meting")
+
+    assert playable is False
+    assert calls == ["meting"]
+
+
+@pytest.mark.asyncio
+async def test_is_playable_falls_back_after_preferred_provider_error():
+    calls: list[str] = []
+    async with httpx.AsyncClient() as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                gdstudio_api_base_urls="",
+                meting_api_base_urls="",
+            ),
+        )
+        facade._adapters = [  # type: ignore[assignment]
+            _PlayableAdapter("meting", httpx.HTTPError("down"), calls),
+            _PlayableAdapter("gdstudio", True, calls),
+        ]
+        playable = await facade.is_playable("1", "netease", provider="meting")
+
+    assert playable is True
+    assert calls == ["meting", "gdstudio"]
+
+
+@pytest.mark.asyncio
+async def test_recommendation_playability_forwards_winning_provider():
+    class _Proxy:
+        provider: str | None = None
+
+        async def is_playable(
+            self,
+            id: str,
+            source: str,
+            br: int = 999,
+            provider: str | None = None,
+        ) -> bool:
+            self.provider = provider
+            return True
+
+    item = RecommendationService._item(
+        {
+            "id": "1",
+            "name": "Song",
+            "artist": "Artist",
+            "provider": "meting",
+        },
+        "netease",
+        "similar",
+    )
+    assert item is not None
+    proxy = _Proxy()
+    service = RecommendationService(store=object(), music_proxy=proxy)  # type: ignore[arg-type]
+
+    assert await service._is_playable(item)
+    assert proxy.provider == "meting"

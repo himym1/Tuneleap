@@ -19,21 +19,21 @@ Platform `source` values used historically by the app: `netease`, `kuwo`, `joox`
 
 | Item | Value |
 |---|---|
-| Reference project | https://github.com/qq01-hub/openmusic |
-| Useful pieces | Meting HTTP, custom music API templates, playable URL probe ideas |
-| Not used | Room manager, Socket.IO, Redis, chat, TV, admin portal as product core |
-| Env | `METING_API_BASE_URLS` |
-| Code stub | `app/adapters/meting.py` |
+| Runtime project | https://github.com/metowolf/Meting-API |
+| Public compatibility probe | `https://meting.mikus.ink/api` |
+| OpenMusic reference | https://github.com/qq01-hub/openmusic |
+| Env | `METING_API_BASE_URLS`, optional `METING_API_TOKEN` |
+| Code | `app/adapters/meting.py` |
 
-When implementing, treat OpenMusic server files as **protocol documentation**, not something to vendor wholesale.
+Standard Meting search returns `title` / `author` plus signed resource URLs. URL and cover endpoints respond with `302 Location`; lyrics respond as text. Search has one stable result window, so page 2+ is terminal. Self-hosted NetEase playback needs a maintained cookie; do not promote an anonymous self-host until its playability probe passes.
 
 ## Multi-upstream policy
 
 1. Configure one or more **bases** per adapter.
-2. Fail over bases with cooldown (`UPSTREAM_COOLDOWN_SECONDS`).
-3. The first search page tries the requested source first, then `MUSIC_SEARCH_SOURCES` in order; later pages stay pinned to the requested source, or the first configured source when omitted.
-4. Within each source, cross-adapter policy remains **first non-empty wins**; results are never merged.
-5. Playback URL should prefer the same `provider` and `source` that produced the search hit.
+2. Order adapter families with `MUSIC_ADAPTER_ORDER`; the first non-empty adapter wins.
+3. Fail over bases with cooldown (`UPSTREAM_COOLDOWN_SECONDS`).
+4. The first search page tries the requested source first, then `MUSIC_SEARCH_SOURCES` in order; later pages stay pinned to the requested source, or the first configured source when omitted.
+5. Results are never merged. Playback URL should prefer the same `provider` and `source` that produced the search hit, then fall back to the other adapter on failure.
 
 ## Legal / ops note
 

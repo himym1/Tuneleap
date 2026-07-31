@@ -34,6 +34,17 @@ Compose binds both Cloud `8600` and Postgres `5432` to loopback by default. Publ
 
 Postgres schema migrations run transactionally during application startup. Startup fails when Postgres is unavailable or a migration fails.
 
+## Music upstream order
+
+The current bounded benchmark recommends Meting first and GDStudio second:
+
+```env
+METING_API_BASE_URLS=https://meting.mikus.ink/api
+MUSIC_ADAPTER_ORDER=meting,gdstudio
+```
+
+The public Meting endpoint is third-party infrastructure. A self-hosted `ghcr.io/metowolf/meting-api` instance should replace it only after configuring a NetEase cookie and passing `scripts/probe_meting_playability.py`. See `reports/music-upstream-benchmark.md` for evidence.
+
 ## Existing SQLite data
 
 Follow [POSTGRES_MIGRATION.md](POSTGRES_MIGRATION.md). Stop old writers, back up both SQLite files, dry-run, apply once, then verify before retiring SQLite.

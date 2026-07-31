@@ -57,7 +57,7 @@ SQLite is no longer opened by runtime code. Use `scripts/migrate_sqlite_to_postg
 ```text
 sources = [preferred source?, MUSIC_SEARCH_SOURCES...]
 for each source:
-  adapters = [gdstudio, meting?]
+  adapters = MUSIC_ADAPTER_ORDER filtered to configured bases
   for each adapter (ordered) or race(N):
     search(query, source)
     first non-empty result wins

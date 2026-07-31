@@ -24,9 +24,11 @@ class Settings(BaseSettings):
     api_key: str = "change-me-cloud"
     gdstudio_api_base_urls: str = "https://music-api.gdstudio.xyz/api.php"
     meting_api_base_urls: str = ""
+    meting_api_token: str = ""
     http_timeout_seconds: float = 30.0
     upstream_cooldown_seconds: int = 60
     upstream_strategy: str = "ordered"  # ordered | race
+    music_adapter_order: str = "meting,gdstudio"
     music_search_sources: str = "netease,migu,joox"
     release_dir: str = "./releases"
 
@@ -105,6 +107,15 @@ class Settings(BaseSettings):
     @property
     def meting_bases(self) -> tuple[str, ...]:
         return _split_csv(self.meting_api_base_urls)
+
+    @property
+    def music_adapter_order_list(self) -> tuple[str, ...]:
+        names = tuple(
+            name
+            for name in _split_csv(self.music_adapter_order, lowercase=True)
+            if name in {"gdstudio", "meting"}
+        )
+        return names or ("meting", "gdstudio")
 
     @property
     def music_search_source_list(self) -> tuple[str, ...]:

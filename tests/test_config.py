@@ -22,3 +22,18 @@ def test_music_search_sources_are_normalized_and_deduplicated():
     )
 
     assert settings.music_search_source_list == ("netease", "migu")
+
+
+def test_music_adapter_order_is_normalized_and_filtered():
+    settings = Settings(
+        _env_file=None,
+        music_adapter_order=" Meting,gdstudio,meting,unsupported ",
+    )
+
+    assert settings.music_adapter_order_list == ("meting", "gdstudio")
+
+
+def test_invalid_music_adapter_order_falls_back_to_safe_default():
+    settings = Settings(_env_file=None, music_adapter_order="unsupported")
+
+    assert settings.music_adapter_order_list == ("meting", "gdstudio")

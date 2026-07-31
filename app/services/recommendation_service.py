@@ -111,7 +111,13 @@ class RecommendationSource(Protocol):
     ) -> SearchResults: ...
 
     async def get_url(self, id: str, source: str, br: int = 999) -> object: ...
-    async def is_playable(self, id: str, source: str, br: int = 999) -> bool: ...
+    async def is_playable(
+        self,
+        id: str,
+        source: str,
+        br: int = 999,
+        provider: str | None = None,
+    ) -> bool: ...
 
 
 class RecommendationLibrary(Protocol):
@@ -590,7 +596,9 @@ class RecommendationService:
         try:
             async with self._search_semaphore:
                 return await self.music_proxy.is_playable(
-                    item.song.url_id, item.song.online_source
+                    item.song.url_id,
+                    item.song.online_source,
+                    provider=item.song.online_provider,
                 )
         except asyncio.CancelledError:
             raise
