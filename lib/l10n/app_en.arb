@@ -252,6 +252,7 @@
     "cloudSignOut": "Sign out",
     "cloudAuthFailed": "Cloud authentication failed",
     "cloudAuthRequired": "Sign in to Cloud to load recommendations",
+  "searchAuthRequired": "Sign in to Cloud to search",
     "nasAgentUrl": "NAS agent URL",
     "nasAgentUrlHint": "Required for import/delete; use a LAN URL such as http://192.168.1.10:8504",
     "nasAgentKey": "NAS agent key",
@@ -262,6 +263,12 @@
     "searchHintInput": "Search songs, artists, albums...",
     "searchPlaceholder": "Enter keywords to search music",
     "searchNoResult": "No results found",
+  "searchError": "Search failed: {error}",
+  "@searchError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
     "searchResults": "Search Results",
     "searchLoadMore": "Load More",
     "searchLoadingMore": "Loading...",

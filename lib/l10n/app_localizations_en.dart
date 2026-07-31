@@ -673,6 +673,9 @@ class SEn extends S {
   String get cloudAuthRequired => 'Sign in to Cloud to load recommendations';
 
   @override
+  String get searchAuthRequired => 'Sign in to Cloud to search';
+
+  @override
   String get nasAgentUrl => 'NAS agent URL';
 
   @override
@@ -703,6 +706,11 @@ class SEn extends S {
 
   @override
   String get searchNoResult => 'No results found';
+
+  @override
+  String searchError(String error) {
+    return 'Search failed: $error';
+  }
 
   @override
   String get searchResults => 'Search Results';
