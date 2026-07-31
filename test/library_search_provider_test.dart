@@ -33,58 +33,61 @@ class _SearchClient extends SubsonicClient {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('debounces search and ignores a result after server switch', () async {
-    SharedPreferences.setMockInitialValues({
-      'active_server_id': 'a',
-      'server_url': 'http://a',
-      'server_username': 'a',
-    });
-    final prefs = await SharedPreferences.getInstance();
-    final client = _SearchClient();
-    final container = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        subsonicClientProvider.overrideWithValue(client),
-      ],
-    );
-    addTearDown(container.dispose);
+  test(
+    'debounces search and ignores a result after same-id reconfiguration',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'active_server_id': 'a',
+        'server_url': 'http://a',
+        'server_username': 'a',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final client = _SearchClient();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          subsonicClientProvider.overrideWithValue(client),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    final provider = librarySearchProvider(LibrarySearchType.albums);
-    final subscription = container.listen(
-      provider,
-      (_, _) {},
-      fireImmediately: true,
-    );
-    addTearDown(subscription.close);
-    final notifier = container.read(provider.notifier);
+      final provider = librarySearchProvider(LibrarySearchType.albums);
+      final subscription = container.listen(
+        provider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      final notifier = container.read(provider.notifier);
 
-    notifier.onQueryChanged('jazz');
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    expect(client.calls, 0);
-    await Future<void>.delayed(const Duration(milliseconds: 150));
-    expect(client.calls, 1);
-    expect(client.query, 'jazz');
+      notifier.onQueryChanged('jazz');
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(client.calls, 0);
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(client.calls, 1);
+      expect(client.query, 'jazz');
 
-    await container
-        .read(serverConfigProvider.notifier)
-        .save(
-          serverId: 'b',
-          url: 'http://b',
-          username: 'b',
-          password: '',
-          backendUrl: 'http://backend-b',
-          backendApiKey: '',
-        );
-    await Future<void>.delayed(Duration.zero);
+      await container
+          .read(serverConfigProvider.notifier)
+          .save(
+            serverId: 'a',
+            url: 'http://new-a',
+            username: 'new-a',
+            password: '',
+            backendUrl: 'http://backend-a',
+            backendApiKey: '',
+          );
+      await Future<void>.delayed(Duration.zero);
 
-    client.pending.complete(
-      const SearchResult(
-        albums: [Album(id: 'old', name: 'Old server')],
-      ),
-    );
-    await Future<void>.delayed(Duration.zero);
+      client.pending.complete(
+        const SearchResult(
+          albums: [Album(id: 'old', name: 'Old server')],
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
 
-    expect(container.read(provider).albums, isNull);
-    expect(container.read(provider).serverId, isNull);
-  });
+      expect(container.read(provider).albums, isNull);
+      expect(container.read(provider).serverId, isNull);
+    },
+  );
 }
