@@ -232,8 +232,8 @@ class PlaylistsScreen extends ConsumerWidget {
     if (name.trim().isEmpty) return;
     Navigator.pop(ctx);
     try {
-      final client = ref.read(subsonicClientProvider);
-      await client.createPlaylist(name.trim());
+      final service = ref.read(playlistServiceProvider);
+      await service.createPlaylist(name.trim());
       ref.invalidate(playlistsProvider);
       if (screenContext.mounted) {
         ScaffoldMessenger.of(screenContext).showSnackBar(
@@ -276,8 +276,8 @@ class PlaylistsScreen extends ConsumerWidget {
     );
     if (confirmed != true) return;
     try {
-      final client = ref.read(subsonicClientProvider);
-      await client.deletePlaylist(playlist.id);
+      final service = ref.read(playlistServiceProvider);
+      await service.deletePlaylist(playlist.id);
       ref.invalidate(playlistsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -381,8 +381,9 @@ class PlaylistsScreen extends ConsumerWidget {
     Playlist playlist,
   ) async {
     try {
+      final service = ref.read(playlistServiceProvider);
       final client = ref.read(subsonicClientProvider);
-      final detail = await client.getPlaylist(playlist.id);
+      final detail = await service.getPlaylist(playlist.id);
       if (!context.mounted) return;
       // Lazy-read player only when user presses play, so management UI works in tests.
       final songs = List<Song>.from(detail.songs);
@@ -480,6 +481,7 @@ class PlaylistsScreen extends ConsumerWidget {
                             context: context,
                             dialogContext: ctx,
                             ref: ref,
+                            service: service,
                             client: client,
                             playlistId: playlist.id,
                             songs: songs,
@@ -531,6 +533,7 @@ class PlaylistsScreen extends ConsumerWidget {
                                       context: context,
                                       dialogContext: ctx,
                                       ref: ref,
+                                      service: service,
                                       client: client,
                                       playlistId: playlist.id,
                                       songs: songs,
@@ -552,7 +555,7 @@ class PlaylistsScreen extends ConsumerWidget {
                               songs.insert(newIndex, song);
                               setDialogState(() {});
                               try {
-                                await client.updatePlaylist(
+                                await service.updatePlaylist(
                                   playlist.id,
                                   songIndexesToRemove: List.generate(
                                     previous.length,
@@ -636,7 +639,7 @@ class PlaylistsScreen extends ConsumerWidget {
                                       child: InkWell(
                                         onTap: () async {
                                           try {
-                                            await client.updatePlaylist(
+                                            await service.updatePlaylist(
                                               playlist.id,
                                               songIndexesToRemove: [i],
                                             );
@@ -702,6 +705,7 @@ class PlaylistsScreen extends ConsumerWidget {
     required BuildContext context,
     required BuildContext dialogContext,
     required WidgetRef ref,
+    required PlaylistService service,
     required SubsonicClient client,
     required String playlistId,
     required List<Song> songs,
@@ -710,6 +714,7 @@ class PlaylistsScreen extends ConsumerWidget {
     final selected = await showDialog<List<Song>>(
       context: dialogContext,
       builder: (pickerCtx) => _PlaylistSongPickerDialog(
+        service: service,
         client: client,
         existingIds: songs.map((song) => song.id).toSet(),
       ),
@@ -723,7 +728,7 @@ class PlaylistsScreen extends ConsumerWidget {
     if (toAdd.isEmpty) return;
 
     try {
-      await client.updatePlaylist(
+      await service.updatePlaylist(
         playlistId,
         songIdsToAdd: toAdd.map((song) => song.id).toList(),
       );
@@ -770,7 +775,7 @@ class PlaylistsScreen extends ConsumerWidget {
             Navigator.pop(innerCtx);
             try {
               await ref
-                  .read(subsonicClientProvider)
+                  .read(playlistServiceProvider)
                   .updatePlaylist(playlistId, name: newName);
               onRenamed(newName);
             } catch (e) {
@@ -790,7 +795,7 @@ class PlaylistsScreen extends ConsumerWidget {
               Navigator.pop(innerCtx);
               try {
                 await ref
-                    .read(subsonicClientProvider)
+                    .read(playlistServiceProvider)
                     .updatePlaylist(playlistId, name: newName);
                 onRenamed(newName);
               } catch (e) {
@@ -1058,10 +1063,12 @@ class _PlaylistMenu extends StatelessWidget {
 
 class _PlaylistSongPickerDialog extends StatefulWidget {
   const _PlaylistSongPickerDialog({
+    required this.service,
     required this.client,
     required this.existingIds,
   });
 
+  final PlaylistService service;
   final SubsonicClient client;
   final Set<String> existingIds;
 
@@ -1099,16 +1106,14 @@ class _PlaylistSongPickerDialogState extends State<_PlaylistSongPickerDialog> {
       _error = null;
     });
     try {
-      final result = await widget.client.search3(
+      final songs = await widget.service.searchSongs(
         query.trim().isEmpty ? '' : query.trim(),
         songCount: _pageSize,
         songOffset: 0,
-        artistCount: 0,
-        albumCount: 0,
       );
       if (!mounted || requestId != _requestId) return;
       setState(() {
-        _songs = result.songs;
+        _songs = songs;
         _loading = false;
       });
     } catch (error) {
