@@ -816,6 +816,7 @@ class RecommendationService:
             "comment": value.get("comment"),
             "backend": "solara",
             "online_source": source,
+            "online_provider": value.get("provider"),
             "url_id": url_id,
             "lyric_id": value.get("lyric_id"),
         }

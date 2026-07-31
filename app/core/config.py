@@ -4,9 +4,7 @@ from typing import Self
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_SUPPORTED_RECOMMENDATION_SOURCES = frozenset(
-    {"netease", "migu", "joox", "kuwo", "kugou"}
-)
+_SUPPORTED_MUSIC_SOURCES = frozenset({"netease", "migu", "joox", "kuwo", "kugou"})
 
 
 def _split_csv(value: str, *, lowercase: bool = False) -> tuple[str, ...]:
@@ -29,6 +27,7 @@ class Settings(BaseSettings):
     http_timeout_seconds: float = 30.0
     upstream_cooldown_seconds: int = 60
     upstream_strategy: str = "ordered"  # ordered | race
+    music_search_sources: str = "netease,migu,joox"
     release_dir: str = "./releases"
 
     # Optional NAS agent for recommendation library blocking (no local navidrome.db mount)
@@ -69,16 +68,14 @@ class Settings(BaseSettings):
     rate_limit_music: str = "60/minute"
     rate_limit_auth: str = "20/minute"
 
-    @field_validator("recommendation_sources")
+    @field_validator("music_search_sources", "recommendation_sources")
     @classmethod
-    def _require_supported_recommendation_source(cls, value: str) -> str:
+    def _require_supported_music_source(cls, value: str) -> str:
         if not any(
-            source in _SUPPORTED_RECOMMENDATION_SOURCES
+            source in _SUPPORTED_MUSIC_SOURCES
             for source in _split_csv(value, lowercase=True)
         ):
-            raise ValueError(
-                "recommendation_sources must contain at least one supported source"
-            )
+            raise ValueError("must contain at least one supported music source")
         return value
 
     @field_validator(
@@ -110,11 +107,19 @@ class Settings(BaseSettings):
         return _split_csv(self.meting_api_base_urls)
 
     @property
+    def music_search_source_list(self) -> tuple[str, ...]:
+        return tuple(
+            source
+            for source in _split_csv(self.music_search_sources, lowercase=True)
+            if source in _SUPPORTED_MUSIC_SOURCES
+        )
+
+    @property
     def recommendation_source_list(self) -> tuple[str, ...]:
         return tuple(
             source
             for source in _split_csv(self.recommendation_sources, lowercase=True)
-            if source in _SUPPORTED_RECOMMENDATION_SOURCES
+            if source in _SUPPORTED_MUSIC_SOURCES
         )
 
     @property

@@ -58,6 +58,11 @@ class MusicFacade:
                 return adapter
         return None
 
+    def _search_sources(self, preferred: str | None) -> tuple[str | None, ...]:
+        sources = [preferred.strip().lower()] if preferred and preferred.strip() else []
+        sources.extend(self._settings.music_search_source_list)
+        return tuple(dict.fromkeys(sources)) or (None,)
+
     async def search_first_success(
         self, query: str, *, source: str | None, count: int, page: int
     ) -> SearchResponse:
@@ -65,9 +70,31 @@ class MusicFacade:
             raise httpx.HTTPError("no music adapters configured")
 
         strategy = (self._settings.upstream_strategy or "ordered").lower()
-        if strategy == "race" and len(self._adapters) > 1:
-            return await self._search_race(query, source=source, count=count, page=page)
-        return await self._search_ordered(query, source=source, count=count, page=page)
+        search = (
+            self._search_race
+            if strategy == "race" and len(self._adapters) > 1
+            else self._search_ordered
+        )
+        last_error: Exception | None = None
+        empty_response: SearchResponse | None = None
+        candidates = self._search_sources(source)
+        if page > 1:
+            candidates = candidates[:1]
+        for candidate in candidates:
+            try:
+                response = await search(query, source=candidate, count=count, page=page)
+            except Exception as exc:  # noqa: BLE001 - fail over across sources
+                last_error = exc
+                continue
+            if response.items:
+                return response
+            empty_response = response
+
+        if empty_response is not None:
+            return empty_response
+        if last_error is not None:
+            raise last_error
+        raise httpx.HTTPError("all music sources failed")
 
     async def _search_ordered(
         self, query: str, *, source: str | None, count: int, page: int

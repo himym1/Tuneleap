@@ -52,6 +52,11 @@ class RecommendationSong(_CamelCaseModel):
         max_length=32,
         pattern=r"^[A-Za-z0-9_-]+$",
     )
+    online_provider: str | None = Field(
+        default=None,
+        max_length=32,
+        pattern=r"^[A-Za-z0-9_-]+$",
+    )
     url_id: str = Field(min_length=1, max_length=256)
     lyric_id: str | None = None
 

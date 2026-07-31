@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from app.core.config import Settings, get_settings
 from app.main import create_app
 from app.services.music_facade import MusicFacade
+from app.services.recommendation_service import RecommendationService
 
 
 def _song(i: int, *, provider: str = "gdstudio", source: str = "netease") -> dict:
@@ -98,6 +99,37 @@ async def test_first_success_does_not_concatenate_providers():
         assert [item.id for item in result.items] == ["1", "2"]
 
 
+@pytest.mark.asyncio
+async def test_search_falls_back_from_preferred_to_configured_sources():
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        source = request.url.params.get("source") or ""
+        calls.append(source)
+        if source == "netease":
+            return httpx.Response(503, json={"error": "temporary failure"})
+        if source == "migu":
+            return httpx.Response(200, json=[])
+        return httpx.Response(200, json=[_song(9, source="joox")])
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        settings = Settings(
+            api_key="k",
+            gdstudio_api_base_urls="https://gds.test/api.php",
+            meting_api_base_urls="",
+            music_search_sources="migu,joox",
+            upstream_strategy="ordered",
+        )
+        result = await MusicFacade(client, settings).search_first_success(
+            "q", source="netease", count=20, page=1
+        )
+
+    assert calls == ["netease", "migu", "joox"]
+    assert result.source == "joox"
+    assert [item.id for item in result.items] == ["9"]
+
+
 def test_search_api_happy_path():
     def handler(request: httpx.Request) -> httpx.Response:
         params = request.url.params
@@ -135,7 +167,13 @@ def test_search_api_happy_path():
 
 @pytest.mark.asyncio
 async def test_empty_search_page_is_a_successful_terminal_page():
-    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=[]))
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.params.get("source") or "")
+        return httpx.Response(200, json=[])
+
+    transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as client:
         settings = Settings(
             api_key="k",
@@ -144,8 +182,26 @@ async def test_empty_search_page_is_a_successful_terminal_page():
             upstream_strategy="ordered",
         )
         result = await MusicFacade(client, settings).search_first_success(
-            "q", source="netease", count=30, page=2
+            "q", source=None, count=30, page=2
         )
 
     assert result.items == []
     assert result.strategy == "first-success-empty"
+    assert calls == ["netease"]
+
+
+def test_recommendation_item_keeps_winning_provider():
+    item = RecommendationService._item(
+        {
+            "id": "1",
+            "name": "Song",
+            "artist": "Artist",
+            "provider": "meting",
+        },
+        "migu",
+        "similar",
+    )
+
+    assert item is not None
+    assert item.song.online_provider == "meting"
+    assert item.song.model_dump(by_alias=True)["onlineProvider"] == "meting"

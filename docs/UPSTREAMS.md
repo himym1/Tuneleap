@@ -30,9 +30,10 @@ When implementing, treat OpenMusic server files as **protocol documentation**, n
 ## Multi-upstream policy
 
 1. Configure one or more **bases** per adapter.
-2. Failover with cooldown (`UPSTREAM_COOLDOWN_SECONDS`).
-3. Cross-adapter policy: still **first non-empty wins** for search (unless you later add explicit user source picker that still returns one list).
-4. Playback URL should prefer the same `provider` that produced the search hit.
+2. Fail over bases with cooldown (`UPSTREAM_COOLDOWN_SECONDS`).
+3. The first search page tries the requested source first, then `MUSIC_SEARCH_SOURCES` in order; later pages stay pinned to the requested source, or the first configured source when omitted.
+4. Within each source, cross-adapter policy remains **first non-empty wins**; results are never merged.
+5. Playback URL should prefer the same `provider` and `source` that produced the search hit.
 
 ## Legal / ops note
 

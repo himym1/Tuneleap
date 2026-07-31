@@ -55,15 +55,17 @@ SQLite is no longer opened by runtime code. Use `scripts/migrate_sqlite_to_postg
 ## Search semantics
 
 ```text
-adapters = [gdstudio, meting?]
-for each adapter (ordered) or race(N):
-  search(query)
-  first non-empty result wins
-all successful adapters empty → 200 with []
-all adapters fail → 502/504
+sources = [preferred source?, MUSIC_SEARCH_SOURCES...]
+for each source:
+  adapters = [gdstudio, meting?]
+  for each adapter (ordered) or race(N):
+    search(query, source)
+    first non-empty result wins
+all successful source/adapter attempts empty → 200 with []
+all source/adapter attempts fail → 502/504
 ```
 
-Do not merge NetEase + Kuwo + JOOX lists.
+The first page falls back across sources but still returns one upstream list; later pages stay pinned to the requested source (or the first configured source when omitted) so pagination never merges NetEase + Migu + JOOX results.
 
 ## Recommendation library blocking
 
