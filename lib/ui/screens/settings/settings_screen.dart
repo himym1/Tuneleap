@@ -6,6 +6,7 @@ import 'package:navidrome_player/services/update_checker.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/update_dialog.dart';
+import 'package:navidrome_player/ui/widgets/responsive_content.dart';
 import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
@@ -22,14 +23,14 @@ class SettingsScreen extends ConsumerWidget {
     final appBuild = ref.watch(appBuildProvider);
     final cloudAuth = ref.watch(cloudAuthProvider);
     final cloudSession = cloudAuth.value;
-    final padding = AppBreakpoints.isMobile(MediaQuery.of(context).size.width)
-        ? 16.0
-        : 32.0;
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final padding = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return ResponsivePageScaffold(
       body: ListView(
-        padding: EdgeInsets.all(padding),
+        padding: EdgeInsets.symmetric(vertical: padding),
         children: [
           Text(
             S.of(context).navSettings,

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/screens/settings/settings_screen.dart';
+import 'package:navidrome_player/ui/widgets/responsive_content.dart';
 import 'package:navidrome_player/ui/theme/app_color_loader.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -129,5 +130,6 @@ void main() {
     );
     expect(find.byType(DropdownButton<ThemePreset>), findsOneWidget);
     expect(find.text('Classic'), findsOneWidget);
+    expect(find.byType(ResponsivePageScaffold), findsOneWidget);
   });
 }
