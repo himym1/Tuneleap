@@ -133,7 +133,7 @@ Future<void> _safeSecureDelete(String key) async {
   try {
     await _secureStorage.delete(key: key);
   } on Exception {
-    _secureStorageAvailable = false;
+    // A missing legacy item must not disable reads of current credentials.
   }
 }
 
