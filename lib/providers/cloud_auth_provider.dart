@@ -40,7 +40,10 @@ abstract class CloudTokenStore {
 }
 
 class SecureCloudTokenStore implements CloudTokenStore {
-  static const _storage = FlutterSecureStorage();
+  // Developer ID builds without a provisioning profile cannot use Data Protection Keychain.
+  static const _storage = FlutterSecureStorage(
+    mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+  );
 
   String _key(String serverId) =>
       'cloud_refresh_token_${normalizeServerId(serverId)}';

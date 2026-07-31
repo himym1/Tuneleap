@@ -42,7 +42,10 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('Must be overridden in ProviderScope');
 });
 
-const _secureStorage = FlutterSecureStorage();
+// Developer ID builds without a provisioning profile cannot use Data Protection Keychain.
+const _secureStorage = FlutterSecureStorage(
+  mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+);
 bool _secureStorageAvailable = true;
 
 String backendUrlPreferenceKey(String serverId) =>
@@ -67,7 +70,9 @@ String inferBackendUrl(String serverUrl, {int port = 8504}) {
   final uri = Uri.tryParse(serverUrl);
   if (uri == null ||
       uri.host.isEmpty ||
-      (uri.scheme.isNotEmpty && uri.scheme != 'http' && uri.scheme != 'https') ||
+      (uri.scheme.isNotEmpty &&
+          uri.scheme != 'http' &&
+          uri.scheme != 'https') ||
       !_isLanHost(uri.host)) {
     return '';
   }
