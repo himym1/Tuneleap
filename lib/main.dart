@@ -20,8 +20,11 @@ void main() async {
   // ── 安全存储与服务器命名空间兼容迁移 ──
   await migratePasswordsToSecureStorage(prefs);
   final serverId = await migrateLegacyServerScopedData(prefs);
-  var serverPassword = await preloadServerPassword();
-  // 降级：secure storage 不可用时从 SharedPreferences 读取
+  var serverPassword = await preloadServerEntryPassword(serverId);
+  if (serverPassword.isEmpty) {
+    serverPassword = await preloadServerPassword();
+  }
+  // Fallback when secure storage is unavailable.
   if (serverPassword.isEmpty) {
     serverPassword = prefs.getString('server_password') ?? '';
   }
