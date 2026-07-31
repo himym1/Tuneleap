@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "修复每次冷启动都会回到 Navidrome 登录页的问题；启动时正确恢复当前服务器的 Keychain 密码。",
+    "changelog": "登录页合并 Cloud 账号；启动静默恢复会话，避免反复弹出登录。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
