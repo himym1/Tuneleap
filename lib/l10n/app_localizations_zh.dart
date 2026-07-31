@@ -659,6 +659,18 @@ class SZh extends S {
   String get cloudAuthFailed => 'Cloud 认证失败';
 
   @override
+  String get cloudInvalidInput => '用户名至少 2 个字符，账号凭据至少 8 个字符';
+
+  @override
+  String get cloudInvalidCredentials => 'Cloud 用户名或账号凭据错误';
+
+  @override
+  String get cloudUsernameExists => '该 Cloud 用户名已存在，请直接登录或更换用户名';
+
+  @override
+  String get cloudNetworkError => '无法连接 Cloud，请检查网络后重试';
+
+  @override
   String get cloudAuthRequired => '登录 Cloud 后加载推荐';
 
   @override

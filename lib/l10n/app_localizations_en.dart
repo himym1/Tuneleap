@@ -670,6 +670,22 @@ class SEn extends S {
   String get cloudAuthFailed => 'Cloud authentication failed';
 
   @override
+  String get cloudInvalidInput =>
+      'Username must have at least 2 characters and credential at least 8 characters';
+
+  @override
+  String get cloudInvalidCredentials =>
+      'Incorrect Cloud username or credential';
+
+  @override
+  String get cloudUsernameExists =>
+      'This Cloud username already exists. Sign in or choose another username.';
+
+  @override
+  String get cloudNetworkError =>
+      'Could not connect to Cloud. Check your network and try again';
+
+  @override
   String get cloudAuthRequired => 'Sign in to Cloud to load recommendations';
 
   @override

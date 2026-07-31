@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "修复搜索失败时误显示无结果；401 提示重新登录 Cloud；macOS 升级后 Gatekeeper/隔离属性导致无法打开。",
+    "changelog": "修复 Cloud 登录失效提示；登录时明确提示账号凭据错误，注册时明确提示用户名已存在，并区分网络异常。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
