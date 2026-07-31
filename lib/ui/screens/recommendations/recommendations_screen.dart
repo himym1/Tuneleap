@@ -8,6 +8,7 @@ import 'package:navidrome_player/player/playback_origin.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/responsive_content.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
@@ -119,8 +120,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
         ? l10n.recommendationsModeAi
         : l10n.recommendationsModeFallback;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return ResponsivePageScaffold(
       appBar: AppBar(
         title: Text(l10n.recommendationsTitle),
         actions: [
@@ -184,7 +184,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
               child: ListView.builder(
                 controller: _scroll,
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(h, 8, h, h),
+                padding: EdgeInsets.fromLTRB(0, 8, 0, h),
                 itemCount:
                     visible.length +
                     1 +
