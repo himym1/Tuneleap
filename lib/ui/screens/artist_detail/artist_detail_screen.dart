@@ -138,17 +138,9 @@ class ArtistDetailScreen extends ConsumerWidget {
                             FilledButton.icon(
                               onPressed: () async {
                                 try {
-                                  final albumDetails = await Future.wait(
-                                    albums.map((a) => client.getAlbum(a.id)),
-                                  );
-                                  final allSongs = albumDetails
-                                      .expand((a) => a.songs)
-                                      .toList();
-                                  if (allSongs.isNotEmpty) {
-                                    ref
-                                        .read(audioPlayerServiceProvider)
-                                        .playAll(allSongs);
-                                  }
+                                  await ref
+                                      .read(libraryProvider.notifier)
+                                      .playAllAlbums(albums);
                                 } catch (e) {
                                   debugPrint('Failed to play all songs: $e');
                                 }
@@ -240,19 +232,10 @@ class ArtistDetailScreen extends ConsumerWidget {
                                     children: [
                                       FilledButton.icon(
                                         onPressed: () async {
-                                          // 并行获取所有专辑的歌曲
                                           try {
-                                            final albumDetails = await Future.wait(
-                                              albums.map((a) => client.getAlbum(a.id)),
-                                            );
-                                            final allSongs = albumDetails
-                                                .expand((a) => a.songs)
-                                                .toList();
-                                            if (allSongs.isNotEmpty) {
-                                              ref
-                                                  .read(audioPlayerServiceProvider)
-                                                  .playAll(allSongs);
-                                            }
+                                            await ref
+                                                .read(libraryProvider.notifier)
+                                                .playAllAlbums(albums);
                                           } catch (e) {
                                             debugPrint('Failed to play all songs: $e');
                                           }

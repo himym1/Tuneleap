@@ -174,6 +174,20 @@ class LibraryNotifier extends Notifier<LibraryState> {
     await _loadInitialData(_requests.begin());
   }
 
+  /// 获取艺术家全部专辑歌曲并开始播放。
+  Future<void> playAllAlbums(List<Album> albums) async {
+    final serverId = ref.read(serverConfigProvider).serverId;
+    final client = ref.read(subsonicClientProvider);
+    final albumDetails = await Future.wait(
+      albums.map((album) => client.getAlbum(album.id)),
+    );
+    if (ref.read(serverConfigProvider).serverId != serverId) return;
+    final allSongs = albumDetails.expand((album) => album.songs).toList();
+    if (allSongs.isNotEmpty) {
+      await ref.read(audioPlayerServiceProvider).playAll(allSongs);
+    }
+  }
+
   Future<void> playArtist(Artist artist) async {
     final serverId = ref.read(serverConfigProvider).serverId;
     try {

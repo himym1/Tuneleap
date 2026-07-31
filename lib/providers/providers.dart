@@ -18,6 +18,7 @@ export 'cover_color_provider.dart';
 export 'library_cache_provider.dart';
 export 'search_provider.dart';
 export 'library_provider.dart';
+export 'library_search_provider.dart';
 export 'album_detail_provider.dart';
 export 'weather_provider.dart';
 export 'recommendation_provider.dart';
