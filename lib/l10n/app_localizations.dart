@@ -1321,6 +1321,12 @@ abstract class S {
   /// **'登录 Cloud 后加载推荐'**
   String get cloudAuthRequired;
 
+  /// No description provided for @searchAuthRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录 Cloud 后才能搜索'**
+  String get searchAuthRequired;
+
   /// No description provided for @nasAgentUrl.
   ///
   /// In zh, this message translates to:
@@ -1380,6 +1386,12 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'无搜索结果'**
   String get searchNoResult;
+
+  /// No description provided for @searchError.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索失败: {error}'**
+  String searchError(String error);
 
   /// No description provided for @searchResults.
   ///

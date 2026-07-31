@@ -57,7 +57,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final searchState = ref.watch(searchProvider);
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
-    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
+    final h = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -107,7 +109,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 tooltip: S.of(context).tooltipClear,
                                 onPressed: () {
                                   _searchController.clear();
-                                  ref.read(searchProvider.notifier).clearResult();
+                                  ref
+                                      .read(searchProvider.notifier)
+                                      .clearResult();
                                 },
                               ),
                               IconButton(
@@ -134,6 +138,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget _buildResults(SearchState searchState) {
     if (searchState.searching) {
       return Center(child: const CircularProgressIndicator());
+    }
+
+    if (searchState.error != null && searchState.songs.isEmpty) {
+      final raw = searchState.error!;
+      final isAuth =
+          raw.contains('401') ||
+          raw.toLowerCase().contains('unauthorized') ||
+          raw.toLowerCase().contains('invalid api key');
+      return EmptyState(
+        icon: isAuth ? Icons.lock_outline : Icons.error_outline,
+        message: isAuth
+            ? S.of(context).searchAuthRequired
+            : S.of(context).searchError(raw),
+      );
     }
 
     if (searchState.songs.isEmpty && !searchState.searching) {
@@ -235,7 +253,8 @@ class _SongResultTile extends ConsumerWidget {
       stream: playerService.currentSongStream,
       initialData: playerService.currentSong,
       builder: (context, snapshot) {
-        final isPlaying = (snapshot.data ?? playerService.currentSong)?.id == song.id;
+        final isPlaying =
+            (snapshot.data ?? playerService.currentSong)?.id == song.id;
         return SongContextMenu(
           song: song,
           onPlay: onTap,
@@ -248,8 +267,11 @@ class _SongResultTile extends ConsumerWidget {
               contentPadding: const EdgeInsets.symmetric(horizontal: 12),
               leading: FutureBuilder<String>(
                 future: resolver.coverArtUrl(song, size: 100),
-                builder: (context, snapshot) =>
-                    CoverArt(url: snapshot.data ?? '', size: 40, borderRadius: 6),
+                builder: (context, snapshot) => CoverArt(
+                  url: snapshot.data ?? '',
+                  size: 40,
+                  borderRadius: 6,
+                ),
               ),
               title: Text(
                 song.title,
@@ -275,10 +297,15 @@ class _SongResultTile extends ConsumerWidget {
                 children: [
                   if (song.isOnline)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
@@ -301,7 +328,9 @@ class _SongResultTile extends ConsumerWidget {
                     ),
                 ],
               ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               onTap: onTap,
             ),
           ),

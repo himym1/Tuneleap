@@ -349,6 +349,7 @@
     "cloudSignOut": "退出 Cloud",
     "cloudAuthFailed": "Cloud 认证失败",
     "cloudAuthRequired": "登录 Cloud 后加载推荐",
+  "searchAuthRequired": "登录 Cloud 后才能搜索",
     "nasAgentUrl": "NAS Agent 地址",
     "nasAgentUrlHint": "导入/删除必填，请使用局域网地址，例如 http://192.168.1.10:8504",
     "nasAgentKey": "NAS Agent Key",
@@ -359,6 +360,12 @@
     "searchHintInput": "搜索歌曲、艺术家、专辑...",
     "searchPlaceholder": "输入关键词搜索音乐",
     "searchNoResult": "无搜索结果",
+  "searchError": "搜索失败: {error}",
+  "@searchError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
     "searchResults": "搜索结果",
     "searchLoadMore": "加载更多",
     "searchLoadingMore": "加载中…",

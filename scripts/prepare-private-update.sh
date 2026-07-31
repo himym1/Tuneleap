@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "修复首页下拉刷新；修复移动端歌单管理（新建/重命名/删除/排序），并支持在歌单内添加本地歌曲。",
+    "changelog": "修复搜索失败时误显示无结果；401 提示重新登录 Cloud；macOS 升级后 Gatekeeper/隔离属性导致无法打开。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

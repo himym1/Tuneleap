@@ -662,6 +662,9 @@ class SZh extends S {
   String get cloudAuthRequired => '登录 Cloud 后加载推荐';
 
   @override
+  String get searchAuthRequired => '登录 Cloud 后才能搜索';
+
+  @override
   String get nasAgentUrl => 'NAS Agent 地址';
 
   @override
@@ -690,6 +693,11 @@ class SZh extends S {
 
   @override
   String get searchNoResult => '无搜索结果';
+
+  @override
+  String searchError(String error) {
+    return '搜索失败: $error';
+  }
 
   @override
   String get searchResults => '搜索结果';

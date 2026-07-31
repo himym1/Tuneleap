@@ -259,11 +259,18 @@ Future<bool> _installAndroid(String apkPath) async {
 
 Future<bool> _installMacOS(String dmgPath) async {
   try {
-    // Downloaded DMGs get com.apple.quarantine; combined with adhoc/unsigned
-    // builds this makes macOS report the app as damaged / not permitted.
+    // Downloaded DMGs get com.apple.quarantine; combined with unnotarized
+    // Developer ID builds, Gatekeeper may refuse to launch the app.
     await Process.run('xattr', ['-cr', dmgPath]);
     final result = await Process.run('open', [dmgPath]);
-    return result.exitCode == 0;
+    if (result.exitCode != 0) {
+      debugPrint('Open DMG failed: exit=${result.exitCode}');
+      return false;
+    }
+    // Best-effort: if the user already dragged the app into /Applications,
+    // clear quarantine so the next launch is not blocked as "Operation not permitted".
+    await Process.run('xattr', ['-cr', '/Applications/音跃.app']);
+    return true;
   } catch (error) {
     debugPrint('Open DMG failed: ${error.runtimeType}');
     return false;
