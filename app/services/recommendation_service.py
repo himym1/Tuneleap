@@ -253,6 +253,7 @@ class RecommendationService:
         self.page_max = page_max
         self.refill_lease_ms = refill_lease_ms
         self._search_semaphore = asyncio.Semaphore(upstream_concurrency)
+        self._session_request_lock = asyncio.Lock()
         self._background_tasks: dict[str, asyncio.Task[object]] = {}
         self._suppressed_tasks: set[asyncio.Task[object]] = set()
         self._refill_context: dict[str, _RefillContext] = {}
@@ -275,6 +276,17 @@ class RecommendationService:
         await self.store.block_candidate_identities(session_id, identities)
 
     async def create_or_resume(
+        self,
+        recent: Sequence[object] = (),
+        page_size: int = 20,
+        refresh: bool = False,
+    ) -> RecommendationPageV1:
+        async with self._session_request_lock:
+            return await self._create_or_resume_locked(
+                recent=recent, page_size=page_size, refresh=refresh
+            )
+
+    async def _create_or_resume_locked(
         self,
         recent: Sequence[object] = (),
         page_size: int = 20,
