@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "修复在线搜索短页分页和来源回退，启用双上游搜索，并提升响应式布局与跨服务器操作稳定性。",
+    "changelog": "NASAgent 地址默认按当前局域网 Navidrome 主机推断至 8504 端口；登录与服务器管理支持修改独立 NASAgent 地址和 Key，并使用安全存储持久化。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
