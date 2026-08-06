@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "搜索支持持续加载更多结果并标记本地已有歌曲；播放页和歌单补充添加、移除等操作；移除互联网电台。",
+    "changelog": "播放详情新增可见的加入歌单和删除按钮，移动端与桌面端均可直接操作；删除仍需二次确认。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
