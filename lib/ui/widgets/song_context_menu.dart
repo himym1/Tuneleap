@@ -15,7 +15,20 @@ import 'package:navidrome_player/player/playback_origin.dart';
 ///   child: MyListTile(...),
 /// )
 /// ```
+
 class SongContextMenu extends ConsumerWidget {
+  static Future<void> showForSong(
+    BuildContext context,
+    WidgetRef ref,
+    Song song, {
+    Offset? position,
+  }) {
+    return SongContextMenu(
+      song: song,
+      child: const SizedBox.shrink(),
+    )._showMenu(context, ref, position ?? const Offset(0, 0));
+  }
+
   final Song song;
   final Widget child;
   final VoidCallback? onPlay;
@@ -57,7 +70,11 @@ class SongContextMenu extends ConsumerWidget {
     );
   }
 
-  void _showMenu(BuildContext context, WidgetRef ref, Offset position) async {
+  Future<void> _showMenu(
+    BuildContext context,
+    WidgetRef ref,
+    Offset position,
+  ) async {
     final playerService = ref.read(audioPlayerServiceProvider);
     final client = ref.read(subsonicClientProvider);
     final resolver = ref.read(songMediaResolverProvider);

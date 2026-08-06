@@ -21,17 +21,27 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
+  final _resultsScrollController = ScrollController();
   Timer? _debounce;
-
   @override
   void initState() {
     super.initState();
+    _resultsScrollController.addListener(_onResultsScroll);
+  }
+
+  void _onResultsScroll() {
+    if (!_resultsScrollController.hasClients) return;
+    final position = _resultsScrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 240) {
+      ref.read(searchProvider.notifier).loadMore();
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _resultsScrollController.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -57,7 +67,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final searchState = ref.watch(searchProvider);
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
-    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
+    final h = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -107,7 +119,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 tooltip: S.of(context).tooltipClear,
                                 onPressed: () {
                                   _searchController.clear();
-                                  ref.read(searchProvider.notifier).clearResult();
+                                  ref
+                                      .read(searchProvider.notifier)
+                                      .clearResult();
                                 },
                               ),
                               IconButton(
@@ -167,10 +181,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
     }
 
+    final hasFooter = searchState.loadingMore || searchState.hasMore;
     return ListView.builder(
+      controller: _resultsScrollController,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      itemCount: searchState.songs.length,
+      itemCount: searchState.songs.length + (hasFooter ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index == searchState.songs.length) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: searchState.loadingMore
+                ? const Center(child: CircularProgressIndicator())
+                : const SizedBox(height: 24),
+          );
+        }
         final song = searchState.songs[index];
         return _SongResultTile(
           song: song,
@@ -197,7 +221,13 @@ class _SongResultTile extends ConsumerWidget {
       stream: playerService.currentSongStream,
       initialData: playerService.currentSong,
       builder: (context, snapshot) {
-        final isPlaying = (snapshot.data ?? playerService.currentSong)?.id == song.id;
+        final isPlaying =
+            (snapshot.data ?? playerService.currentSong)?.id == song.id;
+        final isLocal = ref.watch(
+          searchProvider.select(
+            (state) => state.localSongKeys.contains(searchSongMatchKey(song)),
+          ),
+        );
         return SongContextMenu(
           song: song,
           onPlay: onTap,
@@ -210,8 +240,11 @@ class _SongResultTile extends ConsumerWidget {
               contentPadding: const EdgeInsets.symmetric(horizontal: 12),
               leading: FutureBuilder<String>(
                 future: resolver.coverArtUrl(song, size: 100),
-                builder: (context, snapshot) =>
-                    CoverArt(url: snapshot.data ?? '', size: 40, borderRadius: 6),
+                builder: (context, snapshot) => CoverArt(
+                  url: snapshot.data ?? '',
+                  size: 40,
+                  borderRadius: 6,
+                ),
               ),
               title: Text(
                 song.title,
@@ -235,12 +268,35 @@ class _SongResultTile extends ConsumerWidget {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (song.isOnline)
+                  if (isLocal)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        color: context.colors.primarySoft,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        S.of(context).searchSectionLocal,
+                        style: Theme.of(context).textTheme.chipLabel.copyWith(
+                          color: context.colors.primary,
+                        ),
+                      ),
+                    ),
+                  if (song.isOnline)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
@@ -263,7 +319,9 @@ class _SongResultTile extends ConsumerWidget {
                     ),
                 ],
               ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               onTap: onTap,
             ),
           ),

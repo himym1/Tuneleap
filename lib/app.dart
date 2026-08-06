@@ -15,7 +15,6 @@ import 'package:navidrome_player/ui/screens/library/library_albums_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_artists_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_album_artists_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_genres_screen.dart';
-import 'package:navidrome_player/ui/screens/library/library_radio_screen.dart';
 import 'package:navidrome_player/ui/screens/search/search_screen.dart';
 import 'package:navidrome_player/ui/screens/player/player_screen.dart';
 import 'package:navidrome_player/ui/screens/playlists/playlists_screen.dart';
@@ -284,15 +283,6 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                       pageBuilder: (context, state) => CustomTransitionPage(
                         key: state.pageKey,
                         child: const LibraryGenresScreen(),
-                        transitionsBuilder: _fadeThroughTransition,
-                        transitionDuration: _kFadeDuration,
-                      ),
-                    ),
-                    GoRoute(
-                      path: 'radio',
-                      pageBuilder: (context, state) => CustomTransitionPage(
-                        key: state.pageKey,
-                        child: const LibraryRadioScreen(),
                         transitionsBuilder: _fadeThroughTransition,
                         transitionDuration: _kFadeDuration,
                       ),

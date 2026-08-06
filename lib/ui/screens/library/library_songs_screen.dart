@@ -186,7 +186,9 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
-    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
+    final h = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
@@ -328,113 +330,125 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
       builder: (context, snapshot) {
         final currentSong = snapshot.data ?? playerService.currentSong;
         return Stack(
-      children: [
-        ListView.builder(
-          controller: _scrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-          itemExtent: _itemExtent,
-          itemCount:
-              filtered.length + (_hasMore && _searchQuery.isEmpty ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index >= filtered.length) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-              );
-            }
-            final song = filtered[index];
-            final isPlaying = currentSong?.id == song.id;
-            return SongContextMenu(
-              song: song,
-              onPlay: () {
-                ref
-                    .read(audioPlayerServiceProvider)
-                    .playAll(filtered, startIndex: index);
-                context.push('/player');
-              },
-              onDeleted: () {
-                setState(() => _songs.removeWhere((s) => s.id == song.id));
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isPlaying ? context.colors.primarySoft : null,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 2,
-                  ),
-                  leading: CoverArt(
-                    url: client.coverArtUrl(song.coverArt, size: 80),
-                    size: 44,
-                    borderRadius: 6,
-                  ),
-                  title: Text(
-                    song.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.songTitle.copyWith(
-                      fontWeight: isPlaying ? FontWeight.w600 : null,
-                      color: isPlaying ? context.colors.primary : null,
+          children: [
+            ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              itemExtent: _itemExtent,
+              itemCount:
+                  filtered.length + (_hasMore && _searchQuery.isEmpty ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index >= filtered.length) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    '${song.artist} · ${song.album}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                      color: isPlaying
-                          ? context.colors.primary.withValues(alpha: 0.7)
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  trailing: song.duration != null
-                      ? Text(
-                          song.formattedDuration,
-                          style: Theme.of(context).textTheme.songDuration.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        )
-                      : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  onTap: () {
+                  );
+                }
+                final song = filtered[index];
+                final isPlaying = currentSong?.id == song.id;
+                return SongContextMenu(
+                  song: song,
+                  onPlay: () {
                     ref
                         .read(audioPlayerServiceProvider)
                         .playAll(filtered, startIndex: index);
                     context.push('/player');
                   },
+                  onDeleted: () {
+                    setState(() => _songs.removeWhere((s) => s.id == song.id));
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isPlaying ? context.colors.primarySoft : null,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      leading: CoverArt(
+                        url: client.coverArtUrl(song.coverArt, size: 80),
+                        size: 52,
+                        borderRadius: 6,
+                      ),
+                      title: Text(
+                        song.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.songTitle.copyWith(
+                          fontWeight: isPlaying ? FontWeight.w600 : null,
+                          color: isPlaying ? context.colors.primary : null,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${song.artist} · ${song.album}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.songSubtitle
+                            .copyWith(
+                              color: isPlaying
+                                  ? context.colors.primary.withValues(
+                                      alpha: 0.7,
+                                    )
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                      trailing: song.duration != null
+                          ? Text(
+                              song.formattedDuration,
+                              style: Theme.of(context).textTheme.songDuration
+                                  .copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            )
+                          : null,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      onTap: () {
+                        ref
+                            .read(audioPlayerServiceProvider)
+                            .playAll(filtered, startIndex: index);
+                        context.push('/player');
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+            if (currentSong != null)
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: FloatingActionButton(
+                    onPressed: _scrollToCurrentSong,
+                    elevation: 2,
+                    backgroundColor: context.colors.primary,
+                    shape: const CircleBorder(),
+                    child: Icon(
+                      Icons.my_location,
+                      size: 18,
+                      color: context.colors.onEmphasis,
+                    ),
+                  ),
                 ),
               ),
-            );
-          },
-        ),
-        if (currentSong != null)
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: FloatingActionButton(
-                onPressed: _scrollToCurrentSong,
-                elevation: 2,
-                backgroundColor: context.colors.primary,
-                shape: const CircleBorder(),
-                child: Icon(Icons.my_location, size: 18, color: context.colors.onEmphasis),
-              ),
-            ),
-          ),
-      ],
-    );
+          ],
+        );
       },
     );
   }

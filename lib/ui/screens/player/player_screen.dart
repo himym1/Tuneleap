@@ -7,6 +7,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/api/subsonic_client.dart' show LyricsLine;
@@ -41,7 +42,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Timer? _userScrollTimer;
   int _seekLineIndex = 0;
   // PC 端页面切换
-  late final PageController _desktopPageController = PageController(initialPage: _lastDesktopPage);
+  late final PageController _desktopPageController = PageController(
+    initialPage: _lastDesktopPage,
+  );
   int _desktopCurrentPage = _lastDesktopPage;
   StreamSubscription<Song?>? _songChangeSub;
 
@@ -79,10 +82,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     super.dispose();
   }
 
-  String _lyricsKey(Song song) => scopedSongKey(
-    ref.read(serverConfigProvider).serverId,
-    song.storageKey,
-  );
+  String _lyricsKey(Song song) =>
+      scopedSongKey(ref.read(serverConfigProvider).serverId, song.storageKey);
 
   Future<void> _loadLyrics(Song song) async {
     final request = _lyricsRequests.begin();
@@ -96,9 +97,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       });
       return;
     }
-    debugPrint(
-      '[PlayerScreen] loading lyrics: backend=${song.backend.name}',
-    );
+    debugPrint('[PlayerScreen] loading lyrics: backend=${song.backend.name}');
     try {
       final resolver = ref.read(songMediaResolverProvider);
       final downloads = ref.read(downloadManagerProvider);
@@ -113,7 +112,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       final currentSong = ref.read(audioPlayerServiceProvider).currentSong;
       if (currentSong?.storageKey != song.storageKey) return;
 
-      debugPrint('[PlayerScreen] _loadLyrics result: ${result?.lines.length ?? 0} lines, synced=${result?.synced}');
+      debugPrint(
+        '[PlayerScreen] _loadLyrics result: ${result?.lines.length ?? 0} lines, synced=${result?.synced}',
+      );
       final lines = result?.lines ?? [];
       if (!_lyricsCache.containsKey(cacheKey) &&
           _lyricsCache.length >= _lyricsCacheLimit) {
@@ -125,9 +126,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         _lyricsForSongId = cacheKey;
       });
     } catch (e) {
-      debugPrint(
-        '[PlayerScreen] lyrics load failed: ${e.runtimeType}',
-      );
+      debugPrint('[PlayerScreen] lyrics load failed: ${e.runtimeType}');
       if (!_lyricsRequests.isCurrent(request) || !mounted) return;
       if (_lyricsKey(song) != cacheKey) return;
       final currentSong = ref.read(audioPlayerServiceProvider).currentSong;
@@ -193,17 +192,21 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         children: [
                           Text(
                             S.of(context).playerQueueTitle,
-                            style: Theme.of(context).textTheme.playerSongName.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
+                            style: Theme.of(context).textTheme.playerSongName
+                                .copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
                           ),
                           Text(
                             S.of(context).commonSongs(queue.length),
-                            style: Theme.of(context).textTheme.chipLabel.copyWith(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.chipLabel
+                                .copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                         ],
                       ),
@@ -214,11 +217,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           ? Center(
                               child: Text(
                                 S.of(context).playerQueueEmpty,
-                                style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                                style: Theme.of(context).textTheme.songSubtitle
+                                    .copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
                               ),
                             )
                           : ListView.builder(
@@ -238,36 +242,43 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                         )
                                       : Text(
                                           '${index + 1}',
-                                          style: Theme.of(context).textTheme.playerTimestamp.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .playerTimestamp
+                                              .copyWith(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                              ),
                                         ),
                                   title: Text(
                                     song.title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.songTitle.copyWith(
-                                      fontWeight: isCurrent
-                                          ? FontWeight.w600
-                                          : FontWeight.w400,
-                                      color: isCurrent
-                                          ? context.colors.primary
-                                          : Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
-                                    ),
+                                    style: Theme.of(context).textTheme.songTitle
+                                        .copyWith(
+                                          fontWeight: isCurrent
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
+                                          color: isCurrent
+                                              ? context.colors.primary
+                                              : Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                        ),
                                   ),
                                   subtitle: Text(
                                     song.artist,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .songSubtitle
+                                        .copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                   onTap: () {
                                     playerService.skipToIndex(index);
@@ -287,8 +298,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  Widget _buildLyricsPanel(Song currentSong, AudioPlayerService playerService,
-      {Color? activeFg, Color? inactiveFg}) {
+  Widget _buildLyricsPanel(
+    Song currentSong,
+    AudioPlayerService playerService, {
+    Color? activeFg,
+    Color? inactiveFg,
+  }) {
     final lyrics = _lyrics;
     if (lyrics == null || _lyricsForSongId != _lyricsKey(currentSong)) {
       // 歌词尚未加载：不在 build 中直接调用 _loadLyrics（会触发 setState during build）。
@@ -363,16 +378,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               return Stack(
                 children: [
                   ScrollConfiguration(
-                    behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                    behavior: ScrollConfiguration.of(
+                      context,
+                    ).copyWith(scrollbars: false),
                     child: NotificationListener<ScrollNotification>(
                       onNotification: (notification) {
                         if (notification is UserScrollNotification) {
-                          if (!_userScrolling && _lyricsScrollController.hasClients) {
+                          if (!_userScrolling &&
+                              _lyricsScrollController.hasClients) {
                             // First scroll event: immediately calculate seek line
                             final offset = _lyricsScrollController.offset;
-                            final viewportH = _lyricsScrollController.position.viewportDimension;
+                            final viewportH = _lyricsScrollController
+                                .position
+                                .viewportDimension;
                             final centerOffset = offset + viewportH / 2 - 24;
-                            final idx = (centerOffset / 44.0).round().clamp(0, lyrics.length - 1);
+                            final idx = (centerOffset / 44.0).round().clamp(
+                              0,
+                              lyrics.length - 1,
+                            );
                             _seekLineIndex = idx;
                           }
                           setState(() => _userScrolling = true);
@@ -390,9 +413,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             _userScrolling &&
                             _lyricsScrollController.hasClients) {
                           final offset = _lyricsScrollController.offset;
-                          final viewportH = _lyricsScrollController.position.viewportDimension;
-                          final centerOffset = offset + viewportH / 2 - 24; // subtract top padding
-                          final idx = (centerOffset / 44.0).round().clamp(0, lyrics.length - 1);
+                          final viewportH = _lyricsScrollController
+                              .position
+                              .viewportDimension;
+                          final centerOffset =
+                              offset +
+                              viewportH / 2 -
+                              24; // subtract top padding
+                          final idx = (centerOffset / 44.0).round().clamp(
+                            0,
+                            lyrics.length - 1,
+                          );
                           if (idx != _seekLineIndex) {
                             setState(() => _seekLineIndex = idx);
                           }
@@ -401,7 +432,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       },
                       child: ListView.builder(
                         controller: _lyricsScrollController,
-                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 24,
+                          horizontal: 16,
+                        ),
                         itemCount: lyrics.length,
                         itemBuilder: (context, index) {
                           final isActive = index == activeIndex;
@@ -412,13 +446,21 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                 duration: const Duration(milliseconds: 200),
                                 style: TextStyle(
                                   fontSize: isActive ? 18 : 14,
-                                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                                  fontWeight: isActive
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
                                   color: isActive
                                       ? (activeFg ?? context.colors.primary)
-                                      : (inactiveFg ?? Theme.of(context).colorScheme.onSurfaceVariant),
+                                      : (inactiveFg ??
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant),
                                   shadows: [
                                     Shadow(
-                                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surface
+                                          .withValues(alpha: 0.8),
                                       blurRadius: 4,
                                     ),
                                   ],
@@ -450,16 +492,18 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             children: [
                               Text(
                                 seekTimeStr,
-                                style: Theme.of(context).textTheme.chipLabel.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  color: activeFg ?? context.colors.primary,
-                                ),
+                                style: Theme.of(context).textTheme.chipLabel
+                                    .copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      color: activeFg ?? context.colors.primary,
+                                    ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Container(
                                   height: 1,
-                                  color: (activeFg ?? context.colors.primary).withValues(alpha: 0.4),
+                                  color: (activeFg ?? context.colors.primary)
+                                      .withValues(alpha: 0.4),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -513,10 +557,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.songSubtitle.copyWith(
                 fontSize: 15,
-                color: inactiveFg ?? Theme.of(context).colorScheme.onSurfaceVariant,
+                color:
+                    inactiveFg ??
+                    Theme.of(context).colorScheme.onSurfaceVariant,
                 shadows: [
                   Shadow(
-                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.8),
                     blurRadius: 4,
                   ),
                 ],
@@ -581,7 +629,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ? context.colors.primary
                 : (ref.watch(coverColorProvider(coverUrl)).value ??
                       context.colors.primary);
-            final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+            final isMobile = AppBreakpoints.isMobile(
+              MediaQuery.of(context).size.width,
+            );
             final surfaceColor = Theme.of(context).colorScheme.surface;
             // 使用不透明预混色，避免半透明渲染导致不可预测的对比度
             final gradientTop = Color.lerp(surfaceColor, accentColor, 0.45)!;
@@ -620,13 +670,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             child: SizedBox.expand(
                               key: ValueKey(coverUrl),
                               child: ImageFiltered(
-                                imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                                imageFilter: ImageFilter.blur(
+                                  sigmaX: 80,
+                                  sigmaY: 80,
+                                ),
                                 child: Opacity(
                                   opacity: 0.18,
                                   child: Image.network(
                                     coverUrl,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                                    errorBuilder: (_, _, _) =>
+                                        const SizedBox.shrink(),
                                   ),
                                 ),
                               ),
@@ -641,14 +695,22 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Color.lerp(surfaceColor, accentColor, 0.40)!.withValues(alpha: 0.85),
+                                Color.lerp(
+                                  surfaceColor,
+                                  accentColor,
+                                  0.40,
+                                )!.withValues(alpha: 0.85),
                                 surfaceColor.withValues(alpha: 0.92),
                               ],
                             ),
                           ),
                         ),
                         // 层 3：播放器内容
-                        _buildDesktopPlayer(currentSong, playerService, coverUrl),
+                        _buildDesktopPlayer(
+                          currentSong,
+                          playerService,
+                          coverUrl,
+                        ),
                       ],
                     ),
             );
@@ -667,11 +729,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     Color accentColor,
   ) {
     return _DragDismissWrapper(
-      onDismiss: () => GoRouter.of(context).canPop()
-          ? context.pop()
-          : context.go('/home'),
+      onDismiss: () =>
+          GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
       child: _buildMobilePlayer(
-        context, currentSong, playerService, coverUrl, accentColor,
+        context,
+        currentSong,
+        playerService,
+        coverUrl,
+        accentColor,
       ),
     );
   }
@@ -688,7 +753,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final surfaceColor = Theme.of(context).colorScheme.surface;
     final blendedBg = Color.lerp(surfaceColor, accentColor, 0.45)!;
     final isDarkBg = blendedBg.computeLuminance() < 0.4;
-    final playerFg = isDarkBg ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final playerFg = isDarkBg
+        ? Colors.white
+        : Theme.of(context).colorScheme.onSurface;
     final playerFgMuted = isDarkBg
         ? Colors.white.withValues(alpha: 0.7)
         : Theme.of(context).colorScheme.onSurfaceVariant;
@@ -704,7 +771,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  onPressed: () => GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
+                  onPressed: () => GoRouter.of(context).canPop()
+                      ? context.pop()
+                      : context.go('/home'),
                   tooltip: S.of(context).commonBack,
                   icon: Icon(
                     Icons.keyboard_arrow_down,
@@ -734,11 +803,27 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       icon: Icon(
                         Icons.lyrics_outlined,
                         size: 22,
-                        color: _showLyrics
-                            ? playerActiveFg
-                            : playerFgMuted,
+                        color: _showLyrics ? playerActiveFg : playerFgMuted,
                       ),
                     ),
+                    IconButton(
+                      onPressed: () => SongContextMenu.showForSong(
+                        context,
+                        ref,
+                        currentSong,
+                        position: Offset(
+                          MediaQuery.sizeOf(context).width / 2,
+                          MediaQuery.sizeOf(context).height / 2,
+                        ),
+                      ),
+                      tooltip: S.of(context).tooltipMore,
+                      icon: Icon(
+                        Icons.more_horiz,
+                        size: 22,
+                        color: playerFgMuted,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
                     const SizedBox(width: 4),
                     IconButton(
                       onPressed: () => _showMobileQueue(context, playerService),
@@ -767,15 +852,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 },
                 behavior: HitTestBehavior.opaque,
                 child: _showLyrics
-                    ? _buildLyricsPanel(currentSong, playerService,
-                        activeFg: playerActiveFg, inactiveFg: playerFgMuted)
+                    ? _buildLyricsPanel(
+                        currentSong,
+                        playerService,
+                        activeFg: playerActiveFg,
+                        inactiveFg: playerFgMuted,
+                      )
                     : AspectRatio(
-                      aspectRatio: 1,
-                      child: Hero(
-                        tag: 'player-cover',
-                        child: CoverArt(url: coverUrl, borderRadius: 20),
+                        aspectRatio: 1,
+                        child: Hero(
+                          tag: 'player-cover',
+                          child: CoverArt(url: coverUrl, borderRadius: 20),
+                        ),
                       ),
-                    ),
               ),
             ),
             const SizedBox(height: 28),
@@ -800,12 +889,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            if (currentSong.suffix != null || currentSong.bitRate != null || currentSong.isOnline) ...[
+            if (currentSong.suffix != null ||
+                currentSong.bitRate != null ||
+                currentSong.isOnline) ...[
               const SizedBox(height: 4),
               Text(
                 [
-                  if (currentSong.isOnline && currentSong.sourceLabel != null) currentSong.sourceLabel!,
-                  if (currentSong.suffix != null) currentSong.suffix!.toUpperCase(),
+                  if (currentSong.isOnline && currentSong.sourceLabel != null)
+                    currentSong.sourceLabel!,
+                  if (currentSong.suffix != null)
+                    currentSong.suffix!.toUpperCase(),
                   if (currentSong.bitRate != null) '${currentSong.bitRate}kbps',
                 ].join(' · '),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -872,35 +965,73 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               tooltip: S.of(context).playerSpeed,
                               onSelected: (v) => playerService.setSpeed(v),
                               itemBuilder: (_) => [
-                                for (final s in [0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
+                                for (final s in [
+                                  0.5,
+                                  0.75,
+                                  1.0,
+                                  1.25,
+                                  1.5,
+                                  2.0,
+                                ])
                                   PopupMenuItem(
                                     value: s,
                                     child: Text(
                                       S.of(context).playerSpeedValue(s),
-                                      style: Theme.of(context).textTheme.songTitle.copyWith(
-                                        fontWeight: s == speed ? FontWeight.w700 : FontWeight.w400,
-                                        color: s == speed ? context.colors.primary : null,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .songTitle
+                                          .copyWith(
+                                            fontWeight: s == speed
+                                                ? FontWeight.w700
+                                                : FontWeight.w400,
+                                            color: s == speed
+                                                ? context.colors.primary
+                                                : null,
+                                          ),
                                     ),
                                   ),
                               ],
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: Theme.of(context).colorScheme.outlineVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   S.of(context).playerSpeedValue(speed),
-                                  style: Theme.of(context).textTheme.playerTimestamp.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .playerTimestamp
+                                      .copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
                                 ),
                               ),
                             );
                           },
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          onPressed: () => SongContextMenu.showForSong(
+                            context,
+                            ref,
+                            currentSong,
+                            position: Offset(
+                              MediaQuery.sizeOf(context).width / 2,
+                              MediaQuery.sizeOf(context).height / 2,
+                            ),
+                          ),
+                          tooltip: S.of(context).tooltipMore,
+                          icon: const Icon(Icons.more_horiz, size: 22),
                         ),
                         const SizedBox(width: 4),
                         IconButton(
@@ -909,7 +1040,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             size: 22,
                             color: _showQueue
                                 ? context.colors.primary
-                                : Theme.of(context).colorScheme.onSurfaceVariant,
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                           ),
                           onPressed: () {
                             setState(() => _showQueue = !_showQueue);
@@ -938,12 +1071,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     controller: _desktopPageController,
                     scrollDirection: Axis.horizontal,
                     onPageChanged: (page) {
-                        setState(() => _desktopCurrentPage = page);
-                        _lastDesktopPage = page;
-                        // 切换到歌词页（page 1）时触发加载，在 onPageChanged 回调中
-                        // 调用是安全的（非 build 阶段）
-                        if (page == 1) _loadLyrics(currentSong);
-                      },
+                      setState(() => _desktopCurrentPage = page);
+                      _lastDesktopPage = page;
+                      // 切换到歌词页（page 1）时触发加载，在 onPageChanged 回调中
+                      // 调用是安全的（非 build 阶段）
+                      if (page == 1) _loadLyrics(currentSong);
+                    },
                     children: [
                       _buildDesktopInfoPage(coverUrl),
                       _buildDesktopLyricsPage(currentSong, playerService),
@@ -971,7 +1104,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             decoration: BoxDecoration(
                               color: isActive
                                   ? context.colors.primary
-                                  : Theme.of(context).colorScheme.onSurfaceVariant
+                                  : Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant
                                         .withValues(alpha: 0.25),
                               borderRadius: BorderRadius.circular(3),
                             ),
@@ -983,26 +1118,36 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       currentSong.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.playerLargeSongName.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
+                      style: Theme.of(context).textTheme.playerLargeSongName
+                          .copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${currentSong.artist} · ${currentSong.album}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.playerSubtitle.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      style: Theme.of(context).textTheme.playerSubtitle
+                          .copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                     ),
-                    if (currentSong.suffix != null || currentSong.bitRate != null || currentSong.isOnline) ...[
+                    if (currentSong.suffix != null ||
+                        currentSong.bitRate != null ||
+                        currentSong.isOnline) ...[
                       const SizedBox(height: 2),
                       Text(
                         [
-                          if (currentSong.isOnline && currentSong.sourceLabel != null) currentSong.sourceLabel!,
-                          if (currentSong.suffix != null) currentSong.suffix!.toUpperCase(),
-                          if (currentSong.bitRate != null) '${currentSong.bitRate}kbps',
+                          if (currentSong.isOnline &&
+                              currentSong.sourceLabel != null)
+                            currentSong.sourceLabel!,
+                          if (currentSong.suffix != null)
+                            currentSong.suffix!.toUpperCase(),
+                          if (currentSong.bitRate != null)
+                            '${currentSong.bitRate}kbps',
                         ].join(' · '),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: context.colors.primary.withValues(alpha: 0.7),
@@ -1080,154 +1225,174 @@ class _QueuePanelState extends State<_QueuePanel> {
       stream: ps.currentSongStream,
       builder: (context, _) {
         return Container(
-      width: 320,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHigh,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  S.of(context).playerQueueTitle,
-                  style: Theme.of(context).textTheme.playerQueueHeader,
-                ),
-                Text(
-                  S.of(context).commonSongs(ps.queue.length),
-                  style: Theme.of(context).textTheme.playerTimestamp.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+          width: 320,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ps.queue.isEmpty
-                ? Center(
-                    child: Text(
-                      S.of(context).playerQueueEmpty,
-                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      S.of(context).playerQueueTitle,
+                      style: Theme.of(context).textTheme.playerQueueHeader,
                     ),
-                  )
-                : ReorderableListView.builder(
-                    itemCount: ps.queue.length,
-                    onReorderItem: (oldIndex, newIndex) {
-                      setState(() {
-                        ps.reorderQueue(oldIndex, newIndex);
-                      });
-                    },
-                    buildDefaultDragHandles: false,
-                    proxyDecorator: (child, index, animation) {
-                      return Material(
-                        color: context.colors.primarySoft,
-                        elevation: 2,
-                        borderRadius: BorderRadius.circular(8),
-                        child: child,
-                      );
-                    },
-                    itemBuilder: (context, index) {
-                      final song = ps.queue[index];
-                      final isCurrent = index == ps.currentIndex;
-                      return Dismissible(
-                        key: ValueKey('${song.id}_$index'),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 16),
-                          color: context.colors.errorSoft,
-                          child: Icon(
-                            Icons.delete_outline,
-                            color: context.colors.error,
-                            size: 20,
+                    Text(
+                      S.of(context).commonSongs(ps.queue.length),
+                      style: Theme.of(context).textTheme.playerTimestamp
+                          .copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
-                        ),
-                        onDismissed: (_) {
-                          setState(() {
-                            ps.removeFromQueue(index);
-                          });
-                        },
-                        child: Container(
-                          color: isCurrent ? context.colors.primarySoftSubtle : null,
-                          child: ListTile(
-                            dense: true,
-                            leading: isCurrent
-                                ? Icon(
-                                    Icons.equalizer,
-                                    color: context.colors.primary,
-                                    size: 18,
-                                  )
-                                : Text(
-                                    '${index + 1}',
-                                    style: Theme.of(context).textTheme.playerTimestamp.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                            title: Text(
-                              song.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.chipLabel.copyWith(
-                                fontWeight: isCurrent
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                                color: isCurrent
-                                    ? context.colors.primary
-                                    : Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                            subtitle: Text(
-                              song.artist,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                                fontSize: 11,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ps.queue.isEmpty
+                    ? Center(
+                        child: Text(
+                          S.of(context).playerQueueEmpty,
+                          style: Theme.of(context).textTheme.songSubtitle
+                              .copyWith(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onSurfaceVariant,
                               ),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (song.duration != null)
-                                  Text(
-                                    formatDuration(song.duration!),
-                                    style: Theme.of(context).textTheme.songDuration.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                const SizedBox(width: 4),
-                                ReorderableDragStartListener(
-                                  index: index,
-                                  child: Icon(
-                                    Icons.drag_handle,
-                                    size: 18,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            onTap: () => ps.skipToIndex(index),
-                          ),
                         ),
-                      );
-                    },
-                  ),
-          ),
-        ],
+                      )
+                    : ReorderableListView.builder(
+                        itemCount: ps.queue.length,
+                        onReorderItem: (oldIndex, newIndex) {
+                          setState(() {
+                            ps.reorderQueue(oldIndex, newIndex);
+                          });
+                        },
+                        buildDefaultDragHandles: false,
+                        proxyDecorator: (child, index, animation) {
+                          return Material(
+                            color: context.colors.primarySoft,
+                            elevation: 2,
+                            borderRadius: BorderRadius.circular(8),
+                            child: child,
+                          );
+                        },
+                        itemBuilder: (context, index) {
+                          final song = ps.queue[index];
+                          final isCurrent = index == ps.currentIndex;
+                          return Dismissible(
+                            key: ValueKey('${song.id}_$index'),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 16),
+                              color: context.colors.errorSoft,
+                              child: Icon(
+                                Icons.delete_outline,
+                                color: context.colors.error,
+                                size: 20,
+                              ),
+                            ),
+                            onDismissed: (_) {
+                              setState(() {
+                                ps.removeFromQueue(index);
+                              });
+                            },
+                            child: Container(
+                              color: isCurrent
+                                  ? context.colors.primarySoftSubtle
+                                  : null,
+                              child: ListTile(
+                                dense: true,
+                                leading: isCurrent
+                                    ? Icon(
+                                        Icons.equalizer,
+                                        color: context.colors.primary,
+                                        size: 18,
+                                      )
+                                    : Text(
+                                        '${index + 1}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .playerTimestamp
+                                            .copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                title: Text(
+                                  song.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.chipLabel
+                                      .copyWith(
+                                        fontWeight: isCurrent
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                        color: isCurrent
+                                            ? context.colors.primary
+                                            : Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                      ),
+                                ),
+                                subtitle: Text(
+                                  song.artist,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .songSubtitle
+                                      .copyWith(
+                                        fontSize: 11,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (song.duration != null)
+                                      Text(
+                                        formatDuration(song.duration!),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .songDuration
+                                            .copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                    const SizedBox(width: 4),
+                                    ReorderableDragStartListener(
+                                      index: index,
+                                      child: Icon(
+                                        Icons.drag_handle,
+                                        size: 18,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                onTap: () => ps.skipToIndex(index),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
         );
       },
@@ -1279,15 +1444,21 @@ class _ProgressBar extends StatelessWidget {
                     children: [
                       Text(
                         _fmt(position),
-                        style: Theme.of(context).textTheme.playerTimestamp.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                        style: Theme.of(context).textTheme.playerTimestamp
+                            .copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                       ),
                       Text(
                         _fmt(duration),
-                        style: Theme.of(context).textTheme.playerTimestamp.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                        style: Theme.of(context).textTheme.playerTimestamp
+                            .copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
                       ),
                     ],
                   ),
@@ -1332,9 +1503,7 @@ class _PlaybackControlsState extends State<_PlaybackControls>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _playingSub = widget.playerService.playingStream.listen((
-      playing,
-    ) {
+    _playingSub = widget.playerService.playingStream.listen((playing) {
       if (!mounted) return;
       setState(() => _playing = playing);
       if (playing) {
@@ -1386,10 +1555,7 @@ class _PlaybackControlsState extends State<_PlaybackControls>
         Container(
           width: 56,
           height: 56,
-          decoration: BoxDecoration(
-            color: btnColor,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: btnColor, shape: BoxShape.circle),
           child: IconButton(
             icon: AnimatedIcon(
               icon: AnimatedIcons.play_pause,
@@ -1413,7 +1579,9 @@ class _PlaybackControlsState extends State<_PlaybackControls>
         const SizedBox(width: 12),
         IconButton(
           icon: Icon(
-            _repeatMode == PlaybackRepeatMode.one ? Icons.repeat_one : Icons.repeat,
+            _repeatMode == PlaybackRepeatMode.one
+                ? Icons.repeat_one
+                : Icons.repeat,
             size: 22,
             color: _repeatMode != PlaybackRepeatMode.off
                 ? btnColor
@@ -1422,9 +1590,7 @@ class _PlaybackControlsState extends State<_PlaybackControls>
           tooltip: S.of(context).playerRepeat,
           onPressed: () {
             widget.playerService.cycleRepeatMode();
-            setState(
-              () => _repeatMode = widget.playerService.repeatMode,
-            );
+            setState(() => _repeatMode = widget.playerService.repeatMode);
           },
         ),
       ],
@@ -1500,10 +1666,7 @@ class _DragDismissWrapperState extends State<_DragDismissWrapper>
       behavior: HitTestBehavior.translucent,
       child: Transform.translate(
         offset: Offset(0, _dragExtent),
-        child: Opacity(
-          opacity: 1.0 - progress * 0.4,
-          child: widget.child,
-        ),
+        child: Opacity(opacity: 1.0 - progress * 0.4, child: widget.child),
       ),
     );
   }
