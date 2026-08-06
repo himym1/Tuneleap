@@ -753,7 +753,6 @@ class _RefreshButtonState extends ConsumerState<_RefreshButton>
     ref.invalidate(recentAlbumsProvider);
     ref.invalidate(artistsProvider);
     ref.invalidate(genresProvider);
-    ref.invalidate(radioStationsProvider);
     ref.invalidate(playlistsProvider);
     ref.invalidate(weatherProvider);
     ref.read(libraryProvider.notifier).refresh();

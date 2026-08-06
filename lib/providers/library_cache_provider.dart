@@ -37,15 +37,7 @@ final genresProvider = FutureProvider.autoDispose<List<Genre>>((ref) async {
   final client = ref.watch(subsonicClientProvider);
   return await client.getGenres();
 });
-
-/// 电台列表（电台页）
-final radioStationsProvider = FutureProvider.autoDispose<List<RadioStation>>((
-  ref,
-) async {
-  ref.keepAlive();
-  final client = ref.watch(subsonicClientProvider);
-  return await client.getInternetRadioStations();
-});
+// 流派歌曲列表（流派详情页）— family provider 按流派名缓存
 
 /// 流派歌曲列表（流派详情页）— family provider 按流派名缓存
 final genreSongsProvider = FutureProvider.autoDispose

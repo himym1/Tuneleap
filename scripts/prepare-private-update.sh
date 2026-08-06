@@ -51,7 +51,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "首页优先展示具体歌曲；最近播放改为歌曲列表；修复推荐空白、首屏过长和大字体溢出。",
+    "changelog": "搜索结果支持无限分页并标记本地歌曲；播放器与歌单详情补充操作按钮；优化列表视觉层级。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

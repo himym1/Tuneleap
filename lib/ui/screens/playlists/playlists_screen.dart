@@ -15,7 +15,9 @@ class PlaylistsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncPlaylists = ref.watch(playlistsProvider);
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
-    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
+    final h = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
 
     if (isMobile) {
       return Scaffold(
@@ -47,10 +49,17 @@ class PlaylistsScreen extends ConsumerWidget {
                       Row(
                         children: [
                           Text(
-                            S.of(context).playlistCount(asyncPlaylists.value?.length ?? 0),
-                            style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                            S
+                                .of(context)
+                                .playlistCount(
+                                  asyncPlaylists.value?.length ?? 0,
+                                ),
+                            style: Theme.of(context).textTheme.songSubtitle
+                                .copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                           const SizedBox(width: 12),
                           FilledButton.tonalIcon(
@@ -59,7 +68,9 @@ class PlaylistsScreen extends ConsumerWidget {
                             label: Text(S.of(context).commonNew),
                             style: FilledButton.styleFrom(
                               minimumSize: const Size(0, 34),
-                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                              ),
                             ),
                           ),
                         ],
@@ -95,10 +106,15 @@ class PlaylistsScreen extends ConsumerWidget {
               ),
             ),
             data: (playlists) => RefreshIndicator(
-                onRefresh: () async => ref.invalidate(playlistsProvider),
-                child: playlists.isEmpty
-                ? ListView(children: [const SizedBox(height: 200), _buildEmptyState(context)])
-                : _buildPlaylistGrid(context, ref, playlists),
+              onRefresh: () async => ref.invalidate(playlistsProvider),
+              child: playlists.isEmpty
+                  ? ListView(
+                      children: [
+                        const SizedBox(height: 200),
+                        _buildEmptyState(context),
+                      ],
+                    )
+                  : _buildPlaylistGrid(context, ref, playlists),
             ),
           ),
         ),
@@ -125,7 +141,9 @@ class PlaylistsScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Text(
-                      S.of(context).playlistCount(asyncPlaylists.value?.length ?? 0),
+                      S
+                          .of(context)
+                          .playlistCount(asyncPlaylists.value?.length ?? 0),
                       style: Theme.of(context).textTheme.chipLabel.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -174,10 +192,15 @@ class PlaylistsScreen extends ConsumerWidget {
                 ),
               ),
               data: (playlists) => RefreshIndicator(
-                  onRefresh: () async => ref.invalidate(playlistsProvider),
-                  child: playlists.isEmpty
-                  ? ListView(children: [const SizedBox(height: 200), _buildEmptyState(context)])
-                  : _buildPlaylistGrid(context, ref, playlists),
+                onRefresh: () async => ref.invalidate(playlistsProvider),
+                child: playlists.isEmpty
+                    ? ListView(
+                        children: [
+                          const SizedBox(height: 200),
+                          _buildEmptyState(context),
+                        ],
+                      )
+                    : _buildPlaylistGrid(context, ref, playlists),
               ),
             ),
           ),
@@ -198,7 +221,8 @@ class PlaylistsScreen extends ConsumerWidget {
           decoration: InputDecoration(
             labelText: S.of(context).playlistNameLabel,
           ),
-          onSubmitted: (_) => _submitCreate(ctx, context, ref, nameController.text),
+          onSubmitted: (_) =>
+              _submitCreate(ctx, context, ref, nameController.text),
         ),
         actions: [
           TextButton(
@@ -206,7 +230,8 @@ class PlaylistsScreen extends ConsumerWidget {
             child: Text(S.of(context).commonCancel),
           ),
           FilledButton(
-            onPressed: () => _submitCreate(ctx, context, ref, nameController.text),
+            onPressed: () =>
+                _submitCreate(ctx, context, ref, nameController.text),
             child: Text(S.of(context).commonCreate),
           ),
         ],
@@ -257,7 +282,9 @@ class PlaylistsScreen extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: context.colors.error),
+            style: FilledButton.styleFrom(
+              backgroundColor: context.colors.error,
+            ),
             child: Text(S.of(context).commonDelete),
           ),
         ],
@@ -363,7 +390,90 @@ class PlaylistsScreen extends ConsumerWidget {
     );
   }
 
-  void _openPlaylist(BuildContext context, WidgetRef ref, Playlist playlist) async {
+  Future<void> _showAddSongsPicker(
+    BuildContext context,
+    WidgetRef ref,
+    Playlist playlist,
+    List<Song> songs,
+    StateSetter setDialogState,
+  ) async {
+    try {
+      final result = await ref
+          .read(subsonicClientProvider)
+          .search3('', songCount: 100, artistCount: 0, albumCount: 0);
+      if (!context.mounted) return;
+      final existingIds = songs.map((song) => song.id).toSet();
+      final candidates = result.songs
+          .where((song) => !existingIds.contains(song.id))
+          .toList();
+      showDialog(
+        context: context,
+        builder: (pickerContext) => AlertDialog(
+          title: Text(S.of(context).contextMenuAddPlaylist),
+          content: SizedBox(
+            width: 420,
+            height: 420,
+            child: candidates.isEmpty
+                ? Center(child: Text(S.of(context).playlistListEmpty))
+                : ListView.builder(
+                    itemCount: candidates.length,
+                    itemBuilder: (_, index) {
+                      final song = candidates[index];
+                      return ListTile(
+                        leading: const Icon(Icons.music_note_outlined),
+                        title: Text(
+                          song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          song.artist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () async {
+                          try {
+                            await ref
+                                .read(subsonicClientProvider)
+                                .updatePlaylist(
+                                  playlist.id,
+                                  songIdsToAdd: [song.id],
+                                );
+                            if (pickerContext.mounted) {
+                              Navigator.pop(pickerContext);
+                            }
+                            setDialogState(() => songs.add(song));
+                            ref.invalidate(playlistsProvider);
+                          } catch (_) {
+                            if (pickerContext.mounted) {
+                              ScaffoldMessenger.of(pickerContext).showSnackBar(
+                                SnackBar(
+                                  content: Text(S.of(context).commonLoadFailed),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(S.of(context).commonLoadFailed)));
+      }
+    }
+  }
+
+  void _openPlaylist(
+    BuildContext context,
+    WidgetRef ref,
+    Playlist playlist,
+  ) async {
     try {
       final client = ref.read(subsonicClientProvider);
       final detail = await client.getPlaylist(playlist.id);
@@ -403,9 +513,10 @@ class PlaylistsScreen extends ConsumerWidget {
                                   Expanded(
                                     child: Text(
                                       playlistName,
-                                      style: Theme.of(context).textTheme.songTitle.copyWith(
-                                        fontSize: 17,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .songTitle
+                                          .copyWith(fontSize: 17),
                                     ),
                                   ),
                                   Semantics(
@@ -413,18 +524,18 @@ class PlaylistsScreen extends ConsumerWidget {
                                     label: S.of(context).playlistRename,
                                     child: InkWell(
                                       onTap: () => _renamePlaylistInDialog(
-                                      ctx,
-                                      context,
-                                      ref,
-                                      playlist.id,
-                                      playlistName,
-                                      (newName) {
-                                        setDialogState(
-                                          () => playlistName = newName,
-                                        );
-                                        ref.invalidate(playlistsProvider);
-                                      },
-                                    ),
+                                        ctx,
+                                        context,
+                                        ref,
+                                        playlist.id,
+                                        playlistName,
+                                        (newName) {
+                                          setDialogState(
+                                            () => playlistName = newName,
+                                          );
+                                          ref.invalidate(playlistsProvider);
+                                        },
+                                      ),
                                       borderRadius: BorderRadius.circular(12),
                                       child: Padding(
                                         padding: const EdgeInsets.all(12),
@@ -442,15 +553,28 @@ class PlaylistsScreen extends ConsumerWidget {
                               ),
                               Text(
                                 S.of(context).commonSongs(songs.length),
-                                style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                                style: Theme.of(context).textTheme.songSubtitle
+                                    .copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
                               ),
                             ],
                           ),
                         ),
+                        IconButton(
+                          onPressed: () => _showAddSongsPicker(
+                            ctx,
+                            ref,
+                            playlist,
+                            songs,
+                            setDialogState,
+                          ),
+                          tooltip: S.of(context).contextMenuAddPlaylist,
+                          icon: const Icon(Icons.playlist_add),
+                        ),
+                        const SizedBox(width: 4),
                         FilledButton.icon(
                           onPressed: () {
                             if (songs.isNotEmpty) {
@@ -476,11 +600,12 @@ class PlaylistsScreen extends ConsumerWidget {
                               padding: const EdgeInsets.all(32),
                               child: Text(
                                 S.of(context).playlistListEmpty,
-                                style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                                style: Theme.of(context).textTheme.songSubtitle
+                                    .copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
                               ),
                             ),
                           )
@@ -514,7 +639,9 @@ class PlaylistsScreen extends ConsumerWidget {
                                   songIdsToAdd: songIds,
                                 );
                               } catch (e) {
-                                debugPrint('Failed to add songs to playlist: $e');
+                                debugPrint(
+                                  'Failed to add songs to playlist: $e',
+                                );
                               }
                             },
                             itemBuilder: (ctx, i) {
@@ -534,20 +661,23 @@ class PlaylistsScreen extends ConsumerWidget {
                                   song.title,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.songTitle.copyWith(
-                                    fontSize: 13,
-                                  ),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.songTitle.copyWith(fontSize: 13),
                                 ),
                                 subtitle: Text(
                                   song.artist,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                                    fontSize: 11,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .songSubtitle
+                                      .copyWith(
+                                        fontSize: 11,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
                                 ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -555,12 +685,15 @@ class PlaylistsScreen extends ConsumerWidget {
                                     if (song.duration != null)
                                       Text(
                                         formatDuration(song.duration!),
-                                        style: Theme.of(context).textTheme.songDuration.copyWith(
-                                          fontSize: 11,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                        ),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .songDuration
+                                            .copyWith(
+                                              fontSize: 11,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
                                       ),
                                     const SizedBox(width: 4),
                                     Semantics(
@@ -578,7 +711,9 @@ class PlaylistsScreen extends ConsumerWidget {
                                             );
                                             ref.invalidate(playlistsProvider);
                                           } catch (e) {
-                                            debugPrint('Failed to remove song from playlist: $e');
+                                            debugPrint(
+                                              'Failed to remove song from playlist: $e',
+                                            );
                                           }
                                         },
                                         borderRadius: BorderRadius.circular(12),
@@ -710,9 +845,7 @@ class _PlaylistListTile extends StatelessWidget {
         playlist.name,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.songTitle.copyWith(
-          fontSize: 15,
-        ),
+        style: Theme.of(context).textTheme.songTitle.copyWith(fontSize: 15),
       ),
       subtitle: Text(
         S.of(context).playlistSongCountLabel(playlist.songCount ?? 0),
@@ -796,25 +929,28 @@ class _PlaylistCard extends StatelessWidget {
                       onTap: onTap,
                       borderRadius: BorderRadius.circular(8),
                       child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          playlist.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.songTitle,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          S
-                              .of(context)
-                              .playlistSongCountLabel(playlist.songCount ?? 0),
-                          style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            playlist.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.songTitle,
                           ),
-                        ),
+                          const SizedBox(height: 2),
+                          Text(
+                            S
+                                .of(context)
+                                .playlistSongCountLabel(
+                                  playlist.songCount ?? 0,
+                                ),
+                            style: Theme.of(context).textTheme.songSubtitle
+                                .copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
                         ],
                       ),
                     ),
