@@ -30,6 +30,28 @@ class SongContextMenu extends ConsumerWidget {
     )._showMenu(context, ref, position ?? const Offset(0, 0));
   }
 
+  static Future<void> addToPlaylist(
+    BuildContext context,
+    WidgetRef ref,
+    Song song,
+  ) {
+    return SongContextMenu(
+      song: song,
+      child: const SizedBox.shrink(),
+    )._showPlaylistPicker(context, ref);
+  }
+
+  static Future<void> deleteSong(
+    BuildContext context,
+    WidgetRef ref,
+    Song song,
+  ) {
+    return SongContextMenu(
+      song: song,
+      child: const SizedBox.shrink(),
+    )._deleteSong(context, ref);
+  }
+
   final Song song;
   final Widget child;
   final VoidCallback? onPlay;
@@ -195,56 +217,59 @@ class SongContextMenu extends ConsumerWidget {
         }
         break;
       case 'delete':
-        final backend = ref.read(backendClientProvider);
-        if (!backend.canMutateNas) {
-          messenger.showSnackBar(_snackBar(l10n.nasAgentConfigRequired));
-          break;
-        }
-        if (!context.mounted) return;
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(l10n.contextMenuDeleteTitle),
-            content: Text(
-              l10n.contextMenuDeleteConfirm(song.title, song.artist),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l10n.commonCancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                ),
-                child: Text(l10n.commonDelete),
-              ),
-            ],
-          ),
-        );
-        if (confirmed != true) return;
-        try {
-          final ok = await backend.deleteSongById(song.id);
-          if (ok) {
-            final queue = playerService.queue;
-            final idx = queue.indexWhere(
-              (candidate) => candidate.storageKey == song.storageKey,
-            );
-            if (idx >= 0) playerService.removeFromQueue(idx);
-            ref.invalidate(newestAlbumsProvider);
-            ref.invalidate(recentAlbumsProvider);
-            await ref.read(libraryProvider.notifier).refresh();
-            onDeleted?.call();
-            messenger.showSnackBar(_snackBar(l10n.contextMenuDeleted));
-          } else {
-            messenger.showSnackBar(_snackBar(l10n.contextMenuDeleteFailed));
-          }
-        } catch (error) {
-          debugPrint('[Delete] failed: ${error.runtimeType}');
-          messenger.showSnackBar(_snackBar(l10n.contextMenuDeleteFailed));
-        }
+        if (context.mounted) await _deleteSong(context, ref);
         break;
+    }
+  }
+
+  Future<void> _deleteSong(BuildContext context, WidgetRef ref) async {
+    final backend = ref.read(backendClientProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = S.of(context);
+    if (!backend.canMutateNas) {
+      messenger.showSnackBar(_snackBar(l10n.nasAgentConfigRequired));
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.contextMenuDeleteTitle),
+        content: Text(l10n.contextMenuDeleteConfirm(song.title, song.artist)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: Text(l10n.commonDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final ok = await backend.deleteSongById(song.id);
+      if (!ok) {
+        messenger.showSnackBar(_snackBar(l10n.contextMenuDeleteFailed));
+        return;
+      }
+      final playerService = ref.read(audioPlayerServiceProvider);
+      final index = playerService.queue.indexWhere(
+        (candidate) => candidate.storageKey == song.storageKey,
+      );
+      if (index >= 0) playerService.removeFromQueue(index);
+      ref.invalidate(newestAlbumsProvider);
+      ref.invalidate(recentAlbumsProvider);
+      await ref.read(libraryProvider.notifier).refresh();
+      onDeleted?.call();
+      messenger.showSnackBar(_snackBar(l10n.contextMenuDeleted));
+    } catch (error) {
+      debugPrint('[Delete] failed: ${error.runtimeType}');
+      messenger.showSnackBar(_snackBar(l10n.contextMenuDeleteFailed));
     }
   }
 
@@ -285,13 +310,13 @@ class SongContextMenu extends ConsumerWidget {
     );
   }
 
-  void _showPlaylistPicker(BuildContext context, WidgetRef ref) async {
+  Future<void> _showPlaylistPicker(BuildContext context, WidgetRef ref) async {
     final service = ref.read(playlistServiceProvider);
     try {
       final playlists = await service.getPlaylists();
       if (!context.mounted) return;
 
-      showDialog(
+      await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(S.of(context).contextMenuSelectPlaylist),
