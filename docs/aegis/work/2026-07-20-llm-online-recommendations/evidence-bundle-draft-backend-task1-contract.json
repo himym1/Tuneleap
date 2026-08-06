@@ -1,8 +1,0 @@
-{
-  "schemaVersion": "aegis.schema.v0",
-  "artifactKey": "backend-task1-contract",
-  "type": "test",
-  "source": "backend commit 3fb8b5b and /tmp task1 verification",
-  "summary": "12 unittest passed; compileall app/tests, contract JSON parse, and git diff check passed; two-stage review approved.",
-  "verifier": "main agent fresh commands plus independent reviewers"
-}

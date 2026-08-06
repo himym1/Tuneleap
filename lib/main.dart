@@ -20,8 +20,11 @@ void main() async {
   // ── 安全存储与服务器命名空间兼容迁移 ──
   await migratePasswordsToSecureStorage(prefs);
   final serverId = await migrateLegacyServerScopedData(prefs);
-  var serverPassword = await preloadServerPassword();
-  // 降级：secure storage 不可用时从 SharedPreferences 读取
+  var serverPassword = await preloadServerEntryPassword(serverId);
+  if (serverPassword.isEmpty) {
+    serverPassword = await preloadServerPassword();
+  }
+  // Fallback when secure storage is unavailable.
   if (serverPassword.isEmpty) {
     serverPassword = prefs.getString('server_password') ?? '';
   }
@@ -37,8 +40,9 @@ void main() async {
     serverUrl: url,
     serverPassword: serverPassword,
   );
-  final backendUrl = prefs.getString(backendUrlPreferenceKey(serverId)) ?? '';
-  final backendApiKey = await preloadServerBackendApiKey(prefs, serverId);
+  final backendUrl = resolveCloudOrigin(
+    prefs.getString(backendUrlPreferenceKey(serverId)) ?? '',
+  );
   final nasAgentUrl =
       prefs.getString(nasAgentUrlPreferenceKey(serverId)) ??
       (url.isNotEmpty ? BackendClient.inferBaseUrl(url) : '');
@@ -52,9 +56,8 @@ void main() async {
   }
   backendClient.configure(
     cloudBaseUrl: backendUrl,
-    cloudApiKey: backendApiKey,
     nasAgentUrl: nasAgentUrl,
-    nasAgentKey: nasAgentKey.isNotEmpty ? nasAgentKey : backendApiKey,
+    nasAgentKey: nasAgentKey,
   );
 
   final strings = systemLocalizations();
@@ -90,10 +93,8 @@ void main() async {
 
   // 预设密码到内存缓存
   container.read(cachedPasswordProvider.notifier).set(serverPassword);
-  container.read(cachedBackendApiKeyProvider.notifier).set(backendApiKey);
-  container
-      .read(cachedNasAgentKeyProvider.notifier)
-      .set(nasAgentKey.isNotEmpty ? nasAgentKey : backendApiKey);
+  container.read(cachedBackendApiKeyProvider.notifier).set('');
+  container.read(cachedNasAgentKeyProvider.notifier).set(nasAgentKey);
 
   // 加载多服务器密码
   await container.read(serversListProvider.notifier).loadPasswords();

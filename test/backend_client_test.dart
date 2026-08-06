@@ -94,12 +94,9 @@ void main() {
     test('inferBaseUrl reuses host and replaces port', () {
       expect(
         BackendClient.inferBaseUrl('http://192.168.1.10:4533'),
-        'http://192.168.1.10:8503',
+        'http://192.168.1.10:8504',
       );
-      expect(
-        BackendClient.inferBaseUrl('https://music.example.com'),
-        'https://music.example.com:8503',
-      );
+      expect(BackendClient.inferBaseUrl('https://music.example.com'), '');
       expect(BackendClient.inferBaseUrl('not-a-url'), '');
     });
 
@@ -152,6 +149,7 @@ void main() {
         expect(songs, hasLength(1));
         expect(songs.first.isOnline, isTrue);
         expect(songs.first.onlineSource, 'netease');
+        expect(songs.first.onlineProvider, 'gdstudio');
         expect(songs.first.storageKey, 'solara:netease:5257138');
       },
     );
@@ -174,6 +172,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'kuwo',
+        onlineProvider: 'meting',
       );
 
       final url = await client.getPlaybackUrl(targetSong, maxBitRate: 192);
@@ -181,6 +180,7 @@ void main() {
       expect(url, 'https://cdn.example.com/song.mp3');
       expect(captured.path, 'http://nas:10086/v1/music/url');
       expect(captured.queryParameters['source'], 'kuwo');
+      expect(captured.queryParameters['provider'], 'meting');
       expect(captured.queryParameters['br'], '192');
     });
 
@@ -195,6 +195,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'netease',
+        onlineProvider: 'meting',
         coverArt: '109951166681216835',
       );
 
@@ -207,7 +208,37 @@ void main() {
       );
       expect(uri.queryParameters['id'], '109951166681216835');
       expect(uri.queryParameters['source'], 'netease');
+      expect(uri.queryParameters['provider'], 'meting');
       expect(uri.queryParameters['size'], '640');
+    });
+
+    test('resolveCoverArtUrl pins the winning provider', () async {
+      late RequestOptions captured;
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          captured = options;
+          return _jsonBody({'url': 'https://cdn.example.com/cover.jpg'});
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(baseUrl: 'http://nas:10086');
+      const song = Song(
+        id: '1',
+        title: 'Track',
+        album: '',
+        albumId: '',
+        artist: 'Artist',
+        artistId: '',
+        backend: SongBackend.solara,
+        onlineSource: 'netease',
+        onlineProvider: 'meting',
+        coverArt: 'cover-1',
+      );
+
+      final url = await client.resolveCoverArtUrl(song);
+
+      expect(url, 'https://cdn.example.com/cover.jpg');
+      expect(captured.queryParameters['source'], 'netease');
+      expect(captured.queryParameters['provider'], 'meting');
     });
 
     test('queueNasDownload posts expected payload', () async {
@@ -230,6 +261,7 @@ void main() {
         filename: 'solara_netease_1.flac',
         song: {'id': '1', 'name': 'Track'},
         picUrl: 'http://cover/1',
+        force: true,
       );
 
       expect(message, 'queued');
@@ -239,6 +271,70 @@ void main() {
       expect(captured.data['filename'], 'solara_netease_1.flac');
       expect(captured.data['song'], {'id': '1', 'name': 'Track'});
       expect(captured.data['picUrl'], 'http://cover/1');
+      expect(captured.data['force'], isTrue);
+    });
+
+    test('queueNasDownload surfaces NAS duplicate conflict', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          return _jsonBody({
+            'detail': 'song already exists in the Navidrome library',
+          }, statusCode: 409);
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(
+          cloudBaseUrl: 'http://cloud:8600',
+          nasAgentUrl: 'http://nas:8504',
+          nasAgentKey: 'nas-key',
+        );
+
+      expect(
+        () => client.queueNasDownload(
+          url: 'https://cdn.example.com/song.mp3',
+          filename: 'song.mp3',
+          song: {'title': 'Song'},
+        ),
+        throwsA(isA<NasDuplicateException>()),
+      );
+    });
+
+    test('NAS mutations require a key and a secure endpoint', () async {
+      final client = BackendClient(dio: Dio())
+        ..configure(cloudBaseUrl: 'https://cloud.example.com');
+
+      expect(client.canMutateNas, isFalse);
+      expect(
+        () => client.queueNasDownload(
+          url: 'https://cdn.example.com/song.mp3',
+          filename: 'song.mp3',
+          song: {'title': 'Song'},
+        ),
+        throwsStateError,
+      );
+
+      client.configure(
+        nasAgentUrl: 'https://nas-agent.himym.us.ci',
+        nasAgentKey: 'nas-key',
+      );
+      expect(client.canMutateNas, isTrue);
+
+      client.configure(
+        nasAgentUrl: 'http://192.168.8.146:8504',
+        nasAgentKey: 'nas-key',
+      );
+      expect(client.canMutateNas, isTrue);
+
+      client.configure(
+        nasAgentUrl: 'http://154.21.95.143:8504',
+        nasAgentKey: 'nas-key',
+      );
+      expect(client.canMutateNas, isFalse);
+
+      client.configure(
+        nasAgentUrl: 'https://nas-agent.himym.us.ci',
+        nasAgentKey: '',
+      );
+      expect(client.canMutateNas, isFalse);
     });
 
     test('getRawLyrics sends fallback song context', () async {
@@ -247,6 +343,7 @@ void main() {
           expect(options.path, 'http://nas:10086/v1/music/lyric');
           expect(options.queryParameters['id'], '5257138');
           expect(options.queryParameters['source'], 'joox');
+          expect(options.queryParameters['provider'], 'meting');
           return _jsonBody({
             'lyric': '[00:01]第一句',
             'provider': 'gdstudio',
@@ -264,6 +361,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'joox',
+        onlineProvider: 'meting',
       );
 
       expect(await client.getRawLyrics(song), '[00:01]第一句');
@@ -274,6 +372,7 @@ void main() {
         ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
           expect(options.path, 'http://nas:10086/v1/music/lyric');
           expect(options.queryParameters['source'], 'netease');
+          expect(options.queryParameters['provider'], 'gdstudio');
           return _jsonBody({
             'lyric': '[00:01.23]第一句\n[00:02.50]第二句\n纯文本结尾',
             'provider': 'gdstudio',
@@ -291,6 +390,7 @@ void main() {
         artistId: '',
         backend: SongBackend.solara,
         onlineSource: 'netease',
+        onlineProvider: 'gdstudio',
       );
 
       final lyrics = await client.getLyrics(song);
@@ -315,8 +415,11 @@ void main() {
             captured = options;
             return _jsonBody(_pageJson());
           });
-        final client = BackendClient(dio: dio)
-          ..configure(baseUrl: 'http://nas:10086', apiKey: 'secret-key');
+        final client = BackendClient(
+          dio: dio,
+          cloudTokenProvider: ({bool forceRefresh = false}) async =>
+              'access-token',
+        )..configure(baseUrl: 'http://nas:10086');
 
         final recent = <Song>[
           for (var i = 0; i < 35; i++)
@@ -338,7 +441,7 @@ void main() {
         expect(page.mode, RecommendationMode.ai);
         expect(captured.method, 'POST');
         expect(captured.path, 'http://nas:10086/v1/recommendations/sessions');
-        expect(captured.headers['X-API-Key'], 'secret-key');
+        expect(captured.headers['Authorization'], 'Bearer access-token');
         expect(captured.queryParameters, isEmpty);
         expect(captured.data['refresh'], isTrue);
         expect(captured.data['pageSize'], 7);
@@ -631,6 +734,36 @@ void main() {
         throwsA(isA<ArgumentError>()),
       );
       expect(called, isFalse);
+    });
+    test('refreshes Bearer token once after a Cloud 401', () async {
+      var requests = 0;
+      final refreshFlags = <bool>[];
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          requests += 1;
+          if (requests == 1) {
+            expect(options.headers['Authorization'], 'Bearer access-old');
+            return ResponseBody.fromString('{}', 401);
+          }
+          expect(options.headers['Authorization'], 'Bearer access-new');
+          return _jsonBody(_pageJson());
+        });
+      final client = BackendClient(
+        dio: dio,
+        cloudTokenProvider: ({bool forceRefresh = false}) async {
+          refreshFlags.add(forceRefresh);
+          return forceRefresh ? 'access-new' : 'access-old';
+        },
+      )..configure(baseUrl: 'http://cloud:8600');
+
+      final page = await client.createRecommendationSession(
+        const [],
+        pageSize: 1,
+      );
+
+      expect(page.sessionId, 'session-1');
+      expect(refreshFlags, [false, true]);
+      expect(requests, 2);
     });
   });
 }

@@ -133,4 +133,47 @@ void main() {
       expect(prefs.getString(nasAgentKeyPreferenceKey('a')), isNull);
     },
   );
+  test('legacy Cloud key is removed and NAS defaults to port 8504', () async {
+    SharedPreferences.setMockInitialValues({
+      'servers_list': jsonEncode([
+        {
+          'id': 'a',
+          'name': 'A',
+          'url': 'http://music.local:4533',
+          'username': 'alice',
+          'backendApiKey': 'legacy-shared-key',
+          'isActive': true,
+        },
+      ]),
+      activeServerIdPreferenceKey: 'a',
+      'server_url': 'http://music.local:4533',
+      backendApiKeyPreferenceKey('a'): 'legacy-shared-key',
+    });
+    final prefs = await SharedPreferences.getInstance();
+
+    await migratePasswordsToSecureStorage(prefs);
+    await migrateActiveBackendConfiguration(
+      prefs,
+      serverId: 'a',
+      serverUrl: 'http://music.local:4533',
+      serverPassword: 'must-not-be-copied',
+    );
+
+    final servers = jsonDecode(prefs.getString('servers_list')!) as List;
+    expect((servers.single as Map).containsKey('backendApiKey'), isFalse);
+    expect(prefs.getString(backendApiKeyPreferenceKey('a')), isNull);
+    expect(
+      prefs.getString(nasAgentUrlPreferenceKey('a')),
+      'http://music.local:8504',
+    );
+  });
+
+  test('NAS agent inference is limited to LAN and private-overlay hosts', () {
+    expect(inferNasAgentUrl('https://music.example.com'), isEmpty);
+    expect(inferNasAgentUrl('http://154.21.95.143:4533'), isEmpty);
+    expect(
+      inferNasAgentUrl('http://100.64.10.20:4533'),
+      'http://100.64.10.20:8504',
+    );
+  });
 }

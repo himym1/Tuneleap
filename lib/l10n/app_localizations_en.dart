@@ -444,6 +444,17 @@ class SEn extends S {
   }
 
   @override
+  String get importAnyway => 'Import Anyway';
+
+  @override
+  String get importDuplicateCheckFailed =>
+      'Could not verify the NAS library. Import was stopped.';
+
+  @override
+  String get nasAgentConfigRequired =>
+      'Configure the LAN NAS agent URL and key before importing or deleting';
+
+  @override
   String get commonContinue => 'Continue';
 
   @override
@@ -632,25 +643,67 @@ class SEn extends S {
       'navidrome-cloud public URL, e.g. https://cloud.example.com';
 
   @override
-  String get backendApiKey => 'Cloud API key';
+  String get cloudAccount => 'Cloud account';
 
   @override
-  String get backendApiKeyHint =>
-      'Stored separately from the Navidrome password and NAS agent key';
+  String get cloudSignedIn => 'Signed in';
+
+  @override
+  String get cloudSignedOut => 'Not signed in';
+
+  @override
+  String get cloudSignIn => 'Sign in';
+
+  @override
+  String get cloudRegister => 'Register';
+
+  @override
+  String get cloudUsername => 'Cloud username';
+
+  @override
+  String get cloudCredential => 'Cloud account credential';
+
+  @override
+  String get cloudSignOut => 'Sign out';
+
+  @override
+  String get cloudAuthFailed => 'Cloud authentication failed';
+
+  @override
+  String get cloudInvalidInput =>
+      'Username must have at least 2 characters and credential at least 8 characters';
+
+  @override
+  String get cloudInvalidCredentials =>
+      'Incorrect Cloud username or credential';
+
+  @override
+  String get cloudUsernameExists =>
+      'This Cloud username already exists. Sign in or choose another username.';
+
+  @override
+  String get cloudNetworkError =>
+      'Could not connect to Cloud. Check your network and try again';
+
+  @override
+  String get cloudAuthRequired => 'Sign in to Cloud to load recommendations';
+
+  @override
+  String get searchAuthRequired =>
+      'Cloud session expired. Sign in again to search.';
 
   @override
   String get nasAgentUrl => 'NAS agent URL';
 
   @override
   String get nasAgentUrlHint =>
-      'Optional; defaults to the Navidrome host on port 8503';
+      'Required for import/delete; use a LAN URL such as http://192.168.1.10:8504';
 
   @override
   String get nasAgentKey => 'NAS agent key';
 
   @override
-  String get nasAgentKeyHint =>
-      'Import/delete only; separate from the cloud API key';
+  String get nasAgentKeyHint => 'Used only for LAN import/delete';
 
   @override
   String get serverUrlExample => 'https://music.example.com';
@@ -672,7 +725,21 @@ class SEn extends S {
   String get searchNoResult => 'No results found';
 
   @override
+  String searchError(String error) {
+    return 'Search failed: $error';
+  }
+
+  @override
   String get searchResults => 'Search Results';
+
+  @override
+  String get searchLoadMore => 'Load More';
+
+  @override
+  String get searchLoadingMore => 'Loading...';
+
+  @override
+  String get searchLoadMoreFailed => 'Could not load the next page';
 
   @override
   String get libraryNoArtists => 'No artists';
@@ -748,6 +815,26 @@ class SEn extends S {
   String get playlistListEmpty => 'Playlist is empty';
 
   @override
+  String get playlistAddSongs => 'Add Songs';
+
+  @override
+  String get playlistAddSongsTitle => 'Add Songs to Playlist';
+
+  @override
+  String get playlistSearchSongsHint => 'Search local library';
+
+  @override
+  String get playlistNoMatchingSongs => 'No matching songs';
+
+  @override
+  String get playlistAddSelected => 'Add Selected';
+
+  @override
+  String playlistSongsAdded(int count) {
+    return 'Added $count songs';
+  }
+
+  @override
   String get playlistRenameTitle => 'Rename Playlist';
 
   @override
@@ -757,6 +844,26 @@ class SEn extends S {
   String songContextAddedToPlaylist(String name) {
     return 'Added to $name';
   }
+
+  @override
+  String get playlistSaveQueue => 'Save Queue as Playlist';
+
+  @override
+  String playlistQueueSaved(String name) {
+    return 'Saved queue as \"$name\"';
+  }
+
+  @override
+  String playlistQueueSavedSkipped(String name, int count) {
+    return 'Saved as \"$name\"; skipped $count online songs';
+  }
+
+  @override
+  String get playlistQueueNoLocalSongs =>
+      'Only local library songs can be saved to a playlist';
+
+  @override
+  String get playlistQueueSaveFailed => 'Failed to save queue';
 
   @override
   String get defaultServerName => 'My Server';
@@ -783,16 +890,37 @@ class SEn extends S {
   String get sidebarLibrary => 'LIBRARY';
 
   @override
+  String get libraryBrowse => 'Browse library';
+
+  @override
   String get homeNewestAlbums => 'Latest Albums';
 
   @override
-  String get homeDailyRecommend => 'For You';
+  String get homeDailyRecommend => 'Discover New Music';
 
   @override
   String get homeRecentlyPlayed => 'Recently Played';
 
   @override
+  String get homeYourMusic => 'Your Music';
+
+  @override
+  String get homeContinueListening => 'Continue Listening';
+
+  @override
+  String get homeLocalMix => 'Local Mix';
+
+  @override
+  String get homeShuffleLocal => 'Shuffle Library';
+
+  @override
+  String get homeLocalPlaybackFailed => 'Could not start local playback';
+
+  @override
   String get homeViewMore => 'More';
+
+  @override
+  String get homeRefreshed => 'Home refreshed';
 
   @override
   String get libraryGenresTitle => 'Genres';

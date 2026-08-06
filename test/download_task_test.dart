@@ -121,6 +121,7 @@ void main() {
         'songAlbumId': '',
         'songBackend': 'solara',
         'songOnlineSource': 'netease',
+        'songOnlineProvider': 'gdstudio',
         'songUrlId': '12345',
         'songLyricId': '12345',
         'localPath': '/downloads/online.mp3',
@@ -130,6 +131,7 @@ void main() {
 
       expect(task.song.backend, SongBackend.solara);
       expect(task.song.onlineSource, 'netease');
+      expect(task.song.onlineProvider, 'gdstudio');
       expect(task.song.urlId, '12345');
       expect(task.song.lyricId, '12345');
       expect(task.song.isOnline, isTrue);

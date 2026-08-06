@@ -1,175 +1,113 @@
 # ADR-0004: Cloud control plane + NAS import agent
 
-- Status: Accepted
+- Status: Accepted and implemented
 - Date: 2026-07-29
-- Supersedes in part: local monorepo assumption that companion backend is same-host `:8503` only (see ADR-0001 migration note)
+- Implemented: 2026-07-30
+- Supersedes: single companion backend on NAS `:8503`
 
 ## Context
 
-`navidrome_player` is a Flutter client for personal Navidrome libraries, with online search/import via a companion backend.
+The original `navidrome-backend` combined public music proxying, recommendations, private app updates, NAS file writes, and direct `navidrome.db` access. That topology coupled internet-facing work to home storage and made one API Key protect unrelated trust boundaries.
 
-Today that companion is a single FastAPI process (`navidrome-backend` on NAS `himym:8503`) that:
+The product requires:
 
-1. Proxies a third-party music HTTP API shaped like Solara / gdstudio (`MUSIC_API_BASE_URL=https://music-api.gdstudio.xyz/api.php`).
-2. Imports audio onto the NAS music volume and mutates `navidrome.db`.
-3. Serves private app updates and recommendation state from the same process.
-
-Problems:
-
-- **Product coupling**: search/auth/update belong on the public internet; import/delete must touch local disks.
-- **Upstream coupling**: the service is effectively a thin wrapper around one open upstream, not an owned control plane.
-- **Search UX**: the Flutter client serial-searches multiple sources and merges lists; the desired product is “one query → one result set as soon as any upstream succeeds” (first-success), not multi-source dump.
-- **OpenMusic** ([qq01-hub/openmusic](https://github.com/qq01-hub/openmusic)) was evaluated as a multi-room listen product. Its **Meting / custom music HTTP APIs** are useful as adapters only; its room/Socket/Redis stack is out of scope.
-
-User direction (2026-07-29): stop wrapping an open project as the product; rebuild two servers; keep the Flutter app as the third project.
+- Public search, recommendation, authentication, and update delivery.
+- Local import/delete operations that can safely access NAS storage.
+- A Flutter client that does not merge multiple online source result sets.
+- Recommendation filtering that excludes songs already present in the NAS library without mounting NAS data on the public server.
 
 ## Decision
 
 ### Three projects
 
-| Project | Role | Runtime | Data |
-|---|---|---|---|
-| `navidrome_player` | Flutter client | existing | local prefs / secure storage |
-| `navidrome-cloud` | Public control plane | FastAPI + Uvicorn | **Postgres** |
-| `navidrome-nas-agent` | Local import/delete agent | FastAPI + Uvicorn | local volume + `navidrome.db`; optional tiny **SQLite** for agent-only state |
+| Project | Role | Runtime data |
+|---|---|---|
+| `navidrome_player` | Flutter client | local preferences and secure storage |
+| `navidrome-cloud` | Public control plane | Postgres |
+| `navidrome-nas-agent` | Local import/delete/library agent | NAS music volume and `navidrome.db` |
 
-Do **not** introduce OpenMusic’s Express + Redis + Socket.IO stack for this player.
+### Cloud boundary
 
-### Upstream music adapters (not product cores)
+`navidrome-cloud` owns:
 
-Cloud owns a music facade with pluggable adapters. Day-1 targets:
+- First-success online music search.
+- Playback URL, cover, and lyric resolution.
+- Recommendation sessions, candidates, profile, feedback, and library exclusion.
+- Account and Refresh Token APIs.
+- Private update metadata and artifact downloads.
 
-1. **Gdstudio / Solara-shaped API** (current upstream): `types=search|url|pic|lyric` style requests against configurable base URL(s). Historical default: `https://music-api.gdstudio.xyz/api.php`.
-2. **Meting / OpenMusic-shaped API**: Meting-compatible query form and/or OpenMusic-style custom music endpoint templates (`server` + `type` + `id` / keyword), used only as HTTP clients.
+Cloud does not mount NAS music storage and does not open `navidrome.db`.
 
-Rules:
+### NAS boundary
 
-- No embedding or redistributing those projects as our service identity.
-- Multi-upstream means **failover / first-success across adapters or mirrors**, not merging NetEase + Kuwo + JOOX result lists into one UI dump.
-- Response may still carry `source` / `provider` metadata for playback URL resolution.
+`navidrome-nas-agent` owns:
+
+- `/v1/nas/import`
+- `/v1/songs/delete`
+- library identity reads used by Cloud recommendation filtering
+- local Navidrome scan/file/database integration
+
+The NAS Agent does not expose public search, authentication, recommendation state, or update artifacts.
 
 ### Search semantics
 
-`GET /v1/music/search`:
+Cloud adapters use ordered failover / first-success. One query returns one normalized result set from the first non-empty successful source. Flutter does not concatenate source lists.
 
-- Input: one user query (optional preferred source hint).
-- Behavior: ordered failover or short race across upstreams.
-- Output: **one** normalized song list from the first non-empty success.
-- Empty everywhere → structured error (502/503), not a partial multi-source mashup.
+### Credentials
 
-Flutter must stop serial multi-source `addAll` search once cloud search is live.
-
-### API sketch — cloud (`navidrome-cloud`)
-
-Public HTTPS. Auth: app session / API key (evolve to register/login).
-
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/health` | No NAS dependency |
-| GET | `/v1/music/search` | First-success |
-| GET | `/v1/music/url` | Playback URL via same adapter chain |
-| GET | `/v1/music/cover` | |
-| GET | `/v1/music/lyric` | |
-| GET | `/version.json` | Private update metadata |
-| GET | `/releases/{filename}` | Authenticated artifact download |
-| POST | `/v1/auth/register` | New product capability |
-| POST | `/v1/auth/login` | |
-| POST | `/v1/auth/refresh` | |
-| * | `/v1/recommendations/*` | Migrate later; keep contract versioned |
-
-Cloud **does not** mount NAS music disks and **does not** open `navidrome.db`.
-
-### API sketch — NAS agent (`navidrome-nas-agent`)
-
-LAN / Tailscale / restricted tunnel only. Auth: **separate** `nas_agent_key` (not Navidrome password, not cloud user password).
-
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/health` | Local only |
-| POST | `/v1/nas/import` | Download + tag write to music volume (evolves today’s `/v1/nas/download`) |
-| POST | `/v1/songs/delete` | Delete files + Navidrome DB rows |
-| POST | `/v1/nas/scan` | Optional trigger for Navidrome rescan |
-
-NAS agent **does not** expose public search, login, or update APIs.
-
-### Credentials (three secrets, not one)
-
-| Secret | Used for |
+| Secret | Scope |
 |---|---|
 | Navidrome username/password | Subsonic only |
-| Cloud credential (`cloud_token` / API key → later user session) | Search, updates, recommendations, auth |
-| `nas_agent_key` | Import / delete on NAS |
+| Cloud user Access/Refresh Token | App search, recommendations, auth, updates |
+| Cloud server API Key | Operations and server-side release verification only |
+| NAS Agent Key | NAS import/delete |
 
-ADR-0001 already separated `backendUrl` / `backendApiKey` from Navidrome password; this ADR further splits **cloud** vs **nas-agent** endpoints so same-host `:8503` inference is no longer the long-term topology.
+The Cloud server API Key stays in the Cloud environment and is never provisioned to Flutter. The App obtains Bearer tokens through Cloud register/login/refresh. NAS Agent uses an independent LAN credential.
 
 ### Client configuration
 
-App must configure independently:
+The App stores these endpoints independently:
 
-- `navidromeUrl` (Subsonic)
-- `cloudApiUrl`
-- `nasAgentUrl` (may default for LAN, but must be overridable)
+- Navidrome URL
+- Cloud URL (`backendUrl` compatibility field)
+- NAS Agent URL
 
-Import path preference:
+When NAS Agent URL is omitted, the App infers the Navidrome host on LAN port `8504`. Retired or empty Cloud URLs resolve to the production HTTPS Origin. Refresh Tokens are stored in platform secure storage; Access Tokens remain in memory.
 
-1. App resolves metadata/URL from **cloud**.
-2. App calls **nas-agent** to import (LAN best).
-3. Optional later: cloud-mediated import for remote-only setups (bandwidth cost).
+### Private updates
 
-### Deployment
+Release files are published to `/opt/navidrome-cloud/releases` on `dmit` and mounted read-only at `/app/releases`. The App uses its Cloud Bearer token to check `https://player.himym.us.ci/version.json`, downloads from the same Origin under `/releases/`, and verifies SHA-256 before opening the installer.
 
-| Component | Where |
+## Production deployment
+
+| Component | Production location |
 |---|---|
-| `navidrome-cloud` | VPS + HTTPS |
-| Private updates | Same VPS and/or Cloudflare in front (existing `player.himym.us.ci` pattern may move origin to VPS) |
-| `navidrome-nas-agent` | himym NAS Docker; no public search port |
-| Navidrome | Stays on NAS with music volume |
+| Cloud | `dmit:/opt/navidrome-cloud`, loopback `8600`, Cloudflare Tunnel HTTPS |
+| Postgres | DMIT Docker network / loopback only |
+| NAS Agent | `himym:/volume1/docker/navidrome-nas-agent`, LAN `192.168.8.146:8504` |
+| Navidrome | himym NAS |
 
-### Language / database
+Cloud reaches the NAS Agent only through the restricted private mapping. Public access to `5432`, `8504`, and `8600` is blocked.
 
-- **FastAPI** for both new servers (team already owns FastAPI companion code; Go/Rust deferred).
-- **Postgres** on cloud for accounts, sessions, recommendations, audit.
-- **SQLite** only for tiny agent-local state if needed; Navidrome’s DB remains Navidrome’s.
-- Redis optional later (rate limit / short search cache), not Day-1 required.
+## Migration result
 
-## Alternatives rejected
-
-| Option | Why rejected |
-|---|---|
-| Keep single `navidrome-backend` on NAS for all APIs | Couples public search/auth to home disk and home egress |
-| Fork/embed OpenMusic server | Wrong product (rooms/chat); heavy Redis/Socket stack |
-| Move import to VPS | VPS cannot own the music volume / `navidrome.db` without fragile mounts |
-| Client multi-source merge search | Noisy UX; desired “有结果即可” is first-success |
-| Rust/Go rewrite as default | Higher cost than FastAPI for this CRUD + HTTP proxy shape |
+- Cloud runtime state migrated from recommendation SQLite to Postgres.
+- Cloud obtains NAS library identities from the NAS Agent.
+- Flutter routes Cloud requests through user Bearer tokens and NAS operations through a separate LAN key.
+- The monolithic `navidrome-backend:8503`, its deployment directory, local source checkout, images, and migration backup were retired and deleted.
+- Private update publishing moved from NAS to Cloud.
 
 ## Consequences
 
-- Two new server repos (or clearly separated deployables) plus the Flutter app = **three active projects**.
-- Existing `navidrome-backend` becomes a migration source / temporary bridge, not the long-term product name.
-- Flutter search, backend URL inference, import, and update check need a staged cutover.
-- Upstream ToS/stability risk remains; adapters isolate failure and allow dropping a provider without rewriting the app.
-- Private update publishing pipeline must point at cloud origin after cutover.
-- Recommendation store migrates from NAS SQLite to cloud Postgres (or remains temporarily on old backend until Phase recommendations).
-
-## Migration phases (non-binding schedule)
-
-0. This ADR + OpenAPI sketches frozen.
-1. Cloud music facade with multi-upstream first-success (can still be tested against current clients via temporary URL).
-2. Extract NAS agent (import/delete only).
-3. Flutter: cloud + nas-agent wiring; remove multi-source merge search.
-4. Auth + updates fully on cloud.
-5. Retire monolithic `:8503` companion.
+- Public control-plane availability no longer depends on mounting the NAS database or music volume.
+- Import/delete remain available only where NAS storage is reachable.
+- Endpoint configuration is explicit and testable.
+- New music providers remain adapters behind a stable Cloud API.
+- Release publishing must complete artifact checksum validation before replacing `version.json`.
 
 ## References
 
-- Current companion: `/Users/wangjianguo/MyProject/navidrome-backend`
-- Player dual media boundary: wiki `navidrome-player-dual-media-backend`
-- OpenMusic upstream (adapter reference only): https://github.com/qq01-hub/openmusic
-- Gdstudio-shaped upstream historically configured as `MUSIC_API_BASE_URL`
-- Related ADRs: `0001-multi-server-session-isolation.md`, `0003-deterministic-online-recommendation-algorithm.md`
-
-## Scaffold locations (2026-07-29)
-
-- Cloud scaffold: `/Users/wangjianguo/MyProject/navidrome-cloud` (docs under `docs/`, default port `8600`)
-- NAS agent scaffold: `/Users/wangjianguo/MyProject/navidrome-nas-agent` (docs under `docs/`, default port `8503`)
-- Both are empty-implementation shells (`501` until filled); develop against each repo's `docs/DEVELOPMENT.md`.
+- [System architecture](../architecture.md)
+- [Private update release](../release.md)
+- [ADR-0001 multi-server session isolation](./0001-multi-server-session-isolation.md)
+- [ADR-0003 deterministic online recommendation](./0003-deterministic-online-recommendation-algorithm.md)

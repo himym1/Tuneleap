@@ -3,7 +3,7 @@
     "navHome": "首页",
     "navLibrary": "音乐库",
     "navSearch": "搜索",
-    "navPlaylists": "播放列表",
+    "navPlaylists": "歌单",
     "navSettings": "设置",
     "navFavorites": "收藏",
     "navDownloads": "下载管理",
@@ -205,6 +205,9 @@
             "artist": { "type": "String" }
         }
     },
+    "importAnyway": "仍然导入",
+    "importDuplicateCheckFailed": "无法核对 NAS 曲库，已停止导入",
+    "nasAgentConfigRequired": "请先配置局域网 NAS Agent 地址和 Key，再执行导入或删除",
     "commonContinue": "继续",
     "contextMenuQueueingNavidrome": "正在提交到 NAS 下载队列…",
     "contextMenuQueuedNavidrome": "已提交到 NAS 下载队列",
@@ -336,19 +339,41 @@
     "multiServerPassword": "密码",
     "backendUrl": "云端 API 地址",
     "backendUrlHint": "navidrome-cloud 公网地址，例如 https://cloud.example.com",
-    "backendApiKey": "云端 API Key",
-    "backendApiKeyHint": "与 Navidrome 密码、NAS Agent Key 分开保存",
+    "cloudAccount": "Cloud 账号",
+    "cloudSignedIn": "已登录",
+    "cloudSignedOut": "未登录",
+    "cloudSignIn": "登录",
+    "cloudRegister": "注册",
+    "cloudUsername": "Cloud 用户名",
+    "cloudCredential": "Cloud 账号凭据",
+    "cloudSignOut": "退出 Cloud",
+    "cloudAuthFailed": "Cloud 认证失败",
+    "cloudInvalidInput": "用户名至少 2 个字符，账号凭据至少 8 个字符",
+    "cloudInvalidCredentials": "Cloud 用户名或账号凭据错误",
+    "cloudUsernameExists": "该 Cloud 用户名已存在，请直接登录或更换用户名",
+    "cloudNetworkError": "无法连接 Cloud，请检查网络后重试",
+    "cloudAuthRequired": "登录 Cloud 后加载推荐",
+  "searchAuthRequired": "Cloud 登录已失效，请重新登录后再搜索",
     "nasAgentUrl": "NAS Agent 地址",
-    "nasAgentUrlHint": "可选，默认使用 Navidrome 主机的 8503 端口",
+    "nasAgentUrlHint": "导入/删除必填，请使用局域网地址，例如 http://192.168.1.10:8504",
     "nasAgentKey": "NAS Agent Key",
-    "nasAgentKeyHint": "仅用于导入/删除，与云端 API Key 分开",
+    "nasAgentKeyHint": "仅用于局域网导入/删除",
     "serverUrlExample": "https://music.example.com",
     "multiServerEmptyHint": "暂无服务器\n点击上方按钮添加",
     "searchAll": "全部",
     "searchHintInput": "搜索歌曲、艺术家、专辑...",
     "searchPlaceholder": "输入关键词搜索音乐",
     "searchNoResult": "无搜索结果",
+  "searchError": "搜索失败: {error}",
+  "@searchError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
     "searchResults": "搜索结果",
+    "searchLoadMore": "加载更多",
+    "searchLoadingMore": "加载中…",
+    "searchLoadMoreFailed": "下一页加载失败",
     "libraryNoArtists": "暂无艺术家",
     "libraryNoAlbums": "暂无专辑",
     "libraryNoSongs": "暂无歌曲",
@@ -405,6 +430,17 @@
     },
     "playlistPlay": "播放",
     "playlistListEmpty": "播放列表为空",
+    "playlistAddSongs": "添加歌曲",
+    "playlistAddSongsTitle": "添加歌曲到歌单",
+    "playlistSearchSongsHint": "搜索本地曲库",
+    "playlistNoMatchingSongs": "没有匹配的歌曲",
+    "playlistAddSelected": "添加所选",
+    "playlistSongsAdded": "已添加 {count} 首",
+    "@playlistSongsAdded": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
     "playlistRenameTitle": "重命名播放列表",
     "playlistNewName": "新名称",
     "songContextAddedToPlaylist": "已添加到 {name}",
@@ -415,6 +451,22 @@
             }
         }
     },
+    "playlistSaveQueue": "将队列保存为歌单",
+    "playlistQueueSaved": "已将队列保存为「{name}」",
+    "@playlistQueueSaved": {
+        "placeholders": {
+            "name": { "type": "String" }
+        }
+    },
+    "playlistQueueSavedSkipped": "已保存为「{name}」，跳过 {count} 首线上歌曲",
+    "@playlistQueueSavedSkipped": {
+        "placeholders": {
+            "name": { "type": "String" },
+            "count": { "type": "int" }
+        }
+    },
+    "playlistQueueNoLocalSongs": "只有本地曲库歌曲可以保存到歌单",
+    "playlistQueueSaveFailed": "保存队列失败",
     "defaultServerName": "我的服务器",
 
     "navSongs": "歌曲",
@@ -424,11 +476,18 @@
     "navGenres": "流派",
     "navRadio": "电台",
     "sidebarLibrary": "音乐库",
+    "libraryBrowse": "浏览音乐库",
 
     "homeNewestAlbums": "最新专辑",
-    "homeDailyRecommend": "为你推荐",
+    "homeDailyRecommend": "发现新音乐",
     "homeRecentlyPlayed": "最近播放",
+    "homeYourMusic": "我的音乐",
+    "homeContinueListening": "继续听",
+    "homeLocalMix": "本地 Mix",
+    "homeShuffleLocal": "随机播放曲库",
+    "homeLocalPlaybackFailed": "无法开始本地播放",
     "homeViewMore": "更多",
+    "homeRefreshed": "首页已刷新",
 
     "libraryGenresTitle": "流派",
     "libraryRadioTitle": "网络电台",

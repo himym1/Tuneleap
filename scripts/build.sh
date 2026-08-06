@@ -80,6 +80,8 @@ build_macos() {
   ln -s /Applications "$staging/Applications"
   hdiutil create -volname "音跃" -srcfolder "$staging" -ov -format UDZO "$DIST_DIR/$dmg_name"
   rm -rf "$staging"
+  codesign --force --timestamp --sign "$identity" "$DIST_DIR/$dmg_name"
+  codesign --verify --strict "$DIST_DIR/$dmg_name" || err "DMG codesign verify failed"
   # Avoid carrying Finder quarantine into installs from this host.
   xattr -cr "$DIST_DIR/$dmg_name" 2>/dev/null || true
   log "macOS DMG -> dist/$dmg_name"

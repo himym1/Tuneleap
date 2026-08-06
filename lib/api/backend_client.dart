@@ -4,21 +4,48 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/api/subsonic_client.dart'
     show LyricsList, LyricsLine;
 
+typedef CloudTokenProvider = Future<String?> Function({bool forceRefresh});
+
+class NasDuplicateException implements Exception {
+  const NasDuplicateException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// Dual-endpoint companion client (ADR-0004):
-/// - cloud: search / url / cover / lyric / recommendations / updates auth
-/// - nas agent: import / delete only
+/// - cloud: Bearer-authenticated search, media, recommendations, and updates
+/// - nas agent: API-key-authenticated import/delete only
 class BackendClient {
-  final Dio _dio;
+  static const _cloudRetryKey = 'cloud-auth-retried';
+
+  late final Dio _dio;
+  final CloudTokenProvider? _cloudTokenProvider;
   String _cloudBaseUrl = '';
   String _nasBaseUrl = '';
-  String _cloudApiKey = '';
   String _nasAgentKey = '';
   final Map<String, String> _coverArtCache = {};
 
-  BackendClient({Dio? dio}) : _dio = dio ?? Dio();
+  BackendClient({Dio? dio, CloudTokenProvider? cloudTokenProvider})
+    : _cloudTokenProvider = cloudTokenProvider {
+    _dio = dio ?? Dio();
+    _dio.options.connectTimeout ??= const Duration(seconds: 10);
+    if (cloudTokenProvider != null) _installCloudAuth();
+  }
 
   bool get isConfigured => _cloudBaseUrl.isNotEmpty;
   bool get isNasConfigured => _nasBaseUrl.isNotEmpty;
+  bool get canMutateNas {
+    final uri = Uri.tryParse(_nasBaseUrl);
+    return _nasAgentKey.isNotEmpty &&
+        uri != null &&
+        uri.host.isNotEmpty &&
+        (uri.scheme == 'https' ||
+            (uri.scheme == 'http' && _isLanHost(uri.host)));
+  }
+
   String get cloudBaseUrl => _cloudBaseUrl;
   String get nasBaseUrl => _nasBaseUrl;
 
@@ -27,27 +54,32 @@ class BackendClient {
     String cloudApiKey = '',
     String nasAgentUrl = '',
     String nasAgentKey = '',
-    // Backward-compatible aliases used by older call sites / tests.
+    // Backward-compatible URL aliases for older call sites/tests.
     String? baseUrl,
     String apiKey = '',
   }) {
     final resolvedCloud = cloudBaseUrl.isNotEmpty
         ? cloudBaseUrl
         : (baseUrl ?? '');
-    final resolvedCloudKey = cloudApiKey.isNotEmpty ? cloudApiKey : apiKey;
     _cloudBaseUrl = _normalizeBaseUrl(resolvedCloud);
     _nasBaseUrl = _normalizeBaseUrl(nasAgentUrl);
-    _cloudApiKey = resolvedCloudKey;
     _nasAgentKey = nasAgentKey;
     debugPrint(
       '[Backend] configured cloud=${_cloudBaseUrl.isNotEmpty} nas=${_nasBaseUrl.isNotEmpty}',
     );
   }
 
-  /// Legacy helper: same-host NAS agent on port 8503.
-  static String inferBaseUrl(String serverUrl, {int port = 8503}) {
+  /// Infer the production LAN NAS agent endpoint on port 8504.
+  static String inferBaseUrl(String serverUrl, {int port = 8504}) {
     final uri = Uri.tryParse(serverUrl);
-    if (uri == null || uri.host.isEmpty) return '';
+    if (uri == null ||
+        uri.host.isEmpty ||
+        (uri.scheme.isNotEmpty &&
+            uri.scheme != 'http' &&
+            uri.scheme != 'https') ||
+        !_isLanHost(uri.host)) {
+      return '';
+    }
 
     return Uri(
       scheme: uri.scheme.isEmpty ? 'http' : uri.scheme,
@@ -56,13 +88,84 @@ class BackendClient {
     ).toString();
   }
 
-  Options _cloudOptions() {
-    final headers = <String, dynamic>{};
-    if (_cloudApiKey.isNotEmpty) {
-      headers['X-API-Key'] = _cloudApiKey;
+  static bool _isLanHost(String host) {
+    final normalized = host.toLowerCase();
+    if (normalized == 'localhost' ||
+        normalized == '::1' ||
+        normalized.endsWith('.local') ||
+        (!normalized.contains('.') && !normalized.contains(':'))) {
+      return true;
     }
-    return Options(headers: headers);
+    final octets = normalized.split('.').map(int.tryParse).toList();
+    if (octets.length != 4 || octets.any((part) => part == null)) return false;
+    final first = octets[0]!;
+    final second = octets[1]!;
+    return first == 10 ||
+        first == 127 ||
+        (first == 100 && second >= 64 && second <= 127) ||
+        (first == 169 && second == 254) ||
+        (first == 172 && second >= 16 && second <= 31) ||
+        (first == 192 && second == 168);
   }
+
+  void _installCloudAuth() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (!_isCloudRequest(options)) {
+            handler.next(options);
+            return;
+          }
+          if (options.headers['Authorization'] != null) {
+            handler.next(options);
+            return;
+          }
+          try {
+            final token = await _cloudTokenProvider!(forceRefresh: false);
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          } on Exception {
+            // Let the request surface its normal 401/network error.
+          }
+          handler.next(options);
+        },
+        onError: (error, handler) async {
+          final request = error.requestOptions;
+          if (error.response?.statusCode != 401 ||
+              !_isCloudRequest(request) ||
+              request.extra[_cloudRetryKey] == true) {
+            handler.next(error);
+            return;
+          }
+          try {
+            final token = await _cloudTokenProvider!(forceRefresh: true);
+            if (token == null || token.isEmpty) {
+              handler.next(error);
+              return;
+            }
+            request.extra[_cloudRetryKey] = true;
+            request.headers['Authorization'] = 'Bearer $token';
+            handler.resolve(await _dio.fetch<dynamic>(request));
+          } on Exception {
+            handler.next(error);
+          }
+        },
+      ),
+    );
+  }
+
+  bool _isCloudRequest(RequestOptions options) {
+    final cloud = Uri.tryParse(_cloudBaseUrl);
+    final request = options.uri;
+    return cloud != null &&
+        cloud.host.isNotEmpty &&
+        request.scheme == cloud.scheme &&
+        request.host == cloud.host &&
+        request.port == cloud.port;
+  }
+
+  Options _cloudOptions() => Options();
 
   Options _nasOptions({String? contentType}) {
     final headers = <String, dynamic>{};
@@ -125,6 +228,8 @@ class BackendClient {
       queryParameters: {
         'id': song.urlId ?? song.id,
         'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
         'br': _qualityFromBitRate(maxBitRate),
       },
       options: _cloudOptions(),
@@ -149,8 +254,9 @@ class BackendClient {
       queryParameters: {
         'id': coverArtId,
         'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
         'size': '$size',
-        if (_cloudApiKey.isNotEmpty) 'api_key': _cloudApiKey,
       },
     ).query;
 
@@ -162,7 +268,8 @@ class BackendClient {
     final coverArtId = song.coverArt;
     if (coverArtId == null || coverArtId.isEmpty) return '';
 
-    final cacheKey = '${song.onlineSource}:$coverArtId:$size';
+    final cacheKey =
+        '${song.onlineProvider}:${song.onlineSource}:$coverArtId:$size';
     final cached = _coverArtCache[cacheKey];
     if (cached != null) return cached;
 
@@ -171,6 +278,8 @@ class BackendClient {
       queryParameters: {
         'id': coverArtId,
         'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
         'size': size,
       },
       options: _cloudOptions(),
@@ -194,10 +303,11 @@ class BackendClient {
     required Map<String, dynamic> song,
     String? picUrl,
     String? lyric,
+    bool force = false,
   }) async {
-    final base = _nasBaseUrl.isNotEmpty ? _nasBaseUrl : _cloudBaseUrl;
-    if (base.isEmpty) {
-      throw StateError('NAS agent is not configured');
+    final base = _nasBaseUrl;
+    if (!canMutateNas) {
+      throw StateError('NAS agent URL and key are not configured');
     }
 
     // Prefer nas-agent contract; fall back to legacy monorepo path.
@@ -209,6 +319,7 @@ class BackendClient {
       'song': song,
       if (picUrl != null && picUrl.isNotEmpty) 'picUrl': picUrl,
       if (lyric != null && lyric.isNotEmpty) 'lyric': lyric,
+      'force': force,
     };
 
     try {
@@ -219,6 +330,15 @@ class BackendClient {
       );
       return _parseImportResponse(response.data);
     } on DioException catch (error) {
+      if (error.response?.statusCode == 409) {
+        final data = error.response?.data;
+        final detail = data is Map ? data['detail']?.toString() : null;
+        throw NasDuplicateException(
+          detail == null || detail.isEmpty
+              ? 'Song already exists in the Navidrome library'
+              : detail,
+        );
+      }
       if (error.response?.statusCode == 404) {
         final response = await _dio.post(
           legacyPath,
@@ -255,6 +375,8 @@ class BackendClient {
       queryParameters: {
         'id': lyricId,
         'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
       },
       options: _cloudOptions(),
     );
@@ -274,6 +396,8 @@ class BackendClient {
       queryParameters: {
         'id': lyricId,
         'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
       },
       options: _cloudOptions(),
     );
@@ -310,8 +434,10 @@ class BackendClient {
   /// 按 Navidrome song ID 删除本地歌曲文件
   Future<bool> deleteSongById(String navidromeId) async {
     debugPrint('[Backend] deleting song via nas-agent');
-    final base = _nasBaseUrl.isNotEmpty ? _nasBaseUrl : _cloudBaseUrl;
-    if (base.isEmpty) return false;
+    final base = _nasBaseUrl;
+    if (!canMutateNas) {
+      throw StateError('NAS agent URL and key are not configured');
+    }
     try {
       final response = await _dio.post(
         '$base/v1/songs/delete',

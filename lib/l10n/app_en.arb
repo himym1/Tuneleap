@@ -149,6 +149,9 @@
             "artist": { "type": "String" }
         }
     },
+    "importAnyway": "Import Anyway",
+    "importDuplicateCheckFailed": "Could not verify the NAS library. Import was stopped.",
+    "nasAgentConfigRequired": "Configure the LAN NAS agent URL and key before importing or deleting",
     "commonContinue": "Continue",
     "contextMenuQueueingNavidrome": "Submitting to NAS download queue...",
     "contextMenuQueuedNavidrome": "Submitted to NAS download queue",
@@ -239,19 +242,41 @@
     "multiServerPassword": "Password",
     "backendUrl": "Cloud API URL",
     "backendUrlHint": "navidrome-cloud public URL, e.g. https://cloud.example.com",
-    "backendApiKey": "Cloud API key",
-    "backendApiKeyHint": "Stored separately from the Navidrome password and NAS agent key",
+    "cloudAccount": "Cloud account",
+    "cloudSignedIn": "Signed in",
+    "cloudSignedOut": "Not signed in",
+    "cloudSignIn": "Sign in",
+    "cloudRegister": "Register",
+    "cloudUsername": "Cloud username",
+    "cloudCredential": "Cloud account credential",
+    "cloudSignOut": "Sign out",
+    "cloudAuthFailed": "Cloud authentication failed",
+    "cloudInvalidInput": "Username must have at least 2 characters and credential at least 8 characters",
+    "cloudInvalidCredentials": "Incorrect Cloud username or credential",
+    "cloudUsernameExists": "This Cloud username already exists. Sign in or choose another username.",
+    "cloudNetworkError": "Could not connect to Cloud. Check your network and try again",
+    "cloudAuthRequired": "Sign in to Cloud to load recommendations",
+  "searchAuthRequired": "Cloud session expired. Sign in again to search.",
     "nasAgentUrl": "NAS agent URL",
-    "nasAgentUrlHint": "Optional; defaults to the Navidrome host on port 8503",
+    "nasAgentUrlHint": "Required for import/delete; use a LAN URL such as http://192.168.1.10:8504",
     "nasAgentKey": "NAS agent key",
-    "nasAgentKeyHint": "Import/delete only; separate from the cloud API key",
+    "nasAgentKeyHint": "Used only for LAN import/delete",
     "serverUrlExample": "https://music.example.com",
     "multiServerEmptyHint": "No servers yet\nTap the button above to add one",
     "searchAll": "All",
     "searchHintInput": "Search songs, artists, albums...",
     "searchPlaceholder": "Enter keywords to search music",
     "searchNoResult": "No results found",
+  "searchError": "Search failed: {error}",
+  "@searchError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
     "searchResults": "Search Results",
+    "searchLoadMore": "Load More",
+    "searchLoadingMore": "Loading...",
+    "searchLoadMoreFailed": "Could not load the next page",
     "libraryNoArtists": "No artists",
     "libraryNoAlbums": "No albums",
     "libraryNoSongs": "No songs",
@@ -273,9 +298,36 @@
     "playlistSongCountLabel": "{count} songs",
     "playlistPlay": "Play",
     "playlistListEmpty": "Playlist is empty",
+    "playlistAddSongs": "Add Songs",
+    "playlistAddSongsTitle": "Add Songs to Playlist",
+    "playlistSearchSongsHint": "Search local library",
+    "playlistNoMatchingSongs": "No matching songs",
+    "playlistAddSelected": "Add Selected",
+    "playlistSongsAdded": "Added {count} songs",
+    "@playlistSongsAdded": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
     "playlistRenameTitle": "Rename Playlist",
     "playlistNewName": "New Name",
     "songContextAddedToPlaylist": "Added to {name}",
+    "playlistSaveQueue": "Save Queue as Playlist",
+    "playlistQueueSaved": "Saved queue as \"{name}\"",
+    "@playlistQueueSaved": {
+        "placeholders": {
+            "name": { "type": "String" }
+        }
+    },
+    "playlistQueueSavedSkipped": "Saved as \"{name}\"; skipped {count} online songs",
+    "@playlistQueueSavedSkipped": {
+        "placeholders": {
+            "name": { "type": "String" },
+            "count": { "type": "int" }
+        }
+    },
+    "playlistQueueNoLocalSongs": "Only local library songs can be saved to a playlist",
+    "playlistQueueSaveFailed": "Failed to save queue",
     "defaultServerName": "My Server",
 
     "navSongs": "Songs",
@@ -285,11 +337,18 @@
     "navGenres": "Genres",
     "navRadio": "Radio",
     "sidebarLibrary": "LIBRARY",
+    "libraryBrowse": "Browse library",
 
     "homeNewestAlbums": "Latest Albums",
-    "homeDailyRecommend": "For You",
+    "homeDailyRecommend": "Discover New Music",
     "homeRecentlyPlayed": "Recently Played",
+    "homeYourMusic": "Your Music",
+    "homeContinueListening": "Continue Listening",
+    "homeLocalMix": "Local Mix",
+    "homeShuffleLocal": "Shuffle Library",
+    "homeLocalPlaybackFailed": "Could not start local playback",
     "homeViewMore": "More",
+    "homeRefreshed": "Home refreshed",
 
     "libraryGenresTitle": "Genres",
     "libraryRadioTitle": "Radio Stations",

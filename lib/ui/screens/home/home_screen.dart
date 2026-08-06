@@ -8,8 +8,27 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
+import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/player/playback_origin.dart';
+
+List<Song> composeLocalMix(
+  List<Song> playHistory,
+  List<Song> randomSongs, {
+  int limit = 30,
+}) {
+  final olderLocalSongs = playHistory
+      .where((song) => !song.isOnline)
+      .skip(4)
+      .toList()
+      .reversed
+      .take(6);
+  final seen = <String>{};
+  return [
+    ...olderLocalSongs,
+    ...randomSongs,
+  ].where((song) => seen.add(song.storageKey)).take(limit).toList();
+}
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -19,20 +38,122 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _loadingLocalPlayback = false;
+  bool _refreshingHome = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Wait for silent Cloud restore so first recommendations are not 401.
+      await ref.read(cloudAuthProvider.future);
+      if (!mounted) return;
       ref.read(recommendationProvider.notifier).ensureLoaded();
     });
   }
 
   Future<void> _refresh() async {
-    ref.invalidate(newestAlbumsProvider);
-    await Future.wait([
-      ref.read(newestAlbumsProvider.future),
-      ref.read(recommendationProvider.notifier).refresh(),
-    ]);
+    if (_refreshingHome) return;
+    setState(() => _refreshingHome = true);
+    var succeeded = false;
+    try {
+      ref.invalidate(newestAlbumsProvider);
+      await Future.wait([
+        ref.read(newestAlbumsProvider.future),
+        ref.read(recommendationProvider.notifier).refresh(),
+      ]);
+      succeeded = ref.read(recommendationProvider).error == null;
+    } catch (_) {
+      succeeded = false;
+    } finally {
+      if (mounted) {
+        setState(() => _refreshingHome = false);
+        final messenger = ScaffoldMessenger.of(context);
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                succeeded
+                    ? S.of(context).homeRefreshed
+                    : S.of(context).commonError,
+              ),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+      }
+    }
+  }
+
+  Future<void> _playLocalCollection({required bool mix}) async {
+    if (_loadingLocalPlayback) return;
+    setState(() => _loadingLocalPlayback = true);
+    try {
+      final player = ref.read(audioPlayerServiceProvider);
+      final random = await ref
+          .read(subsonicClientProvider)
+          .getRandomSongs(size: 30);
+      final songs = mix
+          ? composeLocalMix(player.playHistory, random)
+          : random.take(30).toList();
+      if (songs.isEmpty) throw StateError('empty local library');
+      await player.playAll(songs);
+      if (mounted) context.push('/player');
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(S.of(context).homeLocalPlaybackFailed),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loadingLocalPlayback = false);
+    }
+  }
+
+  Widget _buildLocalActions() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final buttonWidth = constraints.maxWidth >= 520
+            ? (constraints.maxWidth - 12) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            SizedBox(
+              width: buttonWidth,
+              height: 44,
+              child: FilledButton.icon(
+                onPressed: _loadingLocalPlayback
+                    ? null
+                    : () => _playLocalCollection(mix: true),
+                icon: _loadingLocalPlayback
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.auto_awesome, size: 19),
+                label: Text(S.of(context).homeLocalMix),
+              ),
+            ),
+            SizedBox(
+              width: buttonWidth,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: _loadingLocalPlayback
+                    ? null
+                    : () => _playLocalCollection(mix: false),
+                icon: const Icon(Icons.shuffle, size: 19),
+                label: Text(S.of(context).homeShuffleLocal),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _greeting() {
@@ -47,9 +168,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final newestAlbums = ref.watch(newestAlbumsProvider);
     final recommendations = ref.watch(recommendationProvider);
+    final cloudAuthenticated =
+        ref.watch(cloudAuthProvider).value?.isAuthenticated == true;
     final recentSongs = ref
         .watch(recommendationRecentSongsProvider)
-        .take(2)
+        .take(1)
         .toList();
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile
@@ -66,29 +189,68 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           retryLabel: S.of(context).commonRetry,
         ),
         data: (newest) => RefreshIndicator(
+          key: const Key('home-refresh-indicator'),
           onRefresh: _refresh,
           child: ScrollConfiguration(
             behavior: ScrollConfiguration.of(
               context,
             ).copyWith(scrollbars: false),
             child: ListView(
+              key: const Key('home-scroll-view'),
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(h, h, h, h),
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      _greeting(),
-                      style: Theme.of(context).textTheme.pageTitle.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
+                    Expanded(
+                      child: Text(
+                        _greeting(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.pageTitle.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
+                    SizedBox.square(
+                      dimension: 40,
+                      child: _refreshingHome
+                          ? const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : IconButton(
+                              key: const Key('home-refresh-button'),
+                              tooltip: S.of(context).commonRefresh,
+                              onPressed: _refresh,
+                              icon: const Icon(Icons.refresh),
+                            ),
+                    ),
+                    const SizedBox(width: 4),
                     _buildWeather(),
                   ],
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
+                _buildSectionHeader(
+                  S.of(context).homeYourMusic,
+                  onMore: () => context.go('/library/songs'),
+                ),
+                const SizedBox(height: 8),
+                if (recentSongs.isNotEmpty) ...[
+                  Text(
+                    S.of(context).homeContinueListening,
+                    style: Theme.of(context).textTheme.chipLabel.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _buildRecentSongs(recentSongs),
+                  const SizedBox(height: 12),
+                ],
+                _buildLocalActions(),
+                const SizedBox(height: 20),
 
                 _buildSectionHeader(
                   S.of(context).homeDailyRecommend,
@@ -104,10 +266,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 else if (recommendations.error != null &&
                     recommendations.visibleItems.isEmpty)
                   ErrorState(
-                    message: S.of(context).commonError,
-                    onRetry: () =>
-                        ref.read(recommendationProvider.notifier).refresh(),
-                    retryLabel: S.of(context).recommendationsRetry,
+                    message: cloudAuthenticated
+                        ? S.of(context).commonError
+                        : S.of(context).cloudAuthRequired,
+                    onRetry: () async {
+                      if (!cloudAuthenticated) {
+                        final ok = await CloudAuthDialog.show(context);
+                        if (!ok || !mounted) return;
+                      }
+                      await ref.read(recommendationProvider.notifier).refresh();
+                    },
+                    retryLabel: cloudAuthenticated
+                        ? S.of(context).recommendationsRetry
+                        : S.of(context).cloudSignIn,
                   )
                 else if (recommendations.visibleItems.isEmpty)
                   EmptyState(
@@ -121,24 +292,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _buildRecommendationList(
                     recommendations.visibleItems.take(6).toList(),
                   ),
-
-                if (recentSongs.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader(
-                          S.of(context).homeRecentlyPlayed,
-                          onMore: () => context.go('/scrobble'),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildRecentSongs(recentSongs),
-                      ],
-                    ),
-                  ),
-
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
                 _buildSectionHeader(
                   S.of(context).homeNewestAlbums,
                   onMore: () => context.go('/library/albums'),
@@ -188,10 +342,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.sectionTitle.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.sectionTitle.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ),
         if (onMore != null)
