@@ -85,6 +85,9 @@ void main() {
         bitRate: 128,
         coverArt: 'rtCover',
         suffix: 'mp3',
+        backend: SongBackend.solara,
+        onlineSource: 'netease',
+        onlineProvider: 'gdstudio',
       );
 
       final roundTripped = Song.fromJson(original.toJson());
@@ -93,6 +96,7 @@ void main() {
       expect(roundTripped.title, original.title);
       expect(roundTripped.track, original.track);
       expect(roundTripped.suffix, original.suffix);
+      expect(roundTripped.onlineProvider, original.onlineProvider);
     });
 
     test('fromSolaraJson maps online song fields correctly', () {
@@ -105,6 +109,7 @@ void main() {
         'url_id': '5257138',
         'lyric_id': '5257138',
         'source': 'netease',
+        'provider': 'gdstudio',
       });
 
       expect(song.id, '5257138');
@@ -114,6 +119,7 @@ void main() {
       expect(song.coverArt, '109951165671182684');
       expect(song.backend, SongBackend.solara);
       expect(song.onlineSource, 'netease');
+      expect(song.onlineProvider, 'gdstudio');
       expect(song.urlId, '5257138');
       expect(song.lyricId, '5257138');
       expect(song.isOnline, isTrue);

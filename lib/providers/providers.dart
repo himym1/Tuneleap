@@ -9,14 +9,17 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 
 export 'server_config_provider.dart';
 export 'auth_provider.dart';
+export 'cloud_auth_provider.dart';
 export 'audio_providers.dart';
 export 'theme_provider.dart';
 export 'download_provider.dart';
 export 'navidrome_import_provider.dart';
 export 'cover_color_provider.dart';
 export 'library_cache_provider.dart';
+export 'playlist_provider.dart';
 export 'search_provider.dart';
 export 'library_provider.dart';
+export 'library_search_provider.dart';
 export 'album_detail_provider.dart';
 export 'weather_provider.dart';
 export 'recommendation_provider.dart';

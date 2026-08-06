@@ -5,6 +5,7 @@ import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/player/audio_handler.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/providers/download_provider.dart';
+import 'package:navidrome_player/providers/cloud_auth_provider.dart';
 import 'server_config_provider.dart';
 
 // ============================================================
@@ -30,19 +31,20 @@ final subsonicClientProvider = Provider<SubsonicClient>((ref) {
   return client;
 });
 
-/// navidrome-backend 客户端 provider
+/// Cloud control plane + NAS agent client provider.
 final backendClientProvider = Provider<BackendClient>((ref) {
   final config = ref.watch(serverConfigProvider);
-  final client = BackendClient();
+  final client = BackendClient(
+    cloudTokenProvider: ({bool forceRefresh = false}) => ref
+        .read(cloudAuthProvider.notifier)
+        .getAccessToken(forceRefresh: forceRefresh),
+  );
   client.configure(
-    cloudBaseUrl: config.backendUrl,
-    cloudApiKey: config.backendApiKey,
+    cloudBaseUrl: resolveCloudOrigin(config.backendUrl),
     nasAgentUrl: config.nasAgentUrl.isNotEmpty
         ? config.nasAgentUrl
         : (config.url.isNotEmpty ? BackendClient.inferBaseUrl(config.url) : ''),
-    nasAgentKey: config.nasAgentKey.isNotEmpty
-        ? config.nasAgentKey
-        : config.backendApiKey,
+    nasAgentKey: config.nasAgentKey,
   );
   return client;
 });

@@ -3,8 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-DIST_DIR="$PROJECT_ROOT/dist"
+DIST_DIR="${DIST_DIR:-$PROJECT_ROOT/dist}"
 source "$SCRIPT_DIR/versions.env"
+UPDATE_ORIGIN="${UPDATE_ORIGIN:-https://player.himym.us.ci}"
 
 android="navidrome_player-${ANDROID_VERSION}+${ANDROID_BUILD}-android.apk"
 macos="navidrome_player-${MACOS_VERSION}+${MACOS_BUILD}-macos.dmg"
@@ -15,14 +16,23 @@ cd "$DIST_DIR"
 shasum -a 256 "$android" "$macos" > SHA256SUMS
 
 python3 - "$ANDROID_VERSION" "$ANDROID_BUILD" "$android" \
-  "$MACOS_VERSION" "$MACOS_BUILD" "$macos" <<'PY'
+  "$MACOS_VERSION" "$MACOS_BUILD" "$macos" "$UPDATE_ORIGIN" <<'PY'
 import hashlib
 import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
-android_version, android_build, android_name, macos_version, macos_build, macos_name = sys.argv[1:]
+(
+    android_version,
+    android_build,
+    android_name,
+    macos_version,
+    macos_build,
+    macos_name,
+    update_origin,
+ ) = sys.argv[1:]
 for version in (android_version, macos_version):
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
         raise SystemExit(f"Invalid version: {version}")
@@ -37,7 +47,18 @@ def digest(name: str) -> str:
             value.update(chunk)
     return value.hexdigest()
 
-origin = "https://player.himym.us.ci/releases"
+parsed_origin = urlsplit(update_origin)
+if (
+    parsed_origin.scheme != "https"
+    or not parsed_origin.netloc
+    or parsed_origin.username is not None
+    or parsed_origin.password is not None
+    or parsed_origin.path not in ("", "/")
+    or parsed_origin.query
+    or parsed_origin.fragment
+):
+    raise SystemExit(f"Invalid UPDATE_ORIGIN: {update_origin}")
+origin = f"{update_origin.rstrip('/')}/releases"
 data = {
     "android": {
         "version": android_version,
@@ -51,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "搜索结果支持无限分页并标记本地歌曲；播放器与歌单详情补充操作按钮；优化列表视觉层级。",
+    "changelog": "NASAgent 地址默认按当前局域网 Navidrome 主机推断至 8504 端口；登录与服务器管理支持修改独立 NASAgent 地址和 Key，并使用安全存储持久化。",
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

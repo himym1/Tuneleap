@@ -118,7 +118,7 @@ abstract class S {
   /// No description provided for @navPlaylists.
   ///
   /// In zh, this message translates to:
-  /// **'播放列表'**
+  /// **'歌单'**
   String get navPlaylists;
 
   /// No description provided for @navSettings.
@@ -913,6 +913,24 @@ abstract class S {
   /// **'「{title}」({artist}) 在本地库中已存在，是否仍要导入？'**
   String importDuplicateMessage(String title, String artist);
 
+  /// No description provided for @importAnyway.
+  ///
+  /// In zh, this message translates to:
+  /// **'仍然导入'**
+  String get importAnyway;
+
+  /// No description provided for @importDuplicateCheckFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法核对 NAS 曲库，已停止导入'**
+  String get importDuplicateCheckFailed;
+
+  /// No description provided for @nasAgentConfigRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先配置局域网 NAS Agent 地址和 Key，再执行导入或删除'**
+  String get nasAgentConfigRequired;
+
   /// No description provided for @commonContinue.
   ///
   /// In zh, this message translates to:
@@ -1243,17 +1261,95 @@ abstract class S {
   /// **'navidrome-cloud 公网地址，例如 https://cloud.example.com'**
   String get backendUrlHint;
 
-  /// No description provided for @backendApiKey.
+  /// No description provided for @cloudAccount.
   ///
   /// In zh, this message translates to:
-  /// **'云端 API Key'**
-  String get backendApiKey;
+  /// **'Cloud 账号'**
+  String get cloudAccount;
 
-  /// No description provided for @backendApiKeyHint.
+  /// No description provided for @cloudSignedIn.
   ///
   /// In zh, this message translates to:
-  /// **'与 Navidrome 密码、NAS Agent Key 分开保存'**
-  String get backendApiKeyHint;
+  /// **'已登录'**
+  String get cloudSignedIn;
+
+  /// No description provided for @cloudSignedOut.
+  ///
+  /// In zh, this message translates to:
+  /// **'未登录'**
+  String get cloudSignedOut;
+
+  /// No description provided for @cloudSignIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录'**
+  String get cloudSignIn;
+
+  /// No description provided for @cloudRegister.
+  ///
+  /// In zh, this message translates to:
+  /// **'注册'**
+  String get cloudRegister;
+
+  /// No description provided for @cloudUsername.
+  ///
+  /// In zh, this message translates to:
+  /// **'Cloud 用户名'**
+  String get cloudUsername;
+
+  /// No description provided for @cloudCredential.
+  ///
+  /// In zh, this message translates to:
+  /// **'Cloud 账号凭据'**
+  String get cloudCredential;
+
+  /// No description provided for @cloudSignOut.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出 Cloud'**
+  String get cloudSignOut;
+
+  /// No description provided for @cloudAuthFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'Cloud 认证失败'**
+  String get cloudAuthFailed;
+
+  /// No description provided for @cloudInvalidInput.
+  ///
+  /// In zh, this message translates to:
+  /// **'用户名至少 2 个字符，账号凭据至少 8 个字符'**
+  String get cloudInvalidInput;
+
+  /// No description provided for @cloudInvalidCredentials.
+  ///
+  /// In zh, this message translates to:
+  /// **'Cloud 用户名或账号凭据错误'**
+  String get cloudInvalidCredentials;
+
+  /// No description provided for @cloudUsernameExists.
+  ///
+  /// In zh, this message translates to:
+  /// **'该 Cloud 用户名已存在，请直接登录或更换用户名'**
+  String get cloudUsernameExists;
+
+  /// No description provided for @cloudNetworkError.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法连接 Cloud，请检查网络后重试'**
+  String get cloudNetworkError;
+
+  /// No description provided for @cloudAuthRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录 Cloud 后加载推荐'**
+  String get cloudAuthRequired;
+
+  /// No description provided for @searchAuthRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'Cloud 登录已失效，请重新登录后再搜索'**
+  String get searchAuthRequired;
 
   /// No description provided for @nasAgentUrl.
   ///
@@ -1264,7 +1360,7 @@ abstract class S {
   /// No description provided for @nasAgentUrlHint.
   ///
   /// In zh, this message translates to:
-  /// **'可选，默认使用 Navidrome 主机的 8503 端口'**
+  /// **'导入/删除必填，请使用局域网地址，例如 http://192.168.1.10:8504'**
   String get nasAgentUrlHint;
 
   /// No description provided for @nasAgentKey.
@@ -1276,7 +1372,7 @@ abstract class S {
   /// No description provided for @nasAgentKeyHint.
   ///
   /// In zh, this message translates to:
-  /// **'仅用于导入/删除，与云端 API Key 分开'**
+  /// **'仅用于局域网导入/删除'**
   String get nasAgentKeyHint;
 
   /// No description provided for @serverUrlExample.
@@ -1315,11 +1411,35 @@ abstract class S {
   /// **'无搜索结果'**
   String get searchNoResult;
 
+  /// No description provided for @searchError.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索失败: {error}'**
+  String searchError(String error);
+
   /// No description provided for @searchResults.
   ///
   /// In zh, this message translates to:
   /// **'搜索结果'**
   String get searchResults;
+
+  /// No description provided for @searchLoadMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载更多'**
+  String get searchLoadMore;
+
+  /// No description provided for @searchLoadingMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载中…'**
+  String get searchLoadingMore;
+
+  /// No description provided for @searchLoadMoreFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一页加载失败'**
+  String get searchLoadMoreFailed;
 
   /// No description provided for @libraryNoArtists.
   ///
@@ -1447,6 +1567,42 @@ abstract class S {
   /// **'播放列表为空'**
   String get playlistListEmpty;
 
+  /// No description provided for @playlistAddSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加歌曲'**
+  String get playlistAddSongs;
+
+  /// No description provided for @playlistAddSongsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加歌曲到歌单'**
+  String get playlistAddSongsTitle;
+
+  /// No description provided for @playlistSearchSongsHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索本地曲库'**
+  String get playlistSearchSongsHint;
+
+  /// No description provided for @playlistNoMatchingSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有匹配的歌曲'**
+  String get playlistNoMatchingSongs;
+
+  /// No description provided for @playlistAddSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加所选'**
+  String get playlistAddSelected;
+
+  /// No description provided for @playlistSongsAdded.
+  ///
+  /// In zh, this message translates to:
+  /// **'已添加 {count} 首'**
+  String playlistSongsAdded(int count);
+
   /// No description provided for @playlistRenameTitle.
   ///
   /// In zh, this message translates to:
@@ -1464,6 +1620,36 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'已添加到 {name}'**
   String songContextAddedToPlaylist(String name);
+
+  /// No description provided for @playlistSaveQueue.
+  ///
+  /// In zh, this message translates to:
+  /// **'将队列保存为歌单'**
+  String get playlistSaveQueue;
+
+  /// No description provided for @playlistQueueSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'已将队列保存为「{name}」'**
+  String playlistQueueSaved(String name);
+
+  /// No description provided for @playlistQueueSavedSkipped.
+  ///
+  /// In zh, this message translates to:
+  /// **'已保存为「{name}」，跳过 {count} 首线上歌曲'**
+  String playlistQueueSavedSkipped(String name, int count);
+
+  /// No description provided for @playlistQueueNoLocalSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'只有本地曲库歌曲可以保存到歌单'**
+  String get playlistQueueNoLocalSongs;
+
+  /// No description provided for @playlistQueueSaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存队列失败'**
+  String get playlistQueueSaveFailed;
 
   /// No description provided for @defaultServerName.
   ///
@@ -1513,6 +1699,12 @@ abstract class S {
   /// **'音乐库'**
   String get sidebarLibrary;
 
+  /// No description provided for @libraryBrowse.
+  ///
+  /// In zh, this message translates to:
+  /// **'浏览音乐库'**
+  String get libraryBrowse;
+
   /// No description provided for @homeNewestAlbums.
   ///
   /// In zh, this message translates to:
@@ -1522,7 +1714,7 @@ abstract class S {
   /// No description provided for @homeDailyRecommend.
   ///
   /// In zh, this message translates to:
-  /// **'为你推荐'**
+  /// **'发现新音乐'**
   String get homeDailyRecommend;
 
   /// No description provided for @homeRecentlyPlayed.
@@ -1531,11 +1723,47 @@ abstract class S {
   /// **'最近播放'**
   String get homeRecentlyPlayed;
 
+  /// No description provided for @homeYourMusic.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的音乐'**
+  String get homeYourMusic;
+
+  /// No description provided for @homeContinueListening.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续听'**
+  String get homeContinueListening;
+
+  /// No description provided for @homeLocalMix.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地 Mix'**
+  String get homeLocalMix;
+
+  /// No description provided for @homeShuffleLocal.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机播放曲库'**
+  String get homeShuffleLocal;
+
+  /// No description provided for @homeLocalPlaybackFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法开始本地播放'**
+  String get homeLocalPlaybackFailed;
+
   /// No description provided for @homeViewMore.
   ///
   /// In zh, this message translates to:
   /// **'更多'**
   String get homeViewMore;
+
+  /// No description provided for @homeRefreshed.
+  ///
+  /// In zh, this message translates to:
+  /// **'首页已刷新'**
+  String get homeRefreshed;
 
   /// No description provided for @libraryGenresTitle.
   ///

@@ -6,6 +6,8 @@ import 'package:navidrome_player/services/update_checker.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/update_dialog.dart';
+import 'package:navidrome_player/ui/widgets/responsive_content.dart';
+import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
@@ -19,14 +21,16 @@ class SettingsScreen extends ConsumerWidget {
     final themePreset = ref.watch(themePresetProvider);
     final appVersion = ref.watch(appVersionProvider);
     final appBuild = ref.watch(appBuildProvider);
-    final padding = AppBreakpoints.isMobile(MediaQuery.of(context).size.width)
-        ? 16.0
-        : 32.0;
+    final cloudAuth = ref.watch(cloudAuthProvider);
+    final cloudSession = cloudAuth.value;
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final padding = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return ResponsivePageScaffold(
       body: ListView(
-        padding: EdgeInsets.all(padding),
+        padding: EdgeInsets.symmetric(vertical: padding),
         children: [
           Text(
             S.of(context).navSettings,
@@ -52,6 +56,39 @@ class SettingsScreen extends ConsumerWidget {
                         subtitle: config.username.isNotEmpty
                             ? '${S.of(context).settingsUser}: ${config.username}'
                             : null,
+                      ),
+                      const Divider(height: 1, indent: 54),
+                      _SettingsTile(
+                        icon: Icons.cloud_outlined,
+                        title: S.of(context).cloudAccount,
+                        subtitle: cloudSession?.isAuthenticated == true
+                            ? '${S.of(context).cloudSignedIn}: ${cloudSession!.username}'
+                            : S.of(context).cloudSignedOut,
+                        trailing: TextButton(
+                          onPressed: cloudAuth.isLoading
+                              ? null
+                              : () async {
+                                  if (cloudSession?.isAuthenticated == true) {
+                                    await ref
+                                        .read(cloudAuthProvider.notifier)
+                                        .signOut();
+                                    return;
+                                  }
+                                  final ok = await CloudAuthDialog.show(
+                                    context,
+                                  );
+                                  if (ok && context.mounted) {
+                                    await ref
+                                        .read(recommendationProvider.notifier)
+                                        .refresh();
+                                  }
+                                },
+                          child: Text(
+                            cloudSession?.isAuthenticated == true
+                                ? S.of(context).cloudSignOut
+                                : S.of(context).cloudSignIn,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -252,8 +289,7 @@ class SettingsScreen extends ConsumerWidget {
                       _UpdateTile(
                         currentVersion: appVersion,
                         currentBuild: appBuild,
-                        apiKey: config.backendApiKey,
-                        updateOrigin: config.backendUrl,
+                        updateOrigin: resolveCloudOrigin(config.backendUrl),
                       ),
                     ],
                   ),
@@ -346,14 +382,12 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Material(
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+      borderRadius: BorderRadius.circular(8),
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14),
-      ),
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
     );
   }
@@ -522,24 +556,22 @@ class _CacheTileState extends State<_CacheTile> {
 
 // ── 检查更新行 ──
 
-class _UpdateTile extends StatefulWidget {
+class _UpdateTile extends ConsumerStatefulWidget {
   final String currentVersion;
   final int currentBuild;
-  final String apiKey;
   final String updateOrigin;
 
   const _UpdateTile({
     required this.currentVersion,
     required this.currentBuild,
-    required this.apiKey,
     required this.updateOrigin,
   });
 
   @override
-  State<_UpdateTile> createState() => _UpdateTileState();
+  ConsumerState<_UpdateTile> createState() => _UpdateTileState();
 }
 
-class _UpdateTileState extends State<_UpdateTile> {
+class _UpdateTileState extends ConsumerState<_UpdateTile> {
   bool _checking = false;
   String? _result;
 
@@ -549,7 +581,9 @@ class _UpdateTileState extends State<_UpdateTile> {
       _result = null;
     });
     final info = await checkForUpdate(
-      apiKey: widget.apiKey,
+      accessTokenProvider: ({bool forceRefresh = false}) => ref
+          .read(cloudAuthProvider.notifier)
+          .getAccessToken(forceRefresh: forceRefresh),
       updateOrigin: widget.updateOrigin,
     );
     if (!mounted) return;
@@ -570,7 +604,7 @@ class _UpdateTileState extends State<_UpdateTile> {
       _checking = false;
       _result = hasNew ? info.version : 'latest';
     });
-    if (hasNew) UpdateDialog.show(context, info, apiKey: widget.apiKey);
+    if (hasNew) UpdateDialog.show(context, info);
   }
 
   @override

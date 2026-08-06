@@ -23,12 +23,18 @@ class NavidromeImportService {
 
   NavidromeImportService({required this.backendClient});
 
-  Future<NavidromeImportResult> importOnlineSong(Song song) async {
+  Future<NavidromeImportResult> importOnlineSong(
+    Song song, {
+    bool force = false,
+  }) async {
     if (!song.isOnline) {
       throw ArgumentError('Only online songs can be imported');
     }
     if (!backendClient.isConfigured) {
       throw StateError('Backend client is not configured');
+    }
+    if (!backendClient.canMutateNas) {
+      throw StateError('NAS agent URL and key are not configured');
     }
 
     debugPrint('[Import] started: source=${song.onlineSource ?? 'unknown'}');
@@ -62,6 +68,7 @@ class NavidromeImportService {
         song: buildNasDownloadSong(song),
         picUrl: picUrl,
         lyric: lrcText,
+        force: force,
       );
       debugPrint('[Import] queued successfully');
 
@@ -79,8 +86,12 @@ class NavidromeImportService {
 
   static String buildFileName(Song song, {required String extension}) {
     final source = safeSegment(song.onlineSource ?? 'online');
+    final provider = song.onlineProvider;
+    final providerSuffix = provider == null || provider.isEmpty
+        ? ''
+        : '_via-${safeSegment(provider)}';
     final id = safeSegment(song.urlId ?? song.id);
-    return 'solara_${source}_$id.$extension';
+    return 'solara_$source${providerSuffix}_$id.$extension';
   }
 
   static Map<String, dynamic> buildNasDownloadSong(Song song) {
@@ -94,6 +105,8 @@ class NavidromeImportService {
       'artist': song.artist,
       'album': song.album,
       'source': song.onlineSource ?? 'netease',
+      if (song.onlineProvider?.isNotEmpty ?? false)
+        'provider': song.onlineProvider,
       if (song.coverArt != null && song.coverArt!.isNotEmpty)
         'pic_id': song.coverArt,
     };

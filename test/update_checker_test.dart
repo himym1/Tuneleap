@@ -37,6 +37,8 @@ Map<String, dynamic> _metadata({String host = 'player.himym.us.ci'}) => {
   },
 };
 
+Future<String?> _token({bool forceRefresh = false}) async => 'access-token';
+
 void main() {
   test('platform metadata requires trusted private release URL', () {
     final android = AppUpdateInfo.fromJson(_metadata(), platform: 'android');
@@ -77,7 +79,7 @@ void main() {
             options.uri.toString(),
             'https://player.himym.us.ci/version.json',
           );
-          expect(options.headers['X-API-Key'], 'private-key');
+          expect(options.headers['Authorization'], 'Bearer access-token');
           expect(options.followRedirects, isFalse);
           return ResponseBody.fromString(
             jsonEncode(_metadata()),
@@ -88,7 +90,7 @@ void main() {
           );
         });
 
-      final info = await checkForUpdate(apiKey: 'private-key', dio: dio);
+      final info = await checkForUpdate(accessTokenProvider: _token, dio: dio);
 
       expect(info, isNotNull);
     },
@@ -111,7 +113,7 @@ void main() {
       });
 
     final info = await checkForUpdate(
-      apiKey: 'cloud-key',
+      accessTokenProvider: _token,
       updateOrigin: 'https://cloud.example.com/',
       dio: dio,
     );
@@ -133,7 +135,7 @@ void main() {
       final dio = Dio()
         ..httpClientAdapter = _CaptureAdapter((options) async {
           expect(options.uri.host, 'player.himym.us.ci');
-          expect(options.headers['X-API-Key'], 'private-key');
+          expect(options.headers['Authorization'], 'Bearer access-token');
           expect(options.followRedirects, isFalse);
           return ResponseBody.fromBytes(
             bytes,
@@ -153,7 +155,7 @@ void main() {
 
       final path = await downloadUpdate(
         info,
-        apiKey: 'private-key',
+        accessTokenProvider: _token,
         dio: dio,
         savePathOverride: destination,
       );
@@ -183,7 +185,7 @@ void main() {
 
     final path = await downloadUpdate(
       info,
-      apiKey: 'private-key',
+      accessTokenProvider: _token,
       dio: dio,
       savePathOverride: destination,
     );
@@ -235,12 +237,44 @@ void main() {
 
     final path = await downloadUpdate(
       info,
-      apiKey: 'private-key',
+      accessTokenProvider: _token,
       dio: dio,
       savePathOverride: destination,
     );
 
     expect(path, destination);
     expect(downloads, 0);
+  });
+  test('update metadata refreshes Bearer token once after 401', () async {
+    var requests = 0;
+    final refreshFlags = <bool>[];
+    final dio = Dio()
+      ..httpClientAdapter = _CaptureAdapter((options) async {
+        requests += 1;
+        if (requests == 1) {
+          expect(options.headers['Authorization'], 'Bearer access-old');
+          return ResponseBody.fromString('{}', 401);
+        }
+        expect(options.headers['Authorization'], 'Bearer access-new');
+        return ResponseBody.fromString(
+          jsonEncode(_metadata()),
+          200,
+          headers: {
+            Headers.contentTypeHeader: ['application/json'],
+          },
+        );
+      });
+
+    final info = await checkForUpdate(
+      accessTokenProvider: ({bool forceRefresh = false}) async {
+        refreshFlags.add(forceRefresh);
+        return forceRefresh ? 'access-new' : 'access-old';
+      },
+      dio: dio,
+    );
+
+    expect(info, isNotNull);
+    expect(refreshFlags, [false, true]);
+    expect(requests, 2);
   });
 }

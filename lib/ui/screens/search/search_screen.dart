@@ -7,6 +7,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
@@ -21,27 +22,17 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
-  final _resultsScrollController = ScrollController();
   Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
-    _resultsScrollController.addListener(_onResultsScroll);
-  }
-
-  void _onResultsScroll() {
-    if (!_resultsScrollController.hasClients) return;
-    final position = _resultsScrollController.position;
-    if (position.pixels >= position.maxScrollExtent - 240) {
-      ref.read(searchProvider.notifier).loadMore();
-    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
-    _resultsScrollController.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -150,6 +141,31 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return Center(child: const CircularProgressIndicator());
     }
 
+    if (searchState.error != null && searchState.songs.isEmpty) {
+      final raw = searchState.error!;
+      final isAuth =
+          raw.contains('401') ||
+          raw.toLowerCase().contains('unauthorized') ||
+          raw.toLowerCase().contains('invalid api key');
+      return EmptyState(
+        icon: isAuth ? Icons.lock_outline : Icons.error_outline,
+        message: isAuth
+            ? S.of(context).searchAuthRequired
+            : S.of(context).searchError(raw),
+        actionLabel: isAuth ? S.of(context).cloudSignIn : null,
+        onAction: isAuth
+            ? () async {
+                final ok = await CloudAuthDialog.show(context);
+                if (!ok || !mounted) return;
+                final q = _searchController.text.trim();
+                if (q.isNotEmpty) {
+                  await ref.read(searchProvider.notifier).search(q);
+                }
+              }
+            : null,
+      );
+    }
+
     if (searchState.songs.isEmpty && !searchState.searching) {
       if (_searchController.text.trim().isEmpty) {
         return Center(
@@ -181,18 +197,46 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
     }
 
-    final hasFooter = searchState.loadingMore || searchState.hasMore;
+    final showLoadMore = searchState.hasMore || searchState.loadingMore;
     return ListView.builder(
-      controller: _resultsScrollController,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      itemCount: searchState.songs.length + (hasFooter ? 1 : 0),
+      itemCount: searchState.songs.length + (showLoadMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == searchState.songs.length) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            child: searchState.loadingMore
-                ? const Center(child: CircularProgressIndicator())
-                : const SizedBox(height: 24),
+            child: Center(
+              child: OutlinedButton.icon(
+                onPressed: searchState.loadingMore
+                    ? null
+                    : () async {
+                        try {
+                          await ref.read(searchProvider.notifier).loadMore();
+                        } catch (_) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  S.of(context).searchLoadMoreFailed,
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                icon: searchState.loadingMore
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.expand_more),
+                label: Text(
+                  searchState.loadingMore
+                      ? S.of(context).searchLoadingMore
+                      : S.of(context).searchLoadMore,
+                ),
+              ),
+            ),
           );
         }
         final song = searchState.songs[index];
@@ -223,11 +267,6 @@ class _SongResultTile extends ConsumerWidget {
       builder: (context, snapshot) {
         final isPlaying =
             (snapshot.data ?? playerService.currentSong)?.id == song.id;
-        final isLocal = ref.watch(
-          searchProvider.select(
-            (state) => state.localSongKeys.contains(searchSongMatchKey(song)),
-          ),
-        );
         return SongContextMenu(
           song: song,
           onPlay: onTap,
@@ -268,24 +307,6 @@ class _SongResultTile extends ConsumerWidget {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (isLocal)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: context.colors.primarySoft,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        S.of(context).searchSectionLocal,
-                        style: Theme.of(context).textTheme.chipLabel.copyWith(
-                          color: context.colors.primary,
-                        ),
-                      ),
-                    ),
                   if (song.isOnline)
                     Container(
                       padding: const EdgeInsets.symmetric(

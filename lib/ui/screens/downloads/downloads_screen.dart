@@ -5,6 +5,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/stat_card.dart';
+import 'package:navidrome_player/ui/widgets/responsive_content.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// 下载管理页面 — 统计卡片 + 实时下载队列
@@ -25,10 +26,9 @@ class DownloadsScreen extends ConsumerWidget {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/home');
       },
-      child: Scaffold(
-      backgroundColor: Colors.transparent,
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(h, h, h, h),
+      child: ResponsivePageScaffold(
+        body: ListView(
+          padding: EdgeInsets.fromLTRB(0, h, 0, h),
         children: [
           Row(
             children: [

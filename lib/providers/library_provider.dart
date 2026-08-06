@@ -61,12 +61,17 @@ final libraryProvider = NotifierProvider<LibraryNotifier, LibraryState>(
 class LibraryNotifier extends Notifier<LibraryState> {
   static const _pageSize = 50;
   final RequestGeneration _requests = RequestGeneration();
+  final RequestGeneration _playbackRequests = RequestGeneration();
 
   @override
   LibraryState build() {
-    ref.watch(serverConfigProvider.select((config) => config.serverId));
+    ref.watch(serverConfigProvider);
     final request = _requests.begin();
-    ref.onDispose(_requests.invalidate);
+    _playbackRequests.begin();
+    ref.onDispose(() {
+      _requests.invalidate();
+      _playbackRequests.invalidate();
+    });
     _loadInitialData(request);
     return const LibraryState();
   }
@@ -174,15 +179,44 @@ class LibraryNotifier extends Notifier<LibraryState> {
     await _loadInitialData(_requests.begin());
   }
 
+  /// 获取艺术家全部专辑歌曲并开始播放。
+  Future<void> playAllAlbums(List<Album> albums) async {
+    final request = _playbackRequests.begin();
+    final config = ref.read(serverConfigProvider);
+    try {
+      final client = ref.read(subsonicClientProvider);
+      final albumDetails = await Future.wait(
+        albums.map((album) => client.getAlbum(album.id)),
+      );
+      if (!_playbackRequests.isCurrent(request) ||
+          !identical(ref.read(serverConfigProvider), config)) {
+        return;
+      }
+      final allSongs = albumDetails.expand((album) => album.songs).toList();
+      if (allSongs.isNotEmpty) {
+        await ref.read(audioPlayerServiceProvider).playAll(allSongs);
+      }
+    } catch (e) {
+      debugPrint('Failed to play all albums: ${e.runtimeType}');
+    }
+  }
+
   Future<void> playArtist(Artist artist) async {
-    final serverId = ref.read(serverConfigProvider).serverId;
+    final request = _playbackRequests.begin();
+    final config = ref.read(serverConfigProvider);
     try {
       final client = ref.read(subsonicClientProvider);
       final detail = await client.getArtist(artist.id);
-      if (ref.read(serverConfigProvider).serverId != serverId) return;
+      if (!_playbackRequests.isCurrent(request) ||
+          !identical(ref.read(serverConfigProvider), config)) {
+        return;
+      }
       if (detail.albums.isNotEmpty) {
         final album = await client.getAlbum(detail.albums.first.id);
-        if (ref.read(serverConfigProvider).serverId != serverId) return;
+        if (!_playbackRequests.isCurrent(request) ||
+            !identical(ref.read(serverConfigProvider), config)) {
+          return;
+        }
         if (album.songs.isNotEmpty) {
           ref.read(audioPlayerServiceProvider).playAll(album.songs);
         }

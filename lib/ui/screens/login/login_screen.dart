@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/providers/server_scope.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -16,7 +17,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _backendUrlController = TextEditingController();
-  final _backendApiKeyController = TextEditingController();
+  final _cloudUsernameController = TextEditingController();
+  final _cloudCredentialController = TextEditingController();
   final _nasAgentUrlController = TextEditingController();
   final _nasAgentKeyController = TextEditingController();
   bool _loading = false;
@@ -26,11 +28,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     final config = ref.read(serverConfigProvider);
+    final prefs = ref.read(sharedPreferencesProvider);
+    final serverId = normalizeServerId(config.serverId);
     _urlController.text = config.url;
     _usernameController.text = config.username;
     _passwordController.text = config.password;
     _backendUrlController.text = config.backendUrl;
-    _backendApiKeyController.text = config.backendApiKey;
+    _cloudUsernameController.text =
+        prefs.getString('cloud_username_$serverId') ?? '';
     _nasAgentUrlController.text = config.nasAgentUrl;
     _nasAgentKeyController.text = config.nasAgentKey;
   }
@@ -41,7 +46,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _usernameController.dispose();
     _passwordController.dispose();
     _backendUrlController.dispose();
-    _backendApiKeyController.dispose();
+    _cloudUsernameController.dispose();
+    _cloudCredentialController.dispose();
     _nasAgentUrlController.dispose();
     _nasAgentKeyController.dispose();
     super.dispose();
@@ -57,9 +63,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final url = _urlController.text.trim();
       final username = _usernameController.text.trim();
-      final password = _passwordController.text.trim();
+      final password = _passwordController.text;
       final backendUrl = _backendUrlController.text.trim();
-      final backendApiKey = _backendApiKeyController.text;
+      final cloudUsername = _cloudUsernameController.text.trim();
+      final cloudCredential = _cloudCredentialController.text;
       final nasAgentUrl = _nasAgentUrlController.text.trim();
       final nasAgentKey = _nasAgentKeyController.text;
 
@@ -75,7 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             username: username,
             password: password,
             backendUrl: backendUrl,
-            backendApiKey: backendApiKey,
+            backendApiKey: '',
             nasAgentUrl: nasAgentUrl,
             nasAgentKey: nasAgentKey,
           );
@@ -83,6 +90,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       if (!ok) {
         setState(() => _error = s.loginFailed);
+        return;
+      }
+
+      // Optional Cloud login on the same page so users don't hit a second dialog.
+      if (cloudUsername.isNotEmpty && cloudCredential.isNotEmpty) {
+        final cloudOk = await ref
+            .read(cloudAuthProvider.notifier)
+            .login(username: cloudUsername, credential: cloudCredential);
+        if (!mounted) return;
+        if (!cloudOk) {
+          setState(() => _error = s.cloudAuthFailed);
+          return;
+        }
       }
     } catch (e) {
       if (mounted) setState(() => _error = s.loginError(e.toString()));
@@ -168,11 +188,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextField(
-                      controller: _backendApiKeyController,
+                      controller: _cloudUsernameController,
                       decoration: InputDecoration(
-                        labelText: s.backendApiKey,
-                        hintText: s.backendApiKeyHint,
-                        prefixIcon: const Icon(Icons.key_outlined),
+                        labelText: s.cloudUsername,
+                        prefixIcon: const Icon(Icons.person_outline),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _cloudCredentialController,
+                      decoration: InputDecoration(
+                        labelText: s.cloudCredential,
+                        prefixIcon: const Icon(Icons.lock_outline),
                       ),
                       obscureText: true,
                     ),

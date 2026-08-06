@@ -1,8 +1,0 @@
-{
-  "schemaVersion": "aegis.schema.v0",
-  "artifactKey": "backend-task3-planner",
-  "type": "test",
-  "source": "backend commit e03aaaf",
-  "summary": "Planner 12 targeted and 45 full unittest passed; strict schema/input caps/redaction verified; two-stage review approved.",
-  "verifier": "main agent fresh commands and independent reviewers"
-}

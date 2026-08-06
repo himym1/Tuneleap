@@ -18,7 +18,7 @@ class SZh extends S {
   String get navSearch => '搜索';
 
   @override
-  String get navPlaylists => '播放列表';
+  String get navPlaylists => '歌单';
 
   @override
   String get navSettings => '设置';
@@ -437,6 +437,15 @@ class SZh extends S {
   }
 
   @override
+  String get importAnyway => '仍然导入';
+
+  @override
+  String get importDuplicateCheckFailed => '无法核对 NAS 曲库，已停止导入';
+
+  @override
+  String get nasAgentConfigRequired => '请先配置局域网 NAS Agent 地址和 Key，再执行导入或删除';
+
+  @override
   String get commonContinue => '继续';
 
   @override
@@ -623,22 +632,61 @@ class SZh extends S {
       'navidrome-cloud 公网地址，例如 https://cloud.example.com';
 
   @override
-  String get backendApiKey => '云端 API Key';
+  String get cloudAccount => 'Cloud 账号';
 
   @override
-  String get backendApiKeyHint => '与 Navidrome 密码、NAS Agent Key 分开保存';
+  String get cloudSignedIn => '已登录';
+
+  @override
+  String get cloudSignedOut => '未登录';
+
+  @override
+  String get cloudSignIn => '登录';
+
+  @override
+  String get cloudRegister => '注册';
+
+  @override
+  String get cloudUsername => 'Cloud 用户名';
+
+  @override
+  String get cloudCredential => 'Cloud 账号凭据';
+
+  @override
+  String get cloudSignOut => '退出 Cloud';
+
+  @override
+  String get cloudAuthFailed => 'Cloud 认证失败';
+
+  @override
+  String get cloudInvalidInput => '用户名至少 2 个字符，账号凭据至少 8 个字符';
+
+  @override
+  String get cloudInvalidCredentials => 'Cloud 用户名或账号凭据错误';
+
+  @override
+  String get cloudUsernameExists => '该 Cloud 用户名已存在，请直接登录或更换用户名';
+
+  @override
+  String get cloudNetworkError => '无法连接 Cloud，请检查网络后重试';
+
+  @override
+  String get cloudAuthRequired => '登录 Cloud 后加载推荐';
+
+  @override
+  String get searchAuthRequired => 'Cloud 登录已失效，请重新登录后再搜索';
 
   @override
   String get nasAgentUrl => 'NAS Agent 地址';
 
   @override
-  String get nasAgentUrlHint => '可选，默认使用 Navidrome 主机的 8503 端口';
+  String get nasAgentUrlHint => '导入/删除必填，请使用局域网地址，例如 http://192.168.1.10:8504';
 
   @override
   String get nasAgentKey => 'NAS Agent Key';
 
   @override
-  String get nasAgentKeyHint => '仅用于导入/删除，与云端 API Key 分开';
+  String get nasAgentKeyHint => '仅用于局域网导入/删除';
 
   @override
   String get serverUrlExample => 'https://music.example.com';
@@ -659,7 +707,21 @@ class SZh extends S {
   String get searchNoResult => '无搜索结果';
 
   @override
+  String searchError(String error) {
+    return '搜索失败: $error';
+  }
+
+  @override
   String get searchResults => '搜索结果';
+
+  @override
+  String get searchLoadMore => '加载更多';
+
+  @override
+  String get searchLoadingMore => '加载中…';
+
+  @override
+  String get searchLoadMoreFailed => '下一页加载失败';
 
   @override
   String get libraryNoArtists => '暂无艺术家';
@@ -735,6 +797,26 @@ class SZh extends S {
   String get playlistListEmpty => '播放列表为空';
 
   @override
+  String get playlistAddSongs => '添加歌曲';
+
+  @override
+  String get playlistAddSongsTitle => '添加歌曲到歌单';
+
+  @override
+  String get playlistSearchSongsHint => '搜索本地曲库';
+
+  @override
+  String get playlistNoMatchingSongs => '没有匹配的歌曲';
+
+  @override
+  String get playlistAddSelected => '添加所选';
+
+  @override
+  String playlistSongsAdded(int count) {
+    return '已添加 $count 首';
+  }
+
+  @override
   String get playlistRenameTitle => '重命名播放列表';
 
   @override
@@ -744,6 +826,25 @@ class SZh extends S {
   String songContextAddedToPlaylist(String name) {
     return '已添加到 $name';
   }
+
+  @override
+  String get playlistSaveQueue => '将队列保存为歌单';
+
+  @override
+  String playlistQueueSaved(String name) {
+    return '已将队列保存为「$name」';
+  }
+
+  @override
+  String playlistQueueSavedSkipped(String name, int count) {
+    return '已保存为「$name」，跳过 $count 首线上歌曲';
+  }
+
+  @override
+  String get playlistQueueNoLocalSongs => '只有本地曲库歌曲可以保存到歌单';
+
+  @override
+  String get playlistQueueSaveFailed => '保存队列失败';
 
   @override
   String get defaultServerName => '我的服务器';
@@ -770,16 +871,37 @@ class SZh extends S {
   String get sidebarLibrary => '音乐库';
 
   @override
+  String get libraryBrowse => '浏览音乐库';
+
+  @override
   String get homeNewestAlbums => '最新专辑';
 
   @override
-  String get homeDailyRecommend => '为你推荐';
+  String get homeDailyRecommend => '发现新音乐';
 
   @override
   String get homeRecentlyPlayed => '最近播放';
 
   @override
+  String get homeYourMusic => '我的音乐';
+
+  @override
+  String get homeContinueListening => '继续听';
+
+  @override
+  String get homeLocalMix => '本地 Mix';
+
+  @override
+  String get homeShuffleLocal => '随机播放曲库';
+
+  @override
+  String get homeLocalPlaybackFailed => '无法开始本地播放';
+
+  @override
   String get homeViewMore => '更多';
+
+  @override
+  String get homeRefreshed => '首页已刷新';
 
   @override
   String get libraryGenresTitle => '流派';

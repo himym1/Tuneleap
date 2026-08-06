@@ -6,6 +6,7 @@ import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/stat_card.dart';
+import 'package:navidrome_player/ui/widgets/responsive_content.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
@@ -29,10 +30,9 @@ class ScrobbleScreen extends ConsumerWidget {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/home');
       },
-      child: Scaffold(
-      backgroundColor: Colors.transparent,
-      body: ListView(
-        padding: EdgeInsets.all(isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop),
+      child: ResponsivePageScaffold(
+        body: ListView(
+          padding: EdgeInsets.fromLTRB(0, isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop, 0, isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop),
         children: [
           // 头部 — 移动端带返回按钮
           Row(
