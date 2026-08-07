@@ -23,9 +23,13 @@ class SongContextMenu extends ConsumerWidget {
     WidgetRef ref,
     Song song, {
     Offset? position,
+    VoidCallback? onPlay,
+    VoidCallback? onDeleted,
   }) {
     return SongContextMenu(
       song: song,
+      onPlay: onPlay,
+      onDeleted: onDeleted,
       child: const SizedBox.shrink(),
     )._showMenu(context, ref, position ?? const Offset(0, 0));
   }

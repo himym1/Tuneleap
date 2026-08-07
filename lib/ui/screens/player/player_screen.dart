@@ -290,6 +290,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                           ).colorScheme.onSurfaceVariant,
                                         ),
                                   ),
+                                  trailing: _QueueSongMenuButton(
+                                    song: song,
+                                    onPlay: () {
+                                      playerService.skipToIndex(index);
+                                      Navigator.pop(ctx);
+                                    },
+                                    onDeleted: () {
+                                      if (mounted) setState(() {});
+                                    },
+                                  ),
                                   onTap: () {
                                     playerService.skipToIndex(index);
                                     Navigator.pop(ctx);
@@ -1413,6 +1423,13 @@ class _QueuePanelState extends State<_QueuePanel> {
                                               ).colorScheme.onSurfaceVariant,
                                             ),
                                       ),
+                                    _QueueSongMenuButton(
+                                      song: song,
+                                      onPlay: () => ps.skipToIndex(index),
+                                      onDeleted: () {
+                                        if (mounted) setState(() {});
+                                      },
+                                    ),
                                     const SizedBox(width: 4),
                                     ReorderableDragStartListener(
                                       index: index,
@@ -1437,6 +1454,44 @@ class _QueuePanelState extends State<_QueuePanel> {
           ),
         );
       },
+    );
+  }
+}
+
+class _QueueSongMenuButton extends ConsumerWidget {
+  final Song song;
+  final VoidCallback onPlay;
+  final VoidCallback? onDeleted;
+
+  const _QueueSongMenuButton({
+    required this.song,
+    required this.onPlay,
+    this.onDeleted,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return IconButton(
+      key: ValueKey('queue-song-menu-${song.storageKey}'),
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      padding: EdgeInsets.zero,
+      tooltip: S.of(context).tooltipMore,
+      onPressed: () {
+        final box = context.findRenderObject() as RenderBox?;
+        final position = box == null
+            ? MediaQuery.sizeOf(context).center(Offset.zero)
+            : box.localToGlobal(box.size.center(Offset.zero));
+        SongContextMenu.showForSong(
+          context,
+          ref,
+          song,
+          position: position,
+          onPlay: onPlay,
+          onDeleted: onDeleted,
+        );
+      },
+      icon: const Icon(Icons.more_vert, size: 18),
     );
   }
 }
