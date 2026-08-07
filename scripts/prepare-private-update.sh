@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "播放详情新增可见的加入歌单和删除按钮，移动端与桌面端均可直接操作；删除仍需二次确认。",
+    "changelog": "播放队列每首歌曲新增弹出操作菜单，可直接加入歌单、收藏、播放或删除本地歌曲。"
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
