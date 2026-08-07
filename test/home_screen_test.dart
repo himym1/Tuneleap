@@ -22,6 +22,15 @@ Song _recommendedSong(int index) => Song(
   urlId: 'recommended-url-$index',
 );
 
+Song _localSong(String id, {String? artistId}) => Song(
+  id: id,
+  title: 'Song $id',
+  album: 'Album $id',
+  albumId: 'album-$id',
+  artist: 'Artist ${artistId ?? id}',
+  artistId: artistId ?? 'artist-$id',
+);
+
 const _recentSongs = [
   Song(
     id: 'recent-1',
@@ -120,39 +129,35 @@ void main() {
 
   setUpAll(initializeAppColors);
 
-  test('local mix favors older local songs and removes duplicates', () {
-    final history = List.generate(
-      7,
-      (index) => Song(
-        id: 'history-$index',
-        title: 'History $index',
-        album: 'Album',
-        albumId: 'album',
-        artist: 'Artist',
-        artistId: 'artist',
-      ),
-    );
-    final random = [
-      history[6],
-      const Song(
-        id: 'random',
-        title: 'Random',
-        album: 'Album',
-        albumId: 'album',
-        artist: 'Artist',
-        artistId: 'artist',
-      ),
-    ];
+  test(
+    'personalized mix excludes recent songs and limits artist repetition',
+    () {
+      final history = List.generate(
+        12,
+        (index) => _localSong('history-$index'),
+      );
+      final mix = composePersonalizedLocalMix(
+        playHistory: history,
+        similarSongs: [
+          history.first,
+          _localSong('similar-1', artistId: 'favorite-artist'),
+          _localSong('similar-2', artistId: 'favorite-artist'),
+          _localSong('similar-3', artistId: 'favorite-artist'),
+        ],
+        starredSongs: [_localSong('starred')],
+        randomSongs: List.generate(8, (index) => _localSong('random-$index')),
+        limit: 10,
+      );
 
-    final mix = composeLocalMix(history, random, limit: 4);
-
-    expect(mix.map((song) => song.id), [
-      'history-6',
-      'history-5',
-      'history-4',
-      'random',
-    ]);
-  });
+      final ids = mix.map((song) => song.id).toList();
+      expect(ids, isNot(contains('history-0')));
+      expect(ids.take(2), ['similar-1', 'similar-2']);
+      expect(ids, contains('history-8'));
+      expect(ids, contains('starred'));
+      expect(ids.length, 10);
+      expect(mix.where((song) => song.artistId == 'favorite-artist').length, 2);
+    },
+  );
 
   testWidgets('home separates local listening from online discovery', (
     tester,
@@ -165,8 +170,8 @@ void main() {
 
     expect(find.text('Your Music'), findsOneWidget);
     expect(find.text('Continue Listening'), findsOneWidget);
-    expect(find.text('Local Mix'), findsOneWidget);
-    expect(find.text('Shuffle Library'), findsOneWidget);
+    expect(find.text('For You'), findsOneWidget);
+    expect(find.text('Shuffle Library'), findsNothing);
     expect(find.text('Recently Played Song 1'), findsOneWidget);
     expect(find.text('Recently Played Song 2'), findsNothing);
     expect(find.text('Recommended Song 1'), findsOneWidget);
@@ -193,8 +198,12 @@ void main() {
       textScaler: const TextScaler.linear(1.3),
     );
 
-    expect(find.text('Local Mix'), findsOneWidget);
-    expect(find.text('Shuffle Library'), findsOneWidget);
+    expect(find.text('For You'), findsOneWidget);
+    expect(find.text('Shuffle Library'), findsNothing);
+    expect(
+      find.byKey(const Key('home-personalized-mix-button')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 

@@ -1738,7 +1738,7 @@ abstract class S {
   /// No description provided for @homeLocalMix.
   ///
   /// In zh, this message translates to:
-  /// **'本地 Mix'**
+  /// **'为你播放'**
   String get homeLocalMix;
 
   /// No description provided for @homeShuffleLocal.
