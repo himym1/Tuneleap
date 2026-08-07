@@ -274,6 +274,34 @@ void main() {
       });
     });
 
+    test('getSimilarSongs2 sends seed id and parses songs', () async {
+      late RequestOptions captured;
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options) {
+          captured = options;
+          return ResponseBody.fromString(
+            '{"subsonic-response":{"status":"ok","similarSongs2":{"song":[{"id":"similar-1","title":"Similar","album":"Album","albumId":"album-1","artist":"Artist","artistId":"artist-1"}]}}}',
+            200,
+            headers: {
+              Headers.contentTypeHeader: ['application/json; charset=utf-8'],
+            },
+          );
+        });
+      final client = SubsonicClient(dio: dio)
+        ..configure(
+          serverUrl: 'http://localhost:4533',
+          username: 'test',
+          password: 'test123',
+        );
+
+      final songs = await client.getSimilarSongs2('seed-1', count: 15);
+
+      expect(captured.path, 'http://localhost:4533/rest/getSimilarSongs2');
+      expect(captured.queryParameters['id'], 'seed-1');
+      expect(captured.queryParameters['count'], 15);
+      expect(songs.single.id, 'similar-1');
+    });
+
     group('startScan', () {
       test('calls startScan endpoint without fullScan by default', () async {
         late RequestOptions captured;

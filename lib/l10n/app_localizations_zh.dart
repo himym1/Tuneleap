@@ -889,7 +889,7 @@ class SZh extends S {
   String get homeContinueListening => '继续听';
 
   @override
-  String get homeLocalMix => '本地 Mix';
+  String get homeLocalMix => '为你播放';
 
   @override
   String get homeShuffleLocal => '随机播放曲库';

@@ -330,6 +330,18 @@ class SubsonicClient {
     return songs.map((s) => Song.fromJson(s as Map<String, dynamic>)).toList();
   }
 
+  /// 获取与指定本地歌曲相似的歌曲
+  Future<List<Song>> getSimilarSongs2(String id, {int count = 50}) async {
+    final response = await _request(
+      'getSimilarSongs2',
+      params: {'id': id, 'count': count},
+    );
+    final songs = response['similarSongs2']?['song'] as List<dynamic>? ?? [];
+    return songs
+        .map((song) => Song.fromJson(song as Map<String, dynamic>))
+        .toList();
+  }
+
   /// 获取所有流派
   Future<List<Genre>> getGenres() async {
     final response = await _request('getGenres');

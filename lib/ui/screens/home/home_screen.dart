@@ -12,22 +12,78 @@ import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/player/playback_origin.dart';
 
-List<Song> composeLocalMix(
-  List<Song> playHistory,
-  List<Song> randomSongs, {
+List<Song> composePersonalizedLocalMix({
+  required List<Song> playHistory,
+  required List<Song> similarSongs,
+  required List<Song> starredSongs,
+  required List<Song> randomSongs,
   int limit = 30,
 }) {
-  final olderLocalSongs = playHistory
-      .where((song) => !song.isOnline)
-      .skip(4)
-      .toList()
-      .reversed
-      .take(6);
+  final localHistory = playHistory.where((song) => !song.isOnline).toList();
+  final recentKeys = localHistory
+      .take(5)
+      .map((song) => song.storageKey)
+      .toSet();
+  final pools = <List<Song>>[
+    similarSongs.where((song) => !song.isOnline).toList(),
+    localHistory.skip(8).take(8).toList(),
+    starredSongs.where((song) => !song.isOnline).toList(),
+    randomSongs.where((song) => !song.isOnline).toList(),
+  ];
+  const quotas = [15, 5, 4, 6];
+  final selected = <Song>[];
   final seen = <String>{};
-  return [
-    ...olderLocalSongs,
-    ...randomSongs,
-  ].where((song) => seen.add(song.storageKey)).take(limit).toList();
+  final artistCounts = <String, int>{};
+
+  bool addSong(
+    Song song, {
+    required int artistLimit,
+    bool allowRecent = false,
+  }) {
+    if (selected.length >= limit ||
+        seen.contains(song.storageKey) ||
+        (!allowRecent && recentKeys.contains(song.storageKey))) {
+      return false;
+    }
+    final artistKey = song.artistId.isNotEmpty
+        ? song.artistId
+        : song.artist.trim().toLowerCase();
+    if (artistKey.isNotEmpty && (artistCounts[artistKey] ?? 0) >= artistLimit) {
+      return false;
+    }
+    seen.add(song.storageKey);
+    selected.add(song);
+    if (artistKey.isNotEmpty) {
+      artistCounts[artistKey] = (artistCounts[artistKey] ?? 0) + 1;
+    }
+    return true;
+  }
+
+  void takeFrom(
+    Iterable<Song> songs,
+    int count, {
+    int artistLimit = 2,
+    bool allowRecent = false,
+  }) {
+    var added = 0;
+    for (final song in songs) {
+      if (addSong(song, artistLimit: artistLimit, allowRecent: allowRecent)) {
+        added++;
+        if (added >= count) return;
+      }
+    }
+  }
+
+  for (var index = 0; index < pools.length; index++) {
+    takeFrom(pools[index], quotas[index]);
+  }
+  final fallback = pools.expand((songs) => songs);
+  takeFrom(fallback, limit - selected.length);
+  takeFrom(fallback, limit - selected.length, artistLimit: limit);
+  if (selected.isEmpty) {
+    takeFrom(localHistory, limit, artistLimit: limit, allowRecent: true);
+  }
+  return selected;
 }
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -85,17 +141,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Future<void> _playLocalCollection({required bool mix}) async {
+  Future<void> _playPersonalizedMix() async {
     if (_loadingLocalPlayback) return;
     setState(() => _loadingLocalPlayback = true);
     try {
       final player = ref.read(audioPlayerServiceProvider);
-      final random = await ref
-          .read(subsonicClientProvider)
-          .getRandomSongs(size: 30);
-      final songs = mix
-          ? composeLocalMix(player.playHistory, random)
-          : random.take(30).toList();
+      final client = ref.read(subsonicClientProvider);
+      final localHistory = player.playHistory
+          .where((song) => !song.isOnline)
+          .toList();
+      final seeds = localHistory.take(3).toList();
+
+      Future<List<Song>> loadSimilarSongs() async {
+        final batches = await Future.wait(
+          seeds.map((seed) async {
+            try {
+              return await client.getSimilarSongs2(seed.id, count: 15);
+            } catch (_) {
+              return <Song>[];
+            }
+          }),
+        );
+        return batches.expand((songs) => songs).toList();
+      }
+
+      Future<List<Song>> loadStarredSongs() async {
+        try {
+          return (await client.getStarred2()).songs;
+        } catch (_) {
+          return <Song>[];
+        }
+      }
+
+      final candidates = await Future.wait<List<Song>>([
+        loadSimilarSongs(),
+        loadStarredSongs(),
+        client.getRandomSongs(size: 80),
+      ]);
+      final songs = composePersonalizedLocalMix(
+        playHistory: localHistory,
+        similarSongs: candidates[0],
+        starredSongs: candidates[1],
+        randomSongs: candidates[2],
+      );
       if (songs.isEmpty) throw StateError('empty local library');
       await player.playAll(songs);
       if (mounted) context.push('/player');
@@ -114,45 +202,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildLocalActions() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final buttonWidth = constraints.maxWidth >= 520
-            ? (constraints.maxWidth - 12) / 2
-            : constraints.maxWidth;
-        return Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            SizedBox(
-              width: buttonWidth,
-              height: 44,
-              child: FilledButton.icon(
-                onPressed: _loadingLocalPlayback
-                    ? null
-                    : () => _playLocalCollection(mix: true),
-                icon: _loadingLocalPlayback
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.auto_awesome, size: 19),
-                label: Text(S.of(context).homeLocalMix),
-              ),
-            ),
-            SizedBox(
-              width: buttonWidth,
-              height: 44,
-              child: OutlinedButton.icon(
-                onPressed: _loadingLocalPlayback
-                    ? null
-                    : () => _playLocalCollection(mix: false),
-                icon: const Icon(Icons.shuffle, size: 19),
-                label: Text(S.of(context).homeShuffleLocal),
-              ),
-            ),
-          ],
-        );
-      },
+    return SizedBox(
+      width: double.infinity,
+      height: 44,
+      child: FilledButton.icon(
+        key: const Key('home-personalized-mix-button'),
+        onPressed: _loadingLocalPlayback ? null : _playPersonalizedMix,
+        icon: _loadingLocalPlayback
+            ? const SizedBox.square(
+                dimension: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.auto_awesome, size: 19),
+        label: Text(S.of(context).homeLocalMix),
+      ),
     );
   }
 

@@ -908,7 +908,7 @@ class SEn extends S {
   String get homeContinueListening => 'Continue Listening';
 
   @override
-  String get homeLocalMix => 'Local Mix';
+  String get homeLocalMix => 'For You';
 
   @override
   String get homeShuffleLocal => 'Shuffle Library';
