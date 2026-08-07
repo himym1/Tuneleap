@@ -110,7 +110,7 @@ void main() {
 
     var state = container.read(searchProvider);
     expect(backend.pages, [1, 2]);
-    expect(backend.sources, ['netease', 'migu']);
+    expect(backend.sources, [null, null]);
     expect(state.songs.map((song) => song.id), ['0', '1', '2']);
     expect(state.hasMore, isTrue);
 
@@ -118,7 +118,7 @@ void main() {
 
     state = container.read(searchProvider);
     expect(backend.pages, [1, 2, 3]);
-    expect(backend.sources, ['netease', 'migu', 'migu']);
+    expect(backend.sources, [null, null, null]);
     expect(state.songs, hasLength(3));
     expect(state.hasMore, isFalse);
     expect(state.loadingMore, isFalse);
