@@ -94,7 +94,6 @@ class SearchNotifier extends Notifier<SearchState> {
           .read(backendClientProvider)
           .searchSongs(
             trimmed,
-            source: 'netease',
             count: _searchPageSize,
             page: 1,
             cancelToken: cancelToken,
@@ -132,12 +131,7 @@ class SearchNotifier extends Notifier<SearchState> {
     try {
       final result = await ref
           .read(backendClientProvider)
-          .searchSongs(
-            query,
-            source: state.source ?? 'netease',
-            count: _searchPageSize,
-            page: nextPage,
-          );
+          .searchSongs(query, count: _searchPageSize, page: nextPage);
       if (generation != _generation || query != _query) return;
       final seen = existing.map((song) => song.storageKey).toSet();
       final appended = result
@@ -147,7 +141,7 @@ class SearchNotifier extends Notifier<SearchState> {
       state = state.copyWith(
         songs: [...existing, ...appended],
         loadingMore: false,
-        hasMore: appended.isNotEmpty,
+        hasMore: result.isNotEmpty && appended.isNotEmpty,
         error: null,
       );
     } catch (error) {

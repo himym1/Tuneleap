@@ -22,11 +22,28 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
+  final _resultsScrollController = ScrollController();
   Timer? _debounce;
+
+  Future<void> _loadMore() async {
+    try {
+      await ref.read(searchProvider.notifier).loadMore();
+    } catch (_) {
+      // The provider stores the error; the footer exposes an explicit retry.
+    }
+  }
+
+  void _onResultsScrolled() {
+    if (!_resultsScrollController.hasClients) return;
+    if (_resultsScrollController.position.extentAfter < 240) {
+      unawaited(_loadMore());
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _resultsScrollController.addListener(_onResultsScrolled);
   }
 
   @override
@@ -34,11 +51,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _debounce?.cancel();
+    _resultsScrollController.dispose();
     super.dispose();
   }
 
   void _doSearch() {
     _debounce?.cancel();
+    if (_resultsScrollController.hasClients) {
+      _resultsScrollController.jumpTo(0);
+    }
     final query = _searchController.text.trim();
     if (query.isEmpty) {
       ref.read(searchProvider.notifier).clearResult();
@@ -197,45 +218,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
     }
 
-    final showLoadMore = searchState.hasMore || searchState.loadingMore;
+    final showFooter =
+        searchState.hasMore ||
+        searchState.loadingMore ||
+        searchState.error != null;
     return ListView.builder(
+      controller: _resultsScrollController,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      itemCount: searchState.songs.length + (showLoadMore ? 1 : 0),
+      itemCount: searchState.songs.length + (showFooter ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == searchState.songs.length) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Center(
-              child: OutlinedButton.icon(
-                onPressed: searchState.loadingMore
-                    ? null
-                    : () async {
-                        try {
-                          await ref.read(searchProvider.notifier).loadMore();
-                        } catch (_) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  S.of(context).searchLoadMoreFailed,
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                icon: searchState.loadingMore
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.expand_more),
-                label: Text(
-                  searchState.loadingMore
-                      ? S.of(context).searchLoadingMore
-                      : S.of(context).searchLoadMore,
-                ),
-              ),
+              child: searchState.loadingMore
+                  ? const CircularProgressIndicator(strokeWidth: 2)
+                  : searchState.error != null
+                  ? OutlinedButton.icon(
+                      onPressed: _loadMore,
+                      icon: const Icon(Icons.refresh),
+                      label: Text(S.of(context).searchLoadMore),
+                    )
+                  : const SizedBox.shrink(),
             ),
           );
         }
