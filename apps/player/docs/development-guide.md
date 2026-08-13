@@ -15,7 +15,7 @@
 
 ```bash
 git clone <repo-url>
-cd navidrome_player
+cd yinyue/apps/player
 flutter pub get
 flutter doctor
 ```

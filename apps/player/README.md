@@ -1,6 +1,8 @@
-# 音跃 (Navidrome Player)
+# 音跃 · 播放器
 
-跨平台 Navidrome/Subsonic 音乐客户端，支持 Android 与 macOS。客户端同时接入公网 `navidrome-cloud` 和局域网 `navidrome-nas-agent`，提供在线搜索、推荐、导入和私有更新。
+音跃产品仓里的 Flutter 客户端，目录是 `apps/player`。支持 Android 与 macOS。客户端同时接入公网 Cloud 和局域网 NAS Agent，提供在线搜索、推荐、导入和私有更新。
+
+产品总览见仓库根目录 [README](../../README.md) 和 [架构](../../docs/architecture.md)。
 
 ## 主要能力
 

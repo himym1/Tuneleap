@@ -1,6 +1,8 @@
-# navidrome-cloud
+# Cloud control plane
 
-Public **control plane** for [navidrome_player](../navidrome_player): online music search, playback URL/lyric/cover resolution, private app updates, product auth, and recommendations.
+Public **control plane** for [音跃 player](../../apps/player): online music search, playback URL/lyric/cover resolution, private app updates, product auth, and recommendations.
+
+Source path in this repo: `services/cloud`. Production directory is still `dmit:/opt/navidrome-cloud`.
 
 ## Architecture (ADR-0004)
 
@@ -12,7 +14,9 @@ Public **control plane** for [navidrome_player](../navidrome_player): online mus
 
 Runtime state is stored in **Postgres**. SQLite files under `data/` are accepted only as one-time migration inputs.
 
-Sibling service: [`navidrome-nas-agent`](../navidrome-nas-agent) for import/delete and read-only library identities.
+Sibling service: [`nas-agent`](../nas-agent) for import/delete and read-only library identities.
+
+Runtime split: [ADR-0004](../../apps/player/docs/adr/0004-cloud-control-plane-and-nas-agent.md). Product repo: [ADR-0005](../../docs/adr/0005-product-monorepo.md).
 
 ## Docs
 
@@ -27,7 +31,7 @@ Sibling service: [`navidrome-nas-agent`](../navidrome-nas-agent) for import/dele
 ## Quick start
 
 ```bash
-cd navidrome-cloud
+cd services/cloud
 cp .env.example .env
 # edit API_KEY, JWT_SECRET, POSTGRES_PASSWORD, DATABASE_URL
 docker compose up -d --build

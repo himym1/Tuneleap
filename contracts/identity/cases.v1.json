@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "title_artist_separator": "\u001f",
+  "artist_token_separator": "\u001e",
+  "notes": "Canonical product behavior follows Flutter song_identity.dart. Python copies currently omit some CJK rules.",
+  "cases": [
+    {
+      "id": "duet-order-cjk",
+      "expect": "equal",
+      "left": { "title": "花好月圆夜", "artist": "任贤齐 / 杨千嬅" },
+      "right": { "title": "花好月圆夜", "artist": "杨千嬅 & 任贤齐" }
+    },
+    {
+      "id": "duet-language-suffix",
+      "expect": "equal",
+      "left": { "title": "花好月圆夜", "artist": "任贤齐 / 杨千嬅" },
+      "right": { "title": "花好月圆夜(国)", "artist": "任贤齐 • 杨千嬅" }
+    },
+    {
+      "id": "duet-title-prefix",
+      "expect": "equal",
+      "left": { "title": "花好月圆夜", "artist": "任贤齐 / 杨千嬅" },
+      "right": { "title": "任贤齐 _ 杨千嬅 - 花好月圆夜", "artist": "杨千嬅/任贤齐" }
+    },
+    {
+      "id": "latin-artist-punctuation",
+      "expect": "equal",
+      "left": { "title": "Enemy", "artist": "Imagine Dragons / J.I.D" },
+      "right": { "title": "Enemy", "artist": "J.I.D & Imagine Dragons" }
+    },
+    {
+      "id": "featured-artist-primary",
+      "expect": "equal",
+      "left": { "title": "Song", "artist": "Artist feat. Guest" },
+      "right": { "title": "Song", "artist": "Artist" }
+    },
+    {
+      "id": "live-suffix-stripped",
+      "expect": "equal",
+      "left": { "title": "Song - Live", "artist": "Artist" },
+      "right": { "title": "Song", "artist": "Artist" }
+    },
+    {
+      "id": "unrelated-chinese-brackets-kept",
+      "expect": "not_equal",
+      "left": { "title": "Song (中国风)", "artist": "Artist" },
+      "right": { "title": "Song", "artist": "Artist" }
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 Public **control plane**. Do not grow this service into a NAS file manager.
 
-Authority: `navidrome_player/docs/adr/0004-cloud-control-plane-and-nas-agent.md`.
+Authority: [`apps/player/docs/adr/0004-cloud-control-plane-and-nas-agent.md`](../../../apps/player/docs/adr/0004-cloud-control-plane-and-nas-agent.md).
 
 ## Boundaries
 
