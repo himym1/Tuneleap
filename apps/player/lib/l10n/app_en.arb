@@ -277,6 +277,15 @@
     "searchLoadMore": "Load More",
     "searchLoadingMore": "Loading...",
     "searchLoadMoreFailed": "Could not load the next page",
+    "searchPlaybackUnavailable": "This song cannot be played right now",
+    "searchPlaybackFailed": "Playback failed: {error}",
+    "@searchPlaybackFailed": {
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
     "libraryNoArtists": "No artists",
     "libraryNoAlbums": "No albums",
     "libraryNoSongs": "No songs",

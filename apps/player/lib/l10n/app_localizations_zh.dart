@@ -724,6 +724,14 @@ class SZh extends S {
   String get searchLoadMoreFailed => '下一页加载失败';
 
   @override
+  String get searchPlaybackUnavailable => '当前歌曲暂时无法播放';
+
+  @override
+  String searchPlaybackFailed(String error) {
+    return '播放失败: $error';
+  }
+
+  @override
   String get libraryNoArtists => '暂无艺术家';
 
   @override

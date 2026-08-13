@@ -1441,6 +1441,18 @@ abstract class S {
   /// **'下一页加载失败'**
   String get searchLoadMoreFailed;
 
+  /// No description provided for @searchPlaybackUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前歌曲暂时无法播放'**
+  String get searchPlaybackUnavailable;
+
+  /// No description provided for @searchPlaybackFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放失败: {error}'**
+  String searchPlaybackFailed(String error);
+
   /// No description provided for @libraryNoArtists.
   ///
   /// In zh, this message translates to:

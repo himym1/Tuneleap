@@ -66,6 +66,12 @@ class AudioPlayerService {
     await _handler.setQueue([song], startIndex: 0, origins: [origin]);
   }
 
+  /// 播放单首歌曲，并确认媒体源已成功加载。
+  Future<bool> playSongAndConfirm(Song song, {PlaybackOrigin? origin}) async {
+    await playSong(song, origin: origin);
+    return _handler.hasLoadedCurrentSong;
+  }
+
   /// 播放歌曲列表
   Future<void> playAll(
     List<Song> songs, {

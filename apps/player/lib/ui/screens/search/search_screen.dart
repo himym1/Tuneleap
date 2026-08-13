@@ -35,9 +35,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _onResultsScrolled() {
     if (!_resultsScrollController.hasClients) return;
-    if (_resultsScrollController.position.extentAfter < 240) {
-      unawaited(_loadMore());
+    _loadMoreNearBottom(_resultsScrollController.position);
+  }
+
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification.depth == 0) {
+      _loadMoreNearBottom(notification.metrics);
     }
+    return false;
+  }
+
+  void _loadMoreNearBottom(ScrollMetrics metrics) {
+    if (metrics.extentAfter < 320) unawaited(_loadMore());
   }
 
   @override
@@ -222,36 +231,59 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         searchState.hasMore ||
         searchState.loadingMore ||
         searchState.error != null;
-    return ListView.builder(
-      controller: _resultsScrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      itemCount: searchState.songs.length + (showFooter ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == searchState.songs.length) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: searchState.loadingMore
-                  ? const CircularProgressIndicator(strokeWidth: 2)
-                  : searchState.error != null
-                  ? OutlinedButton.icon(
-                      onPressed: _loadMore,
-                      icon: const Icon(Icons.refresh),
-                      label: Text(S.of(context).searchLoadMore),
-                    )
-                  : const SizedBox.shrink(),
-            ),
+    return NotificationListener<ScrollNotification>(
+      onNotification: _onScrollNotification,
+      child: ListView.builder(
+        controller: _resultsScrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        itemCount: searchState.songs.length + (showFooter ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == searchState.songs.length) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: searchState.loadingMore
+                    ? const CircularProgressIndicator(strokeWidth: 2)
+                    : searchState.error != null
+                    ? OutlinedButton.icon(
+                        onPressed: _loadMore,
+                        icon: const Icon(Icons.refresh),
+                        label: Text(S.of(context).searchLoadMore),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            );
+          }
+          final song = searchState.songs[index];
+          return _SongResultTile(
+            song: song,
+            onTap: () async {
+              try {
+                final loaded = await ref
+                    .read(audioPlayerServiceProvider)
+                    .playSongAndConfirm(song);
+                if (!context.mounted) return;
+                if (loaded) {
+                  context.push('/player');
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(S.of(context).searchPlaybackUnavailable),
+                    ),
+                  );
+                }
+              } catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(S.of(context).searchPlaybackFailed('$error')),
+                  ),
+                );
+              }
+            },
           );
-        }
-        final song = searchState.songs[index];
-        return _SongResultTile(
-          song: song,
-          onTap: () {
-            ref.read(audioPlayerServiceProvider).playSong(song);
-            context.push('/player');
-          },
-        );
-      },
+        },
+      ),
     );
   }
 }

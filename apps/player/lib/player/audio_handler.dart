@@ -224,6 +224,9 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       _currentOriginController.stream;
   Stream<PlaybackFailure> get playbackFailureStream =>
       _playbackFailureController.stream;
+  bool get hasLoadedCurrentSong =>
+      currentSong != null &&
+      _loadedSongKey == scopedSongKey(_serverId, currentSong!.storageKey);
 
   void _publishCurrentOrigin() {
     if (!_currentOriginController.isClosed) {

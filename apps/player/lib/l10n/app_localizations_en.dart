@@ -742,6 +742,15 @@ class SEn extends S {
   String get searchLoadMoreFailed => 'Could not load the next page';
 
   @override
+  String get searchPlaybackUnavailable =>
+      'This song cannot be played right now';
+
+  @override
+  String searchPlaybackFailed(String error) {
+    return 'Playback failed: $error';
+  }
+
+  @override
   String get libraryNoArtists => 'No artists';
 
   @override
