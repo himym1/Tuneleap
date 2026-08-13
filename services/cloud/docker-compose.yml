@@ -1,0 +1,37 @@
+# Public cloud control plane. No NAS music volumes are mounted here.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-navidrome_cloud}
+      POSTGRES_USER: ${POSTGRES_USER:-navidrome}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - cloud-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  navidrome-cloud:
+    build: .
+    image: navidrome-cloud:local
+    container_name: navidrome-cloud
+    ports:
+      - "127.0.0.1:8600:8600"
+    env_file:
+      - .env
+    volumes:
+      - ./releases:/app/releases:ro
+      - ./data:/app/data:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  cloud-pg:
