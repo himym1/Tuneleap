@@ -718,6 +718,11 @@ class SZh extends S {
   String get searchServiceUnavailable => '当前搜索服务暂不可用。';
 
   @override
+  String searchSourceUnavailable(String source) {
+    return '$source搜索服务暂不可用。';
+  }
+
+  @override
   String get searchFailedTryAgain => '搜索失败，请重试。';
 
   @override

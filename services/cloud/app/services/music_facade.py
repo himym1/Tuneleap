@@ -25,6 +25,9 @@ from app.models.schemas import (
 class MusicSearchSelectionError(ValueError):
     """Requested adapter/platform selection cannot be served."""
 
+def _is_available(adapter: MusicAdapter) -> bool:
+    return bool(getattr(adapter, "available", True))
+
 
 class MusicFacade:
     def __init__(self, client: httpx.AsyncClient, settings: Settings):
@@ -67,14 +70,15 @@ class MusicFacade:
         return list(self._adapters)
 
     def capabilities(self) -> dict[str, Any]:
+        adapters = [adapter for adapter in self._adapters if _is_available(adapter)]
         return {
-            "default_provider": self._adapters[0].name if self._adapters else None,
+            "default_provider": adapters[0].name if adapters else None,
             "adapters": [
                 {
                     "id": adapter.name,
                     "sources": sorted(adapter.supported_sources),
                 }
-                for adapter in self._adapters
+                for adapter in adapters
             ],
         }
 
@@ -83,7 +87,7 @@ class MusicFacade:
         if not provider:
             return None
         for adapter in self._adapters:
-            if adapter.name == provider:
+            if adapter.name == provider and _is_available(adapter):
                 return adapter
         return None
 
@@ -121,7 +125,7 @@ class MusicFacade:
                 else [
                     adapter
                     for adapter in self._adapters
-                    if adapter.supports(candidate)
+                    if _is_available(adapter) and adapter.supports(candidate)
                 ]
             )
             if not adapters or any(
@@ -295,7 +299,11 @@ class MusicFacade:
         preferred = self._adapter_by_name(provider)
         if provider and preferred is None:
             raise MusicSearchSelectionError(f"music adapter unavailable: {provider}")
-        order = [preferred] if preferred is not None else list(self._adapters)
+        order = (
+            [preferred]
+            if preferred is not None
+            else [adapter for adapter in self._adapters if _is_available(adapter)]
+        )
         if not order:
             raise httpx.HTTPError("no music adapters configured")
         last_error: Exception | None = None
@@ -318,6 +326,8 @@ class MusicFacade:
             return []
         last_error: Exception | None = None
         for adapter in self._adapters:
+            if not _is_available(adapter):
+                continue
             try:
                 items = await adapter.search(
                     name, source=source, count=count, page=pages
@@ -341,7 +351,11 @@ class MusicFacade:
     ) -> bool:
         preferred = self._adapter_by_name(provider)
         order = [preferred] if preferred is not None else []
-        order.extend(adapter for adapter in self._adapters if adapter is not preferred)
+        order.extend(
+            adapter
+            for adapter in self._adapters
+            if adapter is not preferred and _is_available(adapter)
+        )
         last_error: Exception | None = None
         saw_result = False
         for adapter in order:
@@ -374,7 +388,7 @@ class MusicFacade:
             "album": item.get("album") or "",
             "url_id": item.get("url_id") or item.get("id"),
             "lyric_id": item.get("lyric_id") or item.get("id"),
-            "pic_id": item.get("cover_id") or item.get("id"),
+            "pic_id": item.get("cover_id"),
             "source": item.get("source") or source,
             "duration": item.get("duration"),
             "provider": item.get("provider"),

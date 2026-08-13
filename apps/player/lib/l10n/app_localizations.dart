@@ -1429,6 +1429,12 @@ abstract class S {
   /// **'当前搜索服务暂不可用。'**
   String get searchServiceUnavailable;
 
+  /// No description provided for @searchSourceUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'{source}搜索服务暂不可用。'**
+  String searchSourceUnavailable(String source);
+
   /// No description provided for @searchFailedTryAgain.
   ///
   /// In zh, this message translates to:

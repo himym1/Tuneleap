@@ -12,6 +12,10 @@ class MusicAdapter(ABC):
     def supports(self, source: str | None) -> bool:
         return source is None or source in self.supported_sources
 
+    @property
+    def available(self) -> bool:
+        return True
+
     @abstractmethod
     async def search(
         self, query: str, *, source: str | None, count: int, page: int

@@ -11,18 +11,22 @@ class CoverArt extends StatelessWidget {
   final String url;
   final double? size;
   final double borderRadius;
+  final bool loading;
 
   const CoverArt({
     super.key,
     required this.url,
     this.size,
     this.borderRadius = 8,
+    this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     if (url.isEmpty) {
-      return _placeholder(context);
+      return loading
+          ? _loadingPlaceholder(context)
+          : _emptyPlaceholder(context);
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
@@ -32,13 +36,13 @@ class CoverArt extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
-        placeholder: (context, url) => _placeholder(context),
-        errorWidget: (context, url, error) => _placeholder(context),
+        placeholder: (context, url) => _loadingPlaceholder(context),
+        errorWidget: (context, url, error) => _emptyPlaceholder(context),
       ),
     );
   }
 
-  Widget _placeholder(BuildContext context) {
+  Widget _loadingPlaceholder(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Shimmer.fromColors(
       baseColor: colorScheme.surfaceContainerHighest,
@@ -50,6 +54,24 @@ class CoverArt extends StatelessWidget {
           color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(borderRadius),
         ),
+      ),
+    );
+  }
+
+  Widget _emptyPlaceholder(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.music_note_rounded,
+        size: size == null ? 48 : (size! * 0.42).clamp(16, 56),
+        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
       ),
     );
   }
@@ -107,6 +129,7 @@ class _ResolvedSongCoverArtState extends ConsumerState<ResolvedSongCoverArt> {
         url: snapshot.data ?? '',
         size: widget.size,
         borderRadius: widget.borderRadius,
+        loading: snapshot.connectionState == ConnectionState.waiting,
       ),
     );
   }

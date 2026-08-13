@@ -61,5 +61,33 @@ void main() {
     expect(find.text('酷狗'), findsOneWidget);
     expect(find.text('咪咕'), findsOneWidget);
     expect(find.text('JOOX'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('search-source-kugou')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<Semantics>(find.byKey(const ValueKey('search-source-kugou')))
+          .properties
+          .selected,
+      isTrue,
+    );
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SearchScreen)),
+    );
+    await container
+        .read(onlineSearchAdapterProvider.notifier)
+        .setProvider('meting');
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<Semantics>(
+            find.byKey(const ValueKey('search-source-netease')),
+          )
+          .properties
+          .selected,
+      isTrue,
+    );
   });
 }

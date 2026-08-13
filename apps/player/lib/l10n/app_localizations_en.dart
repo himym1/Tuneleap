@@ -738,6 +738,11 @@ class SEn extends S {
       'This search service is temporarily unavailable.';
 
   @override
+  String searchSourceUnavailable(String source) {
+    return '$source search is temporarily unavailable.';
+  }
+
+  @override
   String get searchFailedTryAgain => 'Search failed. Please try again.';
 
   @override
