@@ -38,6 +38,7 @@ def _isolate_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("RELEASE_DIR", str(tmp_path / "releases"))
     monkeypatch.setenv("GDSTUDIO_API_BASE_URLS", "https://gdstudio.test/api.php")
     monkeypatch.setenv("METING_API_BASE_URLS", "")
+    monkeypatch.setenv("CHKSZ_API_KEY", "")
     monkeypatch.setenv("UPSTREAM_STRATEGY", "ordered")
     (tmp_path / "releases").mkdir(parents=True, exist_ok=True)
 

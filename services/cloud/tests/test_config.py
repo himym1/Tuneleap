@@ -36,4 +36,22 @@ def test_music_adapter_order_is_normalized_and_filtered():
 def test_invalid_music_adapter_order_falls_back_to_safe_default():
     settings = Settings(_env_file=None, music_adapter_order="unsupported")
 
-    assert settings.music_adapter_order_list == ("meting", "gdstudio")
+    assert settings.music_adapter_order_list == ("meting", "gdstudio", "chksz")
+
+
+def test_music_search_sources_accept_qq_alias_and_tencent():
+    settings = Settings(
+        _env_file=None,
+        music_search_sources="qq,kugou,tencent",
+    )
+
+    assert settings.music_search_source_list == ("tencent", "kugou")
+
+
+def test_chksz_is_recognized_in_adapter_order():
+    settings = Settings(
+        _env_file=None,
+        music_adapter_order="meting,chksz,gdstudio",
+    )
+
+    assert settings.music_adapter_order_list == ("meting", "chksz", "gdstudio")

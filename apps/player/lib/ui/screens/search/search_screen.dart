@@ -24,10 +24,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchFocusNode = FocusNode();
   final _resultsScrollController = ScrollController();
   Timer? _debounce;
+  String? _selectedSource;
 
   Future<void> _loadMore() async {
+    final source = _currentSource(ref.read(onlineSourcePreferencesProvider));
+    if (source == null) return;
     try {
-      await ref.read(searchProvider.notifier).loadMore();
+      await ref.read(searchProvider(source).notifier).loadMore();
     } catch (_) {
       // The provider stores the error; the footer exposes an explicit retry.
     }
@@ -47,6 +50,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _loadMoreNearBottom(ScrollMetrics metrics) {
     if (metrics.extentAfter < 320) unawaited(_loadMore());
+  }
+
+  String? _currentSource(List<String> sources) {
+    if (sources.isEmpty) return null;
+    if (_selectedSource != null && sources.contains(_selectedSource)) {
+      return _selectedSource;
+    }
+    return sources.first;
   }
 
   @override
@@ -71,9 +82,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
     final query = _searchController.text.trim();
     if (query.isEmpty) {
-      ref.read(searchProvider.notifier).clearResult();
+      _clearAllResults();
     } else {
-      ref.read(searchProvider.notifier).search(query);
+      _searchAll(query);
+    }
+  }
+
+  void _searchAll(String query) {
+    for (final source in ref.read(onlineSourcePreferencesProvider)) {
+      ref.read(searchProvider(source).notifier).search(query);
+    }
+  }
+
+  void _clearAllResults() {
+    for (final source in ref.read(onlineSourcePreferencesProvider)) {
+      ref.read(searchProvider(source).notifier).clearResult();
     }
   }
 
@@ -86,7 +109,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final searchState = ref.watch(searchProvider);
+    final sources = ref.watch(onlineSourcePreferencesProvider);
+    final selected = _currentSource(sources);
+    final searchState = selected == null
+        ? const SearchState()
+        : ref.watch(searchProvider(selected));
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile
         ? AppDimensions.paddingMobile
@@ -99,20 +126,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         children: [
           Padding(
             padding: EdgeInsets.fromLTRB(h, h, h, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  S.of(context).navSearch,
-                  style: Theme.of(context).textTheme.pageTitle.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ],
+            child: Text(
+              S.of(context).navSearch,
+              style: Theme.of(context).textTheme.pageTitle.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           ),
           const SizedBox(height: 20),
-          // 搜索栏
           Padding(
             padding: EdgeInsets.symmetric(horizontal: h),
             child: ValueListenableBuilder<TextEditingValue>(
@@ -140,9 +161,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 tooltip: S.of(context).tooltipClear,
                                 onPressed: () {
                                   _searchController.clear();
-                                  ref
-                                      .read(searchProvider.notifier)
-                                      .clearResult();
+                                  _clearAllResults();
                                 },
                               ),
                               IconButton(
@@ -158,17 +177,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               },
             ),
           ),
+          if (sources.length > 1) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: h),
+              child: _SourceTabs(
+                sources: sources,
+                selected: selected,
+                onSelected: (source) {
+                  setState(() => _selectedSource = source);
+                  if (_resultsScrollController.hasClients) {
+                    _resultsScrollController.jumpTo(0);
+                  }
+                },
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
-          // 结果
-          Expanded(child: _buildResults(searchState)),
+          Expanded(child: _buildResults(searchState, selected)),
         ],
       ),
     );
   }
 
-  Widget _buildResults(SearchState searchState) {
-    if (searchState.searching) {
-      return Center(child: const CircularProgressIndicator());
+  Widget _buildResults(SearchState searchState, String? source) {
+    if (searchState.searching && searchState.songs.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (searchState.error != null && searchState.songs.isEmpty) {
@@ -189,7 +223,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 if (!ok || !mounted) return;
                 final q = _searchController.text.trim();
                 if (q.isNotEmpty) {
-                  await ref.read(searchProvider.notifier).search(q);
+                  _searchAll(q);
                 }
               }
             : null,
@@ -257,6 +291,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           final song = searchState.songs[index];
           return _SongResultTile(
             song: song,
+            hideSourceChip: song.onlineSource == source,
             onTap: () async {
               try {
                 final loaded = await ref
@@ -288,10 +323,83 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 }
 
+class _SourceTabs extends StatelessWidget {
+  const _SourceTabs({
+    required this.sources,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<String> sources;
+  final String? selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 42,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.all(3),
+          itemCount: sources.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 2),
+          itemBuilder: (context, index) {
+            final source = sources[index];
+            final isSelected = source == selected;
+            return Semantics(
+              button: true,
+              selected: isSelected,
+              child: Material(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.surface
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(7),
+                child: InkWell(
+                  onTap: () => onSelected(source),
+                  borderRadius: BorderRadius.circular(7),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Center(
+                      child: Text(
+                        onlineSourceLabel(context, source),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class _SongResultTile extends ConsumerWidget {
   final Song song;
+  final bool hideSourceChip;
   final VoidCallback onTap;
-  const _SongResultTile({required this.song, required this.onTap});
+  const _SongResultTile({
+    required this.song,
+    required this.onTap,
+    this.hideSourceChip = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -343,7 +451,9 @@ class _SongResultTile extends ConsumerWidget {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (song.isOnline)
+                  if (song.isOnline &&
+                      !hideSourceChip &&
+                      song.onlineSource != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -357,11 +467,7 @@ class _SongResultTile extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        switch (song.onlineSource) {
-                          'kuwo' => S.of(context).searchBackendKuwo,
-                          'joox' => S.of(context).searchBackendJoox,
-                          _ => S.of(context).searchBackendNetease,
-                        },
+                        onlineSourceLabel(context, song.onlineSource!),
                         style: Theme.of(context).textTheme.chipLabel.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),

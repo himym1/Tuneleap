@@ -27,12 +27,24 @@ Platform `source` values used historically by the app: `netease`, `kuwo`, `joox`
 
 Standard Meting search returns `title` / `author` plus signed resource URLs. URL and cover endpoints respond with `302 Location`; lyrics respond as text. Search has one stable result window, so page 2+ is terminal. Self-hosted NetEase playback needs a maintained cookie; do not promote an anonymous self-host until its playability probe passes.
 
+## 3. ChKSz
+
+| Item | Value |
+|---|---|
+| Default base | `https://api.chksz.com` |
+| Env | `CHKSZ_API_BASE_URL`, `CHKSZ_API_KEY` |
+| Code | `app/adapters/chksz.py` |
+| Platforms | `netease`, `tencent` (QQ), `kugou` only |
+| Auth | query `apikey`; never log the key |
+
+Search shapes differ: NetEase is `/api/163_search` with `data.songs`; QQ / Kugou are “search or parse” endpoints. QQ and Kugou have no stable page 2. Adapter is omitted when the key is empty. Keep it **after** Meting and GDStudio — it has a daily quota and 20 RPM.
+
 ## Multi-upstream policy
 
 1. Configure one or more **bases** per adapter.
 2. Order adapter families with `MUSIC_ADAPTER_ORDER`; the first non-empty adapter wins.
 3. Fail over bases with cooldown (`UPSTREAM_COOLDOWN_SECONDS`).
-4. The first search page tries the requested source first, then `MUSIC_SEARCH_SOURCES` in order; later pages stay pinned to the requested source, or the first configured source when omitted.
+4. If the client sends `source`, stay on that platform. If omitted, walk `MUSIC_SEARCH_SOURCES`. Adapter failover still applies inside the chosen platform.
 5. Results are never merged. Playback URL should prefer the same `provider` and `source` that produced the search hit, then fall back to the other adapter on failure.
 
 ## Legal / ops note

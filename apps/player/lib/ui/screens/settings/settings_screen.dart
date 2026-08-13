@@ -143,6 +143,31 @@ class SettingsScreen extends ConsumerWidget {
 
                   const SizedBox(height: 24),
 
+                  _SectionLabel(S.of(context).settingsOnlineSources),
+                  _SettingsCard(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                        child: Text(
+                          S.of(context).settingsOnlineSourcesHint,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                      for (final source in kOnlineCatalogSources) ...[
+                        if (source != kOnlineCatalogSources.first)
+                          const Divider(height: 1, indent: 54),
+                        _OnlineSourceToggle(source: source),
+                      ],
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
                   // ── 外观 ──
                   _SectionLabel(S.of(context).settingsTheme),
                   _SettingsCard(
@@ -348,6 +373,40 @@ class SettingsScreen extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(S.of(context).commonError)));
     }
+  }
+}
+
+class _OnlineSourceToggle extends ConsumerWidget {
+  const _OnlineSourceToggle({required this.source});
+
+  final String source;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(onlineSourcePreferencesProvider).contains(source);
+    return SwitchListTile(
+      secondary: Icon(
+        Icons.library_music_outlined,
+        size: 22,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      title: Text(
+        onlineSourceLabel(context, source),
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+      value: enabled,
+      onChanged: (value) async {
+        final kept = await ref
+            .read(onlineSourcePreferencesProvider.notifier)
+            .setEnabled(source, enabled: value);
+        if (!kept && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.of(context).settingsOnlineSourcesKeepOne)),
+          );
+        }
+      },
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+    );
   }
 }
 

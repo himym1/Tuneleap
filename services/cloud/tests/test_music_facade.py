@@ -48,9 +48,11 @@ async def test_gdstudio_adapter_search_and_url_failover():
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as client:
         settings = Settings(
+            _env_file=None,
             api_key="k",
             gdstudio_api_base_urls="https://bad.test/api.php,https://good.test/api.php",
             meting_api_base_urls="",
+            chksz_api_key="",
             upstream_cooldown_seconds=60,
             upstream_strategy="ordered",
         )
@@ -88,9 +90,11 @@ async def test_first_success_does_not_concatenate_providers():
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as client:
         settings = Settings(
+            _env_file=None,
             api_key="k",
             gdstudio_api_base_urls="https://gds.test/api.php",
             meting_api_base_urls="https://meting.test/",
+            chksz_api_key="",
             music_adapter_order="gdstudio,meting",
             upstream_strategy="ordered",
         )
@@ -114,7 +118,7 @@ async def test_default_adapter_order_prefers_meting():
 
 
 @pytest.mark.asyncio
-async def test_search_falls_back_from_preferred_to_configured_sources():
+async def test_explicit_source_does_not_fall_back_to_other_platforms():
     calls: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -122,6 +126,33 @@ async def test_search_falls_back_from_preferred_to_configured_sources():
         calls.append(source)
         if source == "netease":
             return httpx.Response(503, json={"error": "temporary failure"})
+        return httpx.Response(200, json=[_song(9, source="joox")])
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        settings = Settings(
+            _env_file=None,
+            api_key="k",
+            gdstudio_api_base_urls="https://gds.test/api.php",
+            meting_api_base_urls="",
+            music_search_sources="migu,joox",
+            upstream_strategy="ordered",
+        )
+        with pytest.raises(httpx.HTTPError):
+            await MusicFacade(client, settings).search_first_success(
+                "q", source="netease", count=20, page=1
+            )
+
+    assert calls == ["netease"]
+
+
+@pytest.mark.asyncio
+async def test_omitted_source_walks_configured_search_sources():
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        source = request.url.params.get("source") or ""
+        calls.append(source)
         if source == "migu":
             return httpx.Response(200, json=[])
         return httpx.Response(200, json=[_song(9, source="joox")])
@@ -129,6 +160,7 @@ async def test_search_falls_back_from_preferred_to_configured_sources():
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as client:
         settings = Settings(
+            _env_file=None,
             api_key="k",
             gdstudio_api_base_urls="https://gds.test/api.php",
             meting_api_base_urls="",
@@ -136,12 +168,38 @@ async def test_search_falls_back_from_preferred_to_configured_sources():
             upstream_strategy="ordered",
         )
         result = await MusicFacade(client, settings).search_first_success(
-            "q", source="netease", count=20, page=1
+            "q", source=None, count=20, page=1
         )
 
-    assert calls == ["netease", "migu", "joox"]
+    assert calls == ["migu", "joox"]
     assert result.source == "joox"
     assert [item.id for item in result.items] == ["9"]
+
+
+@pytest.mark.asyncio
+async def test_qq_alias_is_pinned_as_tencent():
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.params.get("source") or "")
+        return httpx.Response(200, json=[_song(3, source="tencent")])
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        settings = Settings(
+            _env_file=None,
+            api_key="k",
+            gdstudio_api_base_urls="https://gds.test/api.php",
+            meting_api_base_urls="",
+            music_search_sources="netease,migu",
+            upstream_strategy="ordered",
+        )
+        result = await MusicFacade(client, settings).search_first_success(
+            "q", source="qq", count=20, page=1
+        )
+
+    assert calls == ["tencent"]
+    assert result.source == "tencent"
 
 
 def test_search_api_happy_path():
@@ -190,9 +248,12 @@ async def test_empty_search_page_is_a_successful_terminal_page():
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as client:
         settings = Settings(
+            _env_file=None,
             api_key="k",
             gdstudio_api_base_urls="https://gds.test/api.php",
             meting_api_base_urls="",
+            chksz_api_key="",
+            music_search_sources="netease,migu,joox",
             upstream_strategy="ordered",
         )
         result = await MusicFacade(client, settings).search_first_success(

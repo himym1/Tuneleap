@@ -1021,10 +1021,29 @@ class SEn extends S {
   String get searchBackendNetease => 'Netease';
 
   @override
+  String get searchBackendTencent => 'QQ';
+
+  @override
+  String get searchBackendKugou => 'Kugou';
+
+  @override
+  String get searchBackendMigu => 'Migu';
+
+  @override
   String get searchBackendKuwo => 'Kuwo';
 
   @override
   String get searchBackendJoox => 'JOOX';
+
+  @override
+  String get settingsOnlineSources => 'Online search sources';
+
+  @override
+  String get settingsOnlineSourcesHint =>
+      'Search each platform in its own tab. Requests still go through Cloud; do not put third-party keys in the app.';
+
+  @override
+  String get settingsOnlineSourcesKeepOne => 'Keep at least one search source';
 
   @override
   String get searchFilterOnline => 'Online';

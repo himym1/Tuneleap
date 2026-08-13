@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/providers/audio_providers.dart';
+import 'package:navidrome_player/providers/online_source_preferences.dart';
 import 'package:navidrome_player/providers/search_provider.dart';
 import 'package:navidrome_player/providers/server_config_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -98,27 +99,27 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    final subscription = container.listen(searchProvider, (_, _) {});
+    final subscription = container.listen(searchProvider('migu'), (_, _) {});
     addTearDown(subscription.close);
 
-    final notifier = container.read(searchProvider.notifier);
+    final notifier = container.read(searchProvider('migu').notifier);
     await notifier.search('query');
-    expect(container.read(searchProvider).songs, hasLength(2));
-    expect(container.read(searchProvider).hasMore, isTrue);
+    expect(container.read(searchProvider('migu')).songs, hasLength(2));
+    expect(container.read(searchProvider('migu')).hasMore, isTrue);
 
     await notifier.loadMore();
 
-    var state = container.read(searchProvider);
+    var state = container.read(searchProvider('migu'));
     expect(backend.pages, [1, 2]);
-    expect(backend.sources, [null, null]);
+    expect(backend.sources, ['migu', 'migu']);
     expect(state.songs.map((song) => song.id), ['0', '1', '2']);
     expect(state.hasMore, isTrue);
 
     await notifier.loadMore();
 
-    state = container.read(searchProvider);
+    state = container.read(searchProvider('migu'));
     expect(backend.pages, [1, 2, 3]);
-    expect(backend.sources, [null, null, null]);
+    expect(backend.sources, ['migu', 'migu', 'migu']);
     expect(state.songs, hasLength(3));
     expect(state.hasMore, isFalse);
     expect(state.loadingMore, isFalse);
@@ -138,14 +139,14 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    final subscription = container.listen(searchProvider, (_, _) {});
+    final subscription = container.listen(searchProvider('netease'), (_, _) {});
     addTearDown(subscription.close);
 
-    final notifier = container.read(searchProvider.notifier);
+    final notifier = container.read(searchProvider('netease').notifier);
     await notifier.search('query');
     await notifier.loadMore();
 
-    final state = container.read(searchProvider);
+    final state = container.read(searchProvider('netease'));
     expect(backend.pages, [1, 2]);
     expect(state.songs.map((song) => song.id), ['same']);
     expect(state.hasMore, isFalse);
@@ -166,10 +167,10 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    final subscription = container.listen(searchProvider, (_, _) {});
+    final subscription = container.listen(searchProvider('netease'), (_, _) {});
     addTearDown(subscription.close);
 
-    final notifier = container.read(searchProvider.notifier);
+    final notifier = container.read(searchProvider('netease').notifier);
     await notifier.search('old');
     final pending = notifier.loadMore();
     await Future<void>.delayed(Duration.zero);
@@ -177,8 +178,35 @@ void main() {
     backend.secondPage.complete([_song('old-next')]);
     await pending;
 
-    final state = container.read(searchProvider);
+    final state = container.read(searchProvider('netease'));
     expect(state.songs.map((song) => song.id), ['new']);
     expect(state.loadingMore, isFalse);
+  });
+
+  test('searchEnabledSources pins each configured platform', () async {
+    SharedPreferences.setMockInitialValues({
+      'active_server_id': 'server-a',
+      'server_url': 'http://music.local',
+      onlineSourcesPreferenceKey('server-a'): ['netease', 'tencent'],
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final backend = _PagedBackendClient();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        backendClientProvider.overrideWithValue(backend),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.listen(searchProvider('netease'), (_, _) {});
+    container.listen(searchProvider('tencent'), (_, _) {});
+
+    final sources = container.read(onlineSourcePreferencesProvider);
+    for (final source in sources) {
+      await container.read(searchProvider(source).notifier).search('query');
+    }
+
+    expect(backend.sources, ['netease', 'tencent']);
+    expect(sources, ['netease', 'tencent']);
   });
 }

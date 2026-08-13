@@ -4,7 +4,12 @@ from typing import Self
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_SUPPORTED_MUSIC_SOURCES = frozenset({"netease", "migu", "joox", "kuwo", "kugou"})
+from app.core.sources import canonicalize_music_source
+
+_SUPPORTED_MUSIC_SOURCES = frozenset(
+    {"netease", "migu", "joox", "kuwo", "kugou", "tencent"}
+)
+_SUPPORTED_ADAPTERS = frozenset({"gdstudio", "meting", "chksz"})
 
 
 def _split_csv(value: str, *, lowercase: bool = False) -> tuple[str, ...]:
@@ -25,10 +30,12 @@ class Settings(BaseSettings):
     gdstudio_api_base_urls: str = "https://music-api.gdstudio.xyz/api.php"
     meting_api_base_urls: str = ""
     meting_api_token: str = ""
+    chksz_api_base_url: str = "https://api.chksz.com"
+    chksz_api_key: str = ""
     http_timeout_seconds: float = 30.0
     upstream_cooldown_seconds: int = 60
     upstream_strategy: str = "ordered"  # ordered | race
-    music_adapter_order: str = "meting,gdstudio"
+    music_adapter_order: str = "meting,gdstudio,chksz"
     music_search_sources: str = "netease,migu,joox"
     release_dir: str = "./releases"
 
@@ -73,12 +80,14 @@ class Settings(BaseSettings):
     @field_validator("music_search_sources", "recommendation_sources")
     @classmethod
     def _require_supported_music_source(cls, value: str) -> str:
-        if not any(
-            source in _SUPPORTED_MUSIC_SOURCES
-            for source in _split_csv(value, lowercase=True)
-        ):
+        canonical = []
+        for source in _split_csv(value, lowercase=True):
+            resolved = canonicalize_music_source(source)
+            if resolved in _SUPPORTED_MUSIC_SOURCES:
+                canonical.append(resolved)
+        if not canonical:
             raise ValueError("must contain at least one supported music source")
-        return value
+        return ",".join(dict.fromkeys(canonical))
 
     @field_validator(
         "database_pool_min_size",
@@ -109,13 +118,17 @@ class Settings(BaseSettings):
         return _split_csv(self.meting_api_base_urls)
 
     @property
+    def chksz_base(self) -> str:
+        return self.chksz_api_base_url.strip().rstrip("/")
+
+    @property
     def music_adapter_order_list(self) -> tuple[str, ...]:
         names = tuple(
             name
             for name in _split_csv(self.music_adapter_order, lowercase=True)
-            if name in {"gdstudio", "meting"}
+            if name in _SUPPORTED_ADAPTERS
         )
-        return names or ("meting", "gdstudio")
+        return names or ("meting", "gdstudio", "chksz")
 
     @property
     def music_search_source_list(self) -> tuple[str, ...]:

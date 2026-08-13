@@ -55,9 +55,9 @@ SQLite is no longer opened by runtime code. Use `scripts/migrate_sqlite_to_postg
 ## Search semantics
 
 ```text
-sources = [preferred source?, MUSIC_SEARCH_SOURCES...]
+sources = [explicit source] or MUSIC_SEARCH_SOURCES
 for each source:
-  adapters = MUSIC_ADAPTER_ORDER filtered to configured bases
+  adapters = MUSIC_ADAPTER_ORDER filtered to configured adapters
   for each adapter (ordered) or race(N):
     search(query, source)
     first non-empty result wins
@@ -65,7 +65,7 @@ all successful source/adapter attempts empty → 200 with []
 all source/adapter attempts fail → 502/504
 ```
 
-The first page falls back across sources but still returns one upstream list; later pages stay pinned to the requested source (or the first configured source when omitted) so pagination never merges NetEase + Migu + JOOX results.
+An explicit `source` is pinned so a NetEase tab cannot be filled with Migu rows. Omit `source` to walk `MUSIC_SEARCH_SOURCES`. Pagination without `source` stays on the first configured platform.
 
 ## Recommendation library blocking
 
