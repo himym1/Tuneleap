@@ -39,6 +39,7 @@ class ImportRequest(BaseModel):
         max_length=4096,
     )
     lyric: str | None = Field(default=None, max_length=2_000_000)
+    force: bool = False
 
 
 class ImportResult(BaseModel):
