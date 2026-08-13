@@ -374,6 +374,15 @@
     "searchLoadMore": "加载更多",
     "searchLoadingMore": "加载中…",
     "searchLoadMoreFailed": "下一页加载失败",
+    "searchPlaybackUnavailable": "当前歌曲暂时无法播放",
+    "searchPlaybackFailed": "播放失败: {error}",
+    "@searchPlaybackFailed": {
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
     "libraryNoArtists": "暂无艺术家",
     "libraryNoAlbums": "暂无专辑",
     "libraryNoSongs": "暂无歌曲",

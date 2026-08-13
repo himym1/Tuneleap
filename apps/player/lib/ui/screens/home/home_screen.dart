@@ -156,7 +156,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final batches = await Future.wait(
           seeds.map((seed) async {
             try {
-              return await client.getSimilarSongs2(seed.id, count: 15);
+              return await client
+                  .getSimilarSongs2(seed.id, count: 15)
+                  .timeout(const Duration(seconds: 15));
             } catch (_) {
               return <Song>[];
             }
@@ -167,7 +169,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       Future<List<Song>> loadStarredSongs() async {
         try {
-          return (await client.getStarred2()).songs;
+          return (await client.getStarred2().timeout(
+            const Duration(seconds: 15),
+          )).songs;
+        } catch (_) {
+          return <Song>[];
+        }
+      }
+
+      Future<List<Song>> loadRandomSongs() async {
+        try {
+          return await client
+              .getRandomSongs(size: 80)
+              .timeout(const Duration(seconds: 15));
         } catch (_) {
           return <Song>[];
         }
@@ -176,7 +190,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final candidates = await Future.wait<List<Song>>([
         loadSimilarSongs(),
         loadStarredSongs(),
-        client.getRandomSongs(size: 80),
+        loadRandomSongs(),
       ]);
       final songs = composePersonalizedLocalMix(
         playHistory: localHistory,
