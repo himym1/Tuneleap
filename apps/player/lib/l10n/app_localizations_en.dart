@@ -45,10 +45,10 @@ class SEn extends S {
   String get sidebarMore => 'MORE';
 
   @override
-  String get appName => 'Yinyue';
+  String get appName => 'Tuneleap';
 
   @override
-  String get appShortName => 'Yinyue';
+  String get appShortName => 'Tuneleap';
 
   @override
   String get loginSubtitle => 'Connect to your private music server';

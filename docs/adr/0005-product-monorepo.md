@@ -12,9 +12,9 @@
 
 ## Decision
 
-1. 使用一个 Git 仓 `yinyue`，目录为 `apps/player`、`services/cloud`、`services/nas-agent`。
+1. 使用一个 Git 仓 `himym1/Tuneleap`，目录为 `apps/player`、`services/cloud`、`services/nas-agent`。
 2. 继续打三个产物、使用三套密钥、两份 Dockerfile。
-3. 用户可见名保持「音跃」；英文名用 Yinyue。仓库不再以 Navidrome 命名。
+3. 用户可见名保持「音跃」；英文名用 Tuneleap。仓库不再以 Navidrome 命名。
 4. 生产部署路径、镜像名、`com.himym.player` 先不动。
 
 ## Consequences

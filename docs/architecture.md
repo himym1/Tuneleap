@@ -5,7 +5,7 @@
 ## 源码与运行时
 
 ```text
-yinyue/                          # 本仓
+Tuneleap/                        # 本仓
 ├── apps/player                  # Flutter → 用户设备
 ├── services/cloud               # FastAPI → dmit:/opt/navidrome-cloud
 └── services/nas-agent           # FastAPI → himym:/volume1/docker/navidrome-nas-agent
