@@ -1,0 +1,20 @@
+{
+  "primary": "#1E1B4B",
+  "secondary": "#4338CA",
+  "accent": "#22C55E",
+  "success": "#22C55E",
+  "error": "#EF4444",
+  "onEmphasis": "#FFFFFFFF",
+  "onEmphasisMuted": "#B3FFFFFF",
+  "shadowSoft": "#08000000",
+  "shadowStrong": "#33000000",
+  "primarySoft": "#1A4338CA",
+  "primarySoftAlt": "#144338CA",
+  "primarySoftSubtle": "#0F4338CA",
+  "errorSoft": "#26EF4444",
+  "scrollbarThumbHover": "#801E1B4B",
+  "scrollbarThumb": "#401E1B4B",
+  "navigationIndicator": "#4D4338CA",
+  "scrollbarThumbDarkHover": "#8094A3B8",
+  "scrollbarThumbDark": "#4094A3B8"
+}

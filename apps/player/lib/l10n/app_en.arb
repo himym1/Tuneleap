@@ -1,0 +1,478 @@
+{
+    "@@locale": "en",
+    "navHome": "Home",
+    "navLibrary": "Library",
+    "navSearch": "Search",
+    "navPlaylists": "Playlists",
+    "navSettings": "Settings",
+    "navFavorites": "Favorites",
+    "navDownloads": "Downloads",
+    "navServers": "Servers",
+    "navAudioQuality": "Audio Quality",
+    "navScrobble": "History",
+    "sidebarNav": "NAV",
+    "sidebarMore": "MORE",
+    "appName": "Navidrome Player",
+    "appShortName": "NP",
+    "loginSubtitle": "Connect to your private music server",
+    "loginConnect": "Connect",
+    "loginFieldsRequired": "Please fill in all fields",
+    "loginFailed": "Connection failed, please check server URL and credentials",
+    "loginError": "Connection error: {error}",
+    "homeGreetingMorning": "Good Morning ☀️",
+    "homeGreetingAfternoon": "Good Afternoon 🌤",
+    "homeGreetingEvening": "Good Evening 🌙",
+    "homePlayRandom": "Shuffle Play",
+    "homeRecentAlbums": "Recently Added",
+    "homeRandomAlbums": "Discover",
+    "homeAlbums": "Albums",
+    "homeSongs": "Songs",
+    "homeArtists": "Artists",
+    "libraryTabArtists": "Artists",
+    "libraryTabAlbums": "Albums",
+    "libraryTabSongs": "Songs",
+    "libraryTitle": "Library",
+    "libraryAlbumCount": "{count} albums",
+    "searchHint": "Search songs, albums, artists…",
+    "searchNoResults": "Try searching for your favorite music",
+    "searchResultArtists": "Artists",
+    "searchResultAlbums": "Albums",
+    "searchResultSongs": "Songs",
+    "playerQueueTitle": "Play Queue",
+    "playerLyrics": "Lyrics",
+    "playerNoLyrics": "No lyrics available",
+    "playerShowQueue": "Show Queue",
+    "playerHideQueue": "Hide Queue",
+    "playerSpeed": "Playback Speed",
+    "playerNowPlaying": "Now Playing",
+    "playerQueue": "Queue",
+    "playerNext": "Next",
+    "playerPrevious": "Previous",
+    "playerPlayPause": "Play / Pause",
+    "playerIdleTitle": "Nothing playing",
+    "playerIdleSubtitle": "Start playback from Home, Library, or Playlists",
+    "albumPlayAll": "Play All",
+    "albumShufflePlay": "Shuffle",
+    "albumSongCount": "{count} songs",
+    "artistPlayAll": "Play All",
+    "artistAlbums": "Albums",
+    "artistAlbumCount": "{count} albums",
+    "playlistsTitle": "Playlists",
+    "playlistCreate": "New Playlist",
+    "playlistRename": "Rename",
+    "playlistDelete": "Delete",
+    "playlistEdit": "Edit",
+    "playlistSave": "Save",
+    "playlistCancel": "Cancel",
+    "playlistNameHint": "Enter playlist name",
+    "playlistSongCount": "{count} songs",
+    "playlistEmpty": "No playlists yet",
+    "playlistReorderHint": "Long press to reorder, swipe to delete",
+    "favoritesTitle": "Favorites",
+    "favoritesTabSongs": "Songs",
+    "favoritesTabAlbums": "Albums",
+    "favoritesTabArtists": "Artists",
+    "favoritesEmpty": "No favorites yet",
+    "downloadsTitle": "Downloads",
+    "downloadsTotal": "Total Tasks",
+    "downloadsCompleted": "Completed",
+    "downloadsOfflineSongs": "Offline Songs",
+    "downloadsEmpty": "No downloads yet",
+    "downloadsClearCompleted": "Clear Completed",
+    "settingsTitle": "Settings",
+    "settingsServer": "Server",
+    "settingsCurrentServer": "Current Server",
+    "settingsLogout": "Log Out",
+    "settingsTheme": "Theme",
+    "settingsThemeSystem": "System",
+    "settingsThemeDark": "Dark",
+    "settingsThemeLight": "Light",
+    "settingsThemeStyle": "Theme style",
+    "settingsThemeClassic": "Classic",
+    "settingsThemeAmoled": "AMOLED",
+    "settingsThemeDynamic": "Artwork",
+    "settingsAudioQuality": "Audio Quality",
+    "settingsAbout": "About",
+    "settingsVersion": "Version",
+    "audioQualityTitle": "Audio Quality",
+    "audioQualityOriginal": "Original (Lossless)",
+    "audioQualityHigh": "High Quality",
+    "audioQualityMedium": "Medium Quality",
+    "audioQualityLow": "Low Quality",
+    "audioQualityKbps": "{kbps} kbps",
+    "audioQualityMp3Label": "MP3 {kbps}k",
+    "@audioQualityMp3Label": {
+        "placeholders": {
+            "kbps": {
+                "type": "int"
+            }
+        }
+    },
+    "scrobbleTitle": "Play History",
+    "scrobbleEmpty": "No play history yet",
+    "scrobblePlayCount": "Played {count} times",
+    "scrobbleSubtitle": "Track your music taste · Auto scrobble to server",
+    "scrobbleSessionPlays": "Session Plays",
+    "scrobbleUniqueArtists": "Unique Artists",
+    "scrobbleUniqueAlbums": "Unique Albums",
+    "scrobbleAutoDesc": "Auto-scrobble after 50% or 4 min playback",
+    "scrobbleEnabled": "Enabled",
+    "scrobbleRecentTitle": "Recent Plays",
+    "scrobbleRecentCount": "{count} tracks total",
+    "scrobbleEmptyHint": "No play history yet\nStart playing music to see it here",
+    "multiServerTitle": "Server Management",
+    "multiServerAdd": "Add Server",
+    "multiServerCurrent": "Current",
+    "multiServerSwitch": "Switch",
+    "multiServerDelete": "Delete",
+    "multiServerEmpty": "No additional servers",
+    "contextMenuPlay": "Play",
+    "contextMenuPlayNext": "Play Next",
+    "contextMenuAddQueue": "Add to Queue",
+    "contextMenuAddPlaylist": "Add to Playlist",
+    "contextMenuStar": "Favorite",
+    "contextMenuDownload": "Download",
+    "contextMenuImportNavidrome": "Import to Navidrome",
+    "contextMenuAddedNext": "Added to play next",
+    "contextMenuAddedQueue": "Added to queue",
+    "contextMenuStarred": "Added to favorites",
+    "contextMenuDownloading": "Added to download queue",
+    "contextMenuImportingNavidrome": "Importing to Navidrome...",
+    "contextMenuImportedNavidrome": "Imported to Navidrome and scan triggered",
+    "contextMenuImportedNavidromePendingScan": "Imported to Navidrome, waiting for auto scan",
+    "contextMenuImportNavidromeFailed": "Failed to import to Navidrome",
+    "importDuplicateTitle": "Song Already Exists",
+    "importDuplicateMessage": "\"{title}\" by {artist} already exists in your library. Import anyway?",
+    "@importDuplicateMessage": {
+        "placeholders": {
+            "title": { "type": "String" },
+            "artist": { "type": "String" }
+        }
+    },
+    "importAnyway": "Import Anyway",
+    "importDuplicateCheckFailed": "Could not verify the NAS library. Import was stopped.",
+    "nasAgentConfigRequired": "Configure the LAN NAS agent URL and key before importing or deleting",
+    "commonContinue": "Continue",
+    "contextMenuQueueingNavidrome": "Submitting to NAS download queue...",
+    "contextMenuQueuedNavidrome": "Submitted to NAS download queue",
+    "contextMenuAddedPlaylist": "Added to {name}",
+    "contextMenuSelectPlaylist": "Select Playlist",
+    "contextMenuLoadFailed": "Failed to load playlists",
+    "commonCancel": "Cancel",
+    "commonSave": "Save",
+    "commonDelete": "Delete",
+    "commonConfirm": "OK",
+    "commonLoading": "Loading...",
+    "commonError": "Error",
+    "commonRetry": "Retry",
+    "commonRefresh": "Refresh data",
+    "commonNoData": "No data",
+    "commonSongs": "{count} songs",
+    "commonSizeKb": "{value} KB",
+    "@commonSizeKb": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "commonSizeMb": "{value} MB",
+    "@commonSizeMb": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "commonSizeGb": "{value} GB",
+    "@commonSizeGb": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "commonPercent": "{value}%",
+    "@commonPercent": {
+        "placeholders": {
+            "value": {
+                "type": "int"
+            }
+        }
+    },
+    "commonAll": "All",
+    "commonBack": "Back",
+    "commonLoadFailed": "Failed to load",
+    "commonUnknownArtist": "Unknown Artist",
+    "commonCreate": "Create",
+    "commonNew": "New",
+    "playerQueueEmpty": "Queue is empty",
+    "playerNoContent": "Nothing playing",
+    "playerNoContentHint": "Select a song from library or search to start playing",
+    "playerSpeedValue": "{speed}x",
+    "@playerSpeedValue": {
+        "placeholders": {
+            "speed": {
+                "type": "double"
+            }
+        }
+    },
+    "playerUnfavorite": "Remove from favorites",
+    "albumAddToQueue": "Add to Queue",
+    "albumFavorite": "Favorite Album",
+    "albumUnfavorite": "Unfavorite",
+    "albumTitle": "Title",
+    "albumDuration": "Duration",
+    "albumSongDuration": "{year} · {count} songs · {duration}",
+    "artistUnfavorited": "Removed from favorites",
+    "downloadsUsedSpace": "Used Space",
+    "downloadsQueue": "Download Queue",
+    "downloadsHint": "Select \"Download\" from song menu",
+    "downloadsPending": "Pending",
+    "downloadsFailed": "Failed",
+    "multiServerManage": "Server Management",
+    "multiServerCount": "{count} servers",
+    "multiServerDeleteTitle": "Delete Server",
+    "multiServerDeleteConfirm": "Are you sure you want to delete \"{name}\"?",
+    "multiServerEdit": "Edit Server",
+    "multiServerName": "Server Name",
+    "multiServerNameHint": "My Navidrome",
+    "multiServerUrl": "Server URL",
+    "multiServerUsername": "Username",
+    "multiServerPassword": "Password",
+    "backendUrl": "Cloud API URL",
+    "backendUrlHint": "navidrome-cloud public URL, e.g. https://cloud.example.com",
+    "cloudAccount": "Cloud account",
+    "cloudSignedIn": "Signed in",
+    "cloudSignedOut": "Not signed in",
+    "cloudSignIn": "Sign in",
+    "cloudRegister": "Register",
+    "cloudUsername": "Cloud username",
+    "cloudCredential": "Cloud account credential",
+    "cloudSignOut": "Sign out",
+    "cloudAuthFailed": "Cloud authentication failed",
+    "cloudInvalidInput": "Username must have at least 2 characters and credential at least 8 characters",
+    "cloudInvalidCredentials": "Incorrect Cloud username or credential",
+    "cloudUsernameExists": "This Cloud username already exists. Sign in or choose another username.",
+    "cloudNetworkError": "Could not connect to Cloud. Check your network and try again",
+    "cloudAuthRequired": "Sign in to Cloud to load recommendations",
+  "searchAuthRequired": "Cloud session expired. Sign in again to search.",
+    "nasAgentUrl": "NAS agent URL",
+    "nasAgentUrlHint": "Required for import/delete; use a LAN URL such as http://192.168.1.10:8504",
+    "nasAgentKey": "NAS agent key",
+    "nasAgentKeyHint": "Used only for LAN import/delete",
+    "serverUrlExample": "https://music.example.com",
+    "multiServerEmptyHint": "No servers yet\nTap the button above to add one",
+    "searchAll": "All",
+    "searchHintInput": "Search songs, artists, albums...",
+    "searchPlaceholder": "Enter keywords to search music",
+    "searchNoResult": "No results found",
+  "searchError": "Search failed: {error}",
+  "@searchError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+    "searchResults": "Search Results",
+    "searchLoadMore": "Load More",
+    "searchLoadingMore": "Loading...",
+    "searchLoadMoreFailed": "Could not load the next page",
+    "libraryNoArtists": "No artists",
+    "libraryNoAlbums": "No albums",
+    "libraryNoSongs": "No songs",
+    "audioQualityOriginalName": "Original",
+    "audioQualityOriginalDesc": "No transcoding",
+    "audioQualityMp3128Desc": "Save bandwidth",
+    "audioQualitySelection": "Quality Selection",
+    "playlistNameLabel": "Playlist Name",
+    "playlistCreated": "Created playlist \"{name}\"",
+    "playlistCreateFailed": "Failed to create",
+    "playlistDeleteTitle": "Delete Playlist",
+    "playlistDeleteConfirm": "Are you sure you want to delete \"{name}\"? This cannot be undone.",
+    "playlistDeleted": "Deleted \"{name}\"",
+    "playlistDeleteFailed": "Failed to delete",
+    "playlistCount": "{count} playlists",
+    "playlistCreatedList": "Created Lists",
+    "playlistEmptyTitle": "No playlists yet",
+    "playlistEmptyHint": "Create a playlist to organize your music",
+    "playlistSongCountLabel": "{count} songs",
+    "playlistPlay": "Play",
+    "playlistListEmpty": "Playlist is empty",
+    "playlistAddSongs": "Add Songs",
+    "playlistAddSongsTitle": "Add Songs to Playlist",
+    "playlistSearchSongsHint": "Search local library",
+    "playlistNoMatchingSongs": "No matching songs",
+    "playlistAddSelected": "Add Selected",
+    "playlistSongsAdded": "Added {count} songs",
+    "@playlistSongsAdded": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "playlistRenameTitle": "Rename Playlist",
+    "playlistNewName": "New Name",
+    "songContextAddedToPlaylist": "Added to {name}",
+    "playlistSaveQueue": "Save Queue as Playlist",
+    "playlistQueueSaved": "Saved queue as \"{name}\"",
+    "@playlistQueueSaved": {
+        "placeholders": {
+            "name": { "type": "String" }
+        }
+    },
+    "playlistQueueSavedSkipped": "Saved as \"{name}\"; skipped {count} online songs",
+    "@playlistQueueSavedSkipped": {
+        "placeholders": {
+            "name": { "type": "String" },
+            "count": { "type": "int" }
+        }
+    },
+    "playlistQueueNoLocalSongs": "Only local library songs can be saved to a playlist",
+    "playlistQueueSaveFailed": "Failed to save queue",
+    "defaultServerName": "My Server",
+
+    "navSongs": "Songs",
+    "navAlbums": "Albums",
+    "navArtists": "Artists",
+    "navAlbumArtists": "Album Artists",
+    "navGenres": "Genres",
+    "navRadio": "Radio",
+    "sidebarLibrary": "LIBRARY",
+    "libraryBrowse": "Browse library",
+
+    "homeNewestAlbums": "Latest Albums",
+    "homeDailyRecommend": "Discover New Music",
+    "homeRecentlyPlayed": "Recently Played",
+    "homeYourMusic": "Your Music",
+    "homeContinueListening": "Continue Listening",
+    "homeLocalMix": "For You",
+    "homeShuffleLocal": "Shuffle Library",
+    "homeLocalPlaybackFailed": "Could not start local playback",
+    "homeViewMore": "More",
+    "homeRefreshed": "Home refreshed",
+
+    "libraryGenresTitle": "Genres",
+    "libraryRadioTitle": "Radio Stations",
+    "libraryRadioEmpty": "No radio stations",
+    "libraryNoGenres": "No genres",
+    "libraryAlbumArtistsTitle": "Album Artists",
+    "genreSongCount": "{count} songs",
+    "@genreSongCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "genreAlbumCount": "{count} albums",
+    "@genreAlbumCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+
+    "contextMenuDelete": "Delete from Server",
+    "contextMenuDeleteConfirm": "Are you sure you want to delete \"{title}\"? This will remove it from the server permanently.",
+    "@contextMenuDeleteConfirm": {
+        "placeholders": {
+            "title": {
+                "type": "String"
+            }
+        }
+    },
+    "contextMenuDeleteSuccess": "Deleted successfully",
+    "contextMenuDeleteError": "Failed to delete",
+
+    "settingsUnlimited": "Unlimited",
+    "settingsUser": "User",
+    "settingsQuality": "Quality",
+    "settingsMaxBitrate": "Max bitrate",
+    "settingsAboutText": "{appName} v{version}\nCross-platform music client",
+    "@settingsAboutText": {
+        "placeholders": {
+            "appName": {
+                "type": "String"
+            },
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "settingsLogoutConfirm": "Are you sure you want to log out?",
+    "settingsCacheCalculating": "Calculating...",
+    "settingsCacheUnknown": "Unknown",
+    "settingsCacheCleared": "Cache cleared",
+    "settingsCacheClearFailed": "Clear failed",
+    "settingsCacheStorage": "Cache & Storage",
+    "settingsCacheUsed": "Used",
+    "settingsCacheMaxCache": "Max cache",
+    "settingsCacheClear": "Clear",
+    "searchBackendNavidrome": "Navidrome",
+    "searchBackendNetease": "Netease",
+    "searchBackendKuwo": "Kuwo",
+    "searchBackendJoox": "JOOX",
+    "searchFilterOnline": "Online",
+    "searchSectionLocal": "Local Results",
+    "searchSectionOnline": "Online Results",
+
+    "playerShuffle": "Shuffle",
+    "playerRepeat": "Repeat",
+    "tooltipUnfavorite": "Remove from favorites",
+    "tooltipPlay": "Play",
+    "tooltipFavorite": "Favorite",
+    "tooltipRemove": "Remove",
+    "tooltipEdit": "Edit",
+    "tooltipDelete": "Delete",
+    "tooltipClear": "Clear",
+    "tooltipBack": "Back",
+    "tooltipMore": "More",
+
+    "updateCheckUpdate": "Check for Updates",
+    "updateChecking": "Checking...",
+    "updateNewVersion": "New version v{version} available",
+    "@updateNewVersion": {
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "updateChangelog": "Changelog",
+    "updateDownload": "Download Update",
+    "updateInstall": "Install Update",
+    "updateInstalling": "Opening installer...",
+    "updateAlreadyDownloaded": "Package already downloaded. You can install now without downloading again.",
+    "updateLatest": "You're up to date",
+    "updateFailed": "Update check failed, please try again",
+    "updateMacInstallHint": "The DMG is open. Drag YinYue to Applications to finish updating.",
+
+    "contextMenuDelete": "Delete Song",
+    "contextMenuDeleteTitle": "Confirm Delete",
+    "contextMenuDeleteConfirm": "Delete \"{title}\" ({artist}) from server?\nThis cannot be undone.",
+    "@contextMenuDeleteConfirm": {
+        "placeholders": {
+            "title": { "type": "String" },
+            "artist": { "type": "String" }
+        }
+    },
+    "contextMenuDeleted": "Deleted",
+    "contextMenuDeleteFailed": "Delete failed, please try again",
+    "recommendationsTitle": "Recommendations",
+    "recommendationsEmpty": "No recommendations yet",
+    "recommendationsBackendMissing": "Configure the backend to enable recommendations",
+    "recommendationsRetry": "Retry",
+    "recommendationsDislike": "Dislike",
+    "recommendationsImport": "Import",
+    "recommendationsViewAll": "View all",
+    "recommendationsSubtitle": "Based on your recent listening and feedback",
+    "recommendationsModeAi": "AI recommendations",
+    "recommendationsModeFallback": "Rule-based recommendations",
+    "recommendationsSimilar": "Similar",
+    "recommendationsExplore": "Explore",
+    "recommendationsRefreshed": "Recommendations updated",
+    "recommendationsRefreshing": "Refreshing recommendations",
+    "settingsResetRecommendations": "Reset recommendation preferences",
+    "settingsResetRecommendationsConfirm": "Reset recommendation preferences? Songs, downloads, play history, and server settings are not affected.",
+    "settingsResetRecommendationsDone": "Recommendation preferences reset"
+}
