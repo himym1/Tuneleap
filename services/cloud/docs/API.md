@@ -86,6 +86,21 @@ Success:
 | `br` | no (default 999) |
 | `provider` | no (pin winning adapter) |
 
+Success:
+
+```json
+{
+  "url": "https://cdn.example.com/song.mp3",
+  "br": 320,
+  "provider": "chksz",
+  "source": "tencent",
+  "cover_url": "https://cdn.example.com/cover.jpg",
+  "lyric": "[00:01.00]First line"
+}
+```
+
+`cover_url` and `lyric` are optional. An adapter may return them when resolving the playback URL already produced that metadata; clients must tolerate either field being absent.
+
 ### `GET /v1/music/cover`
 
 | Param | Required |

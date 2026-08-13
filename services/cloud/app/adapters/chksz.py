@@ -17,6 +17,7 @@ _QQ_PAGE_SIZE_MAX = 50
 _REQUEST_INTERVAL_SECONDS = 0.35
 _RATE_LIMIT_RETRY_DELAYS = (0.75, 1.5)
 _MAX_RETRY_AFTER_SECONDS = 3.0
+_DETAIL_CACHE_TTL_SECONDS = 60.0
 
 
 def _netease_level(br: int) -> str:
@@ -84,6 +85,17 @@ def _payload_url(payload: dict[str, Any]) -> str | None:
 def _is_http_url(value: str) -> bool:
     return value.startswith(("http://", "https://"))
 
+def _payload_cover(payload: dict[str, Any]) -> str | None:
+    data = payload.get("data")
+    candidates = []
+    if isinstance(data, dict):
+        candidates.extend((data.get("cover"), data.get("picUrl")))
+    candidates.extend((payload.get("cover"), payload.get("picUrl")))
+    for value in candidates:
+        if isinstance(value, str) and _is_http_url(value.strip()):
+            return value.strip()
+    return None
+
 
 class ChkszAdapter(MusicAdapter):
     name = "chksz"
@@ -107,6 +119,12 @@ class ChkszAdapter(MusicAdapter):
         self._retry_delays = retry_delays
         self._request_lock = asyncio.Lock()
         self._last_request_started = 0.0
+        self._response_cache: dict[
+            tuple[str, tuple[tuple[str, Any], ...]], tuple[float, dict[str, Any]]
+        ] = {}
+        self._detail_cache: dict[
+            tuple[str, str], tuple[float, dict[str, Any]]
+        ] = {}
 
     def _resolve_source(self, source: str | None) -> str | None:
         resolved = canonicalize_music_source(source)
@@ -120,12 +138,18 @@ class ChkszAdapter(MusicAdapter):
         params: dict[str, Any],
         *,
         not_found_is_empty: bool = False,
+        cache_ttl: float = 0.0,
     ) -> dict[str, Any]:
         query = {key: value for key, value in params.items() if value is not None}
         query["apikey"] = self._api_key
+        cache_key = (path, tuple(sorted(params.items())))
         async with self._request_lock:
+            cached = self._response_cache.get(cache_key)
+            now = time.monotonic()
+            if cached is not None and cached[0] > now:
+                return dict(cached[1])
             for attempt in range(len(self._retry_delays) + 1):
-                elapsed = time.monotonic() - self._last_request_started
+                elapsed = now - self._last_request_started
                 if elapsed < self._request_interval:
                     await asyncio.sleep(self._request_interval - elapsed)
                 self._last_request_started = time.monotonic()
@@ -158,20 +182,28 @@ class ChkszAdapter(MusicAdapter):
                         _MAX_RETRY_AFTER_SECONDS,
                     )
                 )
-        if response.status_code == 404 and not_found_is_empty:
-            return {}
-        if response.status_code >= 400:
-            response.raise_for_status()
-        try:
-            payload = response.json()
-        except ValueError as exc:
-            raise httpx.HTTPError("chksz invalid json") from exc
-        if not isinstance(payload, dict):
-            raise httpx.HTTPError("chksz invalid payload")
-        code = payload.get("code")
-        if code not in (200, "200", None):
-            raise httpx.HTTPError("chksz upstream rejected the request")
-        return payload
+                now = time.monotonic()
+            if response.status_code == 404 and not_found_is_empty:
+                return {}
+            if response.status_code >= 400:
+                response.raise_for_status()
+            try:
+                payload = response.json()
+            except ValueError as exc:
+                raise httpx.HTTPError("chksz invalid json") from exc
+            if not isinstance(payload, dict):
+                raise httpx.HTTPError("chksz invalid payload")
+            code = payload.get("code")
+            if code not in (200, "200", None):
+                raise httpx.HTTPError("chksz upstream rejected the request")
+            if cache_ttl > 0:
+                if len(self._response_cache) >= 256:
+                    self._response_cache.pop(next(iter(self._response_cache)))
+                self._response_cache[cache_key] = (
+                    time.monotonic() + cache_ttl,
+                    dict(payload),
+                )
+            return payload
 
     async def search(
         self, query: str, *, source: str | None, count: int, page: int
@@ -208,7 +240,14 @@ class ChkszAdapter(MusicAdapter):
                 not_found_is_empty=True,
             )
         items = [_prepare_item(item, source=resolved) for item in _search_items(payload)]
-        return normalize_songs(items, provider=self.name, default_source=resolved)[:count]
+        songs = normalize_songs(
+            items, provider=self.name, default_source=resolved
+        )[:count]
+        for song in songs:
+            cover = song.get("cover_id")
+            if not isinstance(cover, str) or not _is_http_url(cover):
+                song["cover_id"] = None
+        return songs
 
     async def get_url(self, id: str, *, source: str, br: int) -> dict[str, Any]:
         resolved = self._resolve_source(source)
@@ -218,21 +257,41 @@ class ChkszAdapter(MusicAdapter):
             payload = await self._get_json(
                 "/api/163_music",
                 {"id": id, "level": _netease_level(br), "type": "json"},
+                cache_ttl=_DETAIL_CACHE_TTL_SECONDS,
             )
         elif resolved == "tencent":
             payload = await self._get_json(
                 "/api/qq_music",
                 {"mid": id, "size": _common_size(br), "type": "json"},
+                cache_ttl=_DETAIL_CACHE_TTL_SECONDS,
             )
         else:
             payload = await self._get_json(
                 "/api/kugou_music",
                 {"id": id, "size": _common_size(br), "type": "json"},
+                cache_ttl=_DETAIL_CACHE_TTL_SECONDS,
             )
         url = _payload_url(payload)
         if not url:
             raise httpx.HTTPError("chksz url empty")
-        return {"url": url, "br": br, "provider": self.name, "source": resolved}
+        if len(self._detail_cache) >= 256 and (resolved, id) not in self._detail_cache:
+            self._detail_cache.pop(next(iter(self._detail_cache)))
+        self._detail_cache[(resolved, id)] = (
+            time.monotonic() + _DETAIL_CACHE_TTL_SECONDS,
+            dict(payload),
+        )
+        result: dict[str, Any] = {
+            "url": url,
+            "br": br,
+            "provider": self.name,
+            "source": resolved,
+        }
+        cover = _payload_cover(payload)
+        if cover is not None:
+            result["cover_url"] = cover
+        if resolved != "netease":
+            result["lyric"] = extract_lyric_payload(payload)
+        return result
 
     async def get_cover(self, id: str, *, source: str, size: int) -> dict[str, Any]:
         resolved = self._resolve_source(source)
@@ -240,12 +299,24 @@ class ChkszAdapter(MusicAdapter):
             raise httpx.HTTPError("chksz unsupported source")
         if _is_http_url(id):
             return {"url": id, "provider": self.name, "source": resolved}
+        cached = self._detail_cache.get((resolved, id))
+        if cached is not None and cached[0] > time.monotonic():
+            cover = _payload_cover(cached[1])
+            if cover is not None:
+                return {"url": cover, "provider": self.name, "source": resolved}
         raise httpx.HTTPError("chksz cover empty")
 
     async def get_lyric(self, id: str, *, source: str) -> dict[str, Any]:
         resolved = self._resolve_source(source)
         if resolved is None:
             raise httpx.HTTPError("chksz unsupported source")
+        cached = self._detail_cache.get((resolved, id))
+        if cached is not None and cached[0] > time.monotonic():
+            return {
+                "lyric": extract_lyric_payload(cached[1]),
+                "provider": self.name,
+                "source": resolved,
+            }
         if resolved == "netease":
             payload = await self._get_json("/api/163_lyric", {"id": id})
             data = payload.get("data")

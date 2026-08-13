@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "修复多平台搜索触发上游限流的问题；桌面端搜索框现在支持输入空格。"
+    "changelog": "优化在线歌曲播放速度；修复搜索结果封面请求过多，并恢复可用的封面和歌词。"
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

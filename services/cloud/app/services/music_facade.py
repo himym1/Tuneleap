@@ -293,8 +293,9 @@ class MusicFacade:
 
     async def _with_adapters(self, provider: str | None, op) -> dict[str, Any]:
         preferred = self._adapter_by_name(provider)
-        order = [preferred] if preferred is not None else []
-        order.extend(adapter for adapter in self._adapters if adapter is not preferred)
+        if provider and preferred is None:
+            raise MusicSearchSelectionError(f"music adapter unavailable: {provider}")
+        order = [preferred] if preferred is not None else list(self._adapters)
         if not order:
             raise httpx.HTTPError("no music adapters configured")
         last_error: Exception | None = None

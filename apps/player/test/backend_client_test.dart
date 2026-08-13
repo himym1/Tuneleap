@@ -279,6 +279,109 @@ void main() {
       expect(captured.queryParameters['provider'], 'meting');
     });
 
+    test(
+      'playback response caches URL cover and lyrics for the same song',
+      () async {
+        var requestCount = 0;
+        final dio = Dio()
+          ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+            requestCount++;
+            expect(options.path, 'http://cloud/v1/music/url');
+            return _jsonBody({
+              'url': 'https://cdn.example.com/song.mp3',
+              'cover_url': 'https://cdn.example.com/cover.jpg',
+              'lyric': '[00:01.00]First line',
+            });
+          });
+        final client = BackendClient(dio: dio)
+          ..configure(baseUrl: 'http://cloud');
+        const song = Song(
+          id: 'qq-1',
+          title: 'Song',
+          album: '',
+          albumId: '',
+          artist: 'Artist',
+          artistId: '',
+          backend: SongBackend.solara,
+          onlineSource: 'tencent',
+          onlineProvider: 'chksz',
+          urlId: 'qq-1',
+          lyricId: 'qq-1',
+        );
+
+        final first = await client.getPlaybackUrl(song, maxBitRate: 320);
+        final second = await client.getPlaybackUrl(song, maxBitRate: 320);
+        final cover = await client.resolveCoverArtUrl(song);
+        final lyrics = await client.getLyrics(song);
+
+        expect(first, second);
+        expect(cover, 'https://cdn.example.com/cover.jpg');
+        expect(lyrics?.lines.single.text, 'First line');
+        expect(requestCount, 1);
+      },
+    );
+
+    test(
+      'song without cover metadata does not request the cover endpoint',
+      () async {
+        var requested = false;
+        final dio = Dio()
+          ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+            requested = true;
+            return _jsonBody({'url': 'https://cdn.example.com/cover.jpg'});
+          });
+        final client = BackendClient(dio: dio)
+          ..configure(baseUrl: 'http://cloud');
+        const song = Song(
+          id: 'kugou-1',
+          title: 'Song',
+          album: '',
+          albumId: '',
+          artist: 'Artist',
+          artistId: '',
+          backend: SongBackend.solara,
+          onlineSource: 'kugou',
+          onlineProvider: 'chksz',
+          urlId: 'kugou-1',
+        );
+
+        expect(await client.resolveCoverArtUrl(song), isEmpty);
+        expect(requested, isFalse);
+      },
+    );
+
+    test(
+      'resolveCoverArtUrl returns direct online cover without proxy',
+      () async {
+        var requested = false;
+        final dio = Dio()
+          ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+            requested = true;
+            return _jsonBody({'url': 'unexpected'});
+          });
+        final client = BackendClient(dio: dio)
+          ..configure(baseUrl: 'http://cloud');
+        const song = Song(
+          id: 'netease-1',
+          title: 'Song',
+          album: '',
+          albumId: '',
+          artist: 'Artist',
+          artistId: '',
+          backend: SongBackend.solara,
+          onlineSource: 'netease',
+          onlineProvider: 'chksz',
+          coverArt: 'https://images.example.com/cover.jpg',
+        );
+
+        expect(
+          await client.resolveCoverArtUrl(song),
+          'https://images.example.com/cover.jpg',
+        );
+        expect(requested, isFalse);
+      },
+    );
+
     test('queueNasDownload posts expected payload', () async {
       late RequestOptions captured;
       final dio = Dio()
