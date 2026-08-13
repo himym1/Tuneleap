@@ -1,13 +1,11 @@
-"""Meting / OpenMusic-shaped adapter.
-
-Supports common public Meting PHP endpoints:
-  ?server=<source>&type=search|url|pic|lrc&id=<q|id>
-and gdstudio-compatible mirrors if someone points METING bases at them.
-"""
+"""Standard Meting API adapter with multi-base failover."""
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 
@@ -20,14 +18,33 @@ from app.adapters.normalize import (
 from app.adapters.pool import BasePool
 
 DEFAULT_SOURCE = "netease"
-_TYPE_MAP = {
-    "search": "search",
-    "url": "url",
-    "pic": "pic",
-    "cover": "pic",
-    "lyric": "lrc",
-    "lrc": "lrc",
-}
+SUPPORTED_SOURCES = frozenset({"netease", "tencent", "kugou", "baidu", "kuwo"})
+_TYPE_MAP = {"lyric": "lrc", "cover": "pic"}
+_SIGNED_TYPES = frozenset({"url", "pic", "lrc"})
+
+
+def _resource_id(item: dict[str, Any]) -> str | None:
+    for key in ("id", "songid", "song_id"):
+        value = item.get(key)
+        if value not in (None, ""):
+            return str(value)
+    for key in ("url", "lrc", "pic"):
+        value = item.get(key)
+        if not isinstance(value, str):
+            continue
+        resource_id = parse_qs(urlparse(value).query).get("id")
+        if resource_id and resource_id[0]:
+            return resource_id[0]
+    return None
+
+
+def _search_payload(response: httpx.Response) -> Any:
+    payload = response.json()
+    if isinstance(payload, dict):
+        for key in ("result", "data", "songs", "list"):
+            if isinstance(payload.get(key), list):
+                return payload[key]
+    return payload
 
 
 class MetingAdapter(MusicAdapter):
@@ -38,6 +55,7 @@ class MetingAdapter(MusicAdapter):
         client: httpx.AsyncClient,
         bases: tuple[str, ...],
         *,
+        token: str = "",
         cooldown_seconds: int = 60,
         timeout: float = 30.0,
     ):
@@ -49,79 +67,85 @@ class MetingAdapter(MusicAdapter):
             headers={"User-Agent": "Mozilla/5.0"},
         )
         self._client = client
+        self._token = token
         self._timeout = timeout
 
-    async def _meting(
-        self, *, kind: str, source: str, value: str, extra: dict[str, Any] | None = None
-    ) -> Any:
-        params: dict[str, Any] = {
-            "server": source,
-            "type": _TYPE_MAP.get(kind, kind),
-            "id": value,
-        }
-        if extra:
-            params.update(extra)
-        # Also send gdstudio-shaped aliases so dual-compatible hosts work.
-        if kind == "search":
-            params.setdefault("types", "search")
-            params.setdefault("source", source)
-            params.setdefault("name", value)
-        elif kind == "url":
-            params.setdefault("types", "url")
-            params.setdefault("source", source)
-        elif kind in {"pic", "cover"}:
-            params.setdefault("types", "pic")
-            params.setdefault("source", source)
-        elif kind in {"lyric", "lrc"}:
-            params.setdefault("types", "lyric")
-            params.setdefault("source", source)
-        return await self._pool.request_json(params=params, attach_nonce=True)
+    def _params(self, *, kind: str, source: str, value: str) -> dict[str, str]:
+        meting_type = _TYPE_MAP.get(kind, kind)
+        params = {"server": source, "type": meting_type, "id": value}
+        if self._token and meting_type in _SIGNED_TYPES:
+            message = f"{source}{meting_type}{value}".encode()
+            params["auth"] = hmac.new(
+                self._token.encode(), message, hashlib.sha1
+            ).hexdigest()
+        return params
+
+    async def _request(self, *, kind: str, source: str, value: str) -> httpx.Response:
+        return await self._pool.request(
+            params=self._params(kind=kind, source=source, value=value),
+            attach_nonce=False,
+            follow_redirects=False,
+            allowed_redirect_statuses=(
+                frozenset({302}) if kind in {"url", "pic"} else frozenset()
+            ),
+        )
 
     async def search(
         self, query: str, *, source: str | None, count: int, page: int
     ) -> list[dict[str, Any]]:
-        payload = await self._meting(
-            kind="search",
-            source=source or DEFAULT_SOURCE,
-            value=query,
-            extra={"count": count, "pages": page, "page": page},
+        resolved_source = source or DEFAULT_SOURCE
+        if resolved_source not in SUPPORTED_SOURCES or page > 1:
+            return []
+        response = await self._request(
+            kind="search", source=resolved_source, value=query
         )
-        # Meting often returns {"result":[...]} or bare list.
-        if isinstance(payload, dict):
-            for key in ("result", "data", "songs", "list"):
-                if isinstance(payload.get(key), list):
-                    payload = payload[key]
-                    break
+        payload = _search_payload(response)
+        if isinstance(payload, list):
+            payload = [
+                {
+                    **item,
+                    "id": _resource_id(item),
+                    "artist": item.get("artist") or item.get("author"),
+                }
+                for item in payload
+                if isinstance(item, dict) and _resource_id(item)
+            ]
         songs = normalize_songs(
-            payload, provider=self.name, default_source=source or DEFAULT_SOURCE
+            payload, provider=self.name, default_source=resolved_source
         )
         return songs[:count]
 
     async def get_url(self, id: str, *, source: str, br: int) -> dict[str, Any]:
-        payload = await self._meting(
-            kind="url", source=source, value=id, extra={"br": br}
-        )
-        url = extract_url_payload(payload)
+        response = await self._request(kind="url", source=source, value=id)
+        url = response.headers.get("location")
+        if not url:
+            try:
+                url = extract_url_payload(response.json())
+            except ValueError:
+                url = extract_url_payload(response.text)
         if not url:
             raise httpx.HTTPError("meting url empty")
         return {"url": url, "br": br, "provider": self.name, "source": source}
 
     async def get_cover(self, id: str, *, source: str, size: int) -> dict[str, Any]:
-        payload = await self._meting(
-            kind="pic", source=source, value=id, extra={"size": size}
-        )
-        url = extract_url_payload(payload)
+        response = await self._request(kind="pic", source=source, value=id)
+        url = response.headers.get("location")
+        if not url:
+            try:
+                url = extract_url_payload(response.json())
+            except ValueError:
+                url = extract_url_payload(response.text)
         if not url:
             raise httpx.HTTPError("meting cover empty")
         return {"url": url, "provider": self.name, "source": source}
 
     async def get_lyric(self, id: str, *, source: str) -> dict[str, Any]:
-        payload = await self._meting(kind="lrc", source=source, value=id)
-        return {
-            "lyric": extract_lyric_payload(payload),
-            "provider": self.name,
-            "source": source,
-        }
+        response = await self._request(kind="lrc", source=source, value=id)
+        try:
+            lyric = extract_lyric_payload(response.json())
+        except ValueError:
+            lyric = response.text
+        return {"lyric": lyric, "provider": self.name, "source": source}
 
     async def is_playable(self, id: str, *, source: str, br: int = 999) -> bool:
         result = await self.get_url(id, source=source, br=br)

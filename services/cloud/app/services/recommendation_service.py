@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import math
 import secrets
 import sys
@@ -27,6 +28,8 @@ from app.services.recommendation_identity import (
     weak_identity,
 )
 from app.services.recommendation_store import FeedbackResult, Session, StaleSessionError
+
+_logger = logging.getLogger(__name__)
 
 
 class SearchResult(TypedDict, total=False):
@@ -108,7 +111,13 @@ class RecommendationSource(Protocol):
     ) -> SearchResults: ...
 
     async def get_url(self, id: str, source: str, br: int = 999) -> object: ...
-    async def is_playable(self, id: str, source: str, br: int = 999) -> bool: ...
+    async def is_playable(
+        self,
+        id: str,
+        source: str,
+        br: int = 999,
+        provider: str | None = None,
+    ) -> bool: ...
 
 
 class RecommendationLibrary(Protocol):
@@ -250,18 +259,40 @@ class RecommendationService:
         self.page_max = page_max
         self.refill_lease_ms = refill_lease_ms
         self._search_semaphore = asyncio.Semaphore(upstream_concurrency)
+        self._session_request_lock = asyncio.Lock()
         self._background_tasks: dict[str, asyncio.Task[object]] = {}
         self._suppressed_tasks: set[asyncio.Task[object]] = set()
         self._refill_context: dict[str, _RefillContext] = {}
         self.background_errors: list[BaseException] = []
 
-    async def _block_library_candidates(self, session_id: str) -> None:
+    async def _library_weak_identities(self) -> set[str]:
         if self.library is None:
-            return
-        identities = await self.library.recommendation_weak_identities()
+            return set()
+        try:
+            return await self.library.recommendation_weak_identities()
+        except httpx.TransportError as exc:
+            _logger.warning(
+                "NAS identities unavailable; recommendation filtering skipped: %s",
+                type(exc).__name__,
+            )
+            return set()
+
+    async def _block_library_candidates(self, session_id: str) -> None:
+        identities = await self._library_weak_identities()
         await self.store.block_candidate_identities(session_id, identities)
 
     async def create_or_resume(
+        self,
+        recent: Sequence[object] = (),
+        page_size: int = 20,
+        refresh: bool = False,
+    ) -> RecommendationPageV1:
+        async with self._session_request_lock:
+            return await self._create_or_resume_locked(
+                recent=recent, page_size=page_size, refresh=refresh
+            )
+
+    async def _create_or_resume_locked(
         self,
         recent: Sequence[object] = (),
         page_size: int = 20,
@@ -565,7 +596,9 @@ class RecommendationService:
         try:
             async with self._search_semaphore:
                 return await self.music_proxy.is_playable(
-                    item.song.url_id, item.song.online_source
+                    item.song.url_id,
+                    item.song.online_source,
+                    provider=item.song.online_provider,
                 )
         except asyncio.CancelledError:
             raise
@@ -661,11 +694,7 @@ class RecommendationService:
             )
             self._refill_context[session.session_id] = context
         existing = await self.store.candidate_identities(session.session_id)
-        library_identities = (
-            await self.library.recommendation_weak_identities()
-            if self.library is not None
-            else set()
-        )
+        library_identities = await self._library_weak_identities()
         recent_strong = {
             f"{_recent_field(item, 'source', 'onlineSource')}:{_recent_field(item, 'sourceId', 'source_id', 'urlId', 'url_id')}"
             for item in recent
@@ -795,6 +824,7 @@ class RecommendationService:
             "comment": value.get("comment"),
             "backend": "solara",
             "online_source": source,
+            "online_provider": value.get("provider"),
             "url_id": url_id,
             "lyric_id": value.get("lyric_id"),
         }

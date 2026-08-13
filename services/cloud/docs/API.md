@@ -24,9 +24,11 @@ No auth.
 | Param | Required | Notes |
 |---|---|---|
 | `q` | yes | User search string |
-| `source` | no | Preferred platform hint only |
+| `source` | no | Preferred platform; configured search sources are fallback candidates |
 | `count` | no | default 20, max 50 |
 | `page` | no | default 1 |
+
+For `page > 1`, reuse the `source` returned by page 1; later pages do not switch sources.
 
 Success:
 
