@@ -221,3 +221,47 @@ async def test_chksz_retries_rate_limit_then_recovers():
 
     assert calls == 2
     assert [song["title"] for song in songs] == ["晴天"]
+
+@pytest.mark.asyncio
+async def test_chksz_search_treats_not_found_as_empty():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            404,
+            json={"code": 404, "msg": "未找到匹配的歌曲"},
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+            retry_delays=(),
+        )
+        songs = await adapter.search(
+            "no matching song",
+            source="kugou",
+            count=10,
+            page=1,
+        )
+
+    assert songs == []
+
+
+@pytest.mark.asyncio
+async def test_chksz_url_keeps_not_found_as_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={"code": 404, "msg": "not found"})
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+            retry_delays=(),
+        )
+        with pytest.raises(httpx.HTTPStatusError):
+            await adapter.get_url("missing", source="kugou", br=320)

@@ -114,7 +114,13 @@ class ChkszAdapter(MusicAdapter):
             return None
         return resolved
 
-    async def _get_json(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
+    async def _get_json(
+        self,
+        path: str,
+        params: dict[str, Any],
+        *,
+        not_found_is_empty: bool = False,
+    ) -> dict[str, Any]:
         query = {key: value for key, value in params.items() if value is not None}
         query["apikey"] = self._api_key
         async with self._request_lock:
@@ -152,6 +158,8 @@ class ChkszAdapter(MusicAdapter):
                         _MAX_RETRY_AFTER_SECONDS,
                     )
                 )
+        if response.status_code == 404 and not_found_is_empty:
+            return {}
         if response.status_code >= 400:
             response.raise_for_status()
         try:
@@ -179,6 +187,7 @@ class ChkszAdapter(MusicAdapter):
                     "limit": count,
                     "offset": (page - 1) * count,
                 },
+                not_found_is_empty=True,
             )
         elif page > 1:
             return []
@@ -190,11 +199,13 @@ class ChkszAdapter(MusicAdapter):
                     "num": min(max(count, 1), _QQ_PAGE_SIZE_MAX),
                     "type": "json",
                 },
+                not_found_is_empty=True,
             )
         else:
             payload = await self._get_json(
                 "/api/kugou_music",
                 {"msg": query, "type": "json"},
+                not_found_is_empty=True,
             )
         items = [_prepare_item(item, source=resolved) for item in _search_items(payload)]
         return normalize_songs(items, provider=self.name, default_source=resolved)[:count]
