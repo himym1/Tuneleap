@@ -1,0 +1,683 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:navidrome_player/api/models/models.dart';
+import 'package:navidrome_player/api/subsonic_client.dart'
+    show LyricsList, LyricsLine;
+
+typedef CloudTokenProvider = Future<String?> Function({bool forceRefresh});
+
+class NasDuplicateException implements Exception {
+  const NasDuplicateException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// Dual-endpoint companion client (ADR-0004):
+/// - cloud: Bearer-authenticated search, media, recommendations, and updates
+/// - nas agent: API-key-authenticated import/delete only
+class BackendClient {
+  static const _cloudRetryKey = 'cloud-auth-retried';
+
+  late final Dio _dio;
+  final CloudTokenProvider? _cloudTokenProvider;
+  String _cloudBaseUrl = '';
+  String _nasBaseUrl = '';
+  String _nasAgentKey = '';
+  final Map<String, String> _coverArtCache = {};
+
+  BackendClient({Dio? dio, CloudTokenProvider? cloudTokenProvider})
+    : _cloudTokenProvider = cloudTokenProvider {
+    _dio = dio ?? Dio();
+    _dio.options.connectTimeout ??= const Duration(seconds: 10);
+    if (cloudTokenProvider != null) _installCloudAuth();
+  }
+
+  bool get isConfigured => _cloudBaseUrl.isNotEmpty;
+  bool get isNasConfigured => _nasBaseUrl.isNotEmpty;
+  bool get canMutateNas {
+    final uri = Uri.tryParse(_nasBaseUrl);
+    return _nasAgentKey.isNotEmpty &&
+        uri != null &&
+        uri.host.isNotEmpty &&
+        (uri.scheme == 'https' ||
+            (uri.scheme == 'http' && _isLanHost(uri.host)));
+  }
+
+  String get cloudBaseUrl => _cloudBaseUrl;
+  String get nasBaseUrl => _nasBaseUrl;
+
+  void configure({
+    String cloudBaseUrl = '',
+    String cloudApiKey = '',
+    String nasAgentUrl = '',
+    String nasAgentKey = '',
+    // Backward-compatible URL aliases for older call sites/tests.
+    String? baseUrl,
+    String apiKey = '',
+  }) {
+    final resolvedCloud = cloudBaseUrl.isNotEmpty
+        ? cloudBaseUrl
+        : (baseUrl ?? '');
+    _cloudBaseUrl = _normalizeBaseUrl(resolvedCloud);
+    _nasBaseUrl = _normalizeBaseUrl(nasAgentUrl);
+    _nasAgentKey = nasAgentKey;
+    debugPrint(
+      '[Backend] configured cloud=${_cloudBaseUrl.isNotEmpty} nas=${_nasBaseUrl.isNotEmpty}',
+    );
+  }
+
+  /// Infer the production LAN NAS agent endpoint on port 8504.
+  static String inferBaseUrl(String serverUrl, {int port = 8504}) {
+    final uri = Uri.tryParse(serverUrl);
+    if (uri == null ||
+        uri.host.isEmpty ||
+        (uri.scheme.isNotEmpty &&
+            uri.scheme != 'http' &&
+            uri.scheme != 'https') ||
+        !_isLanHost(uri.host)) {
+      return '';
+    }
+
+    return Uri(
+      scheme: uri.scheme.isEmpty ? 'http' : uri.scheme,
+      host: uri.host,
+      port: port,
+    ).toString();
+  }
+
+  static bool _isLanHost(String host) {
+    final normalized = host.toLowerCase();
+    if (normalized == 'localhost' ||
+        normalized == '::1' ||
+        normalized.endsWith('.local') ||
+        (!normalized.contains('.') && !normalized.contains(':'))) {
+      return true;
+    }
+    final octets = normalized.split('.').map(int.tryParse).toList();
+    if (octets.length != 4 || octets.any((part) => part == null)) return false;
+    final first = octets[0]!;
+    final second = octets[1]!;
+    return first == 10 ||
+        first == 127 ||
+        (first == 100 && second >= 64 && second <= 127) ||
+        (first == 169 && second == 254) ||
+        (first == 172 && second >= 16 && second <= 31) ||
+        (first == 192 && second == 168);
+  }
+
+  void _installCloudAuth() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (!_isCloudRequest(options)) {
+            handler.next(options);
+            return;
+          }
+          if (options.headers['Authorization'] != null) {
+            handler.next(options);
+            return;
+          }
+          try {
+            final token = await _cloudTokenProvider!(forceRefresh: false);
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          } on Exception {
+            // Let the request surface its normal 401/network error.
+          }
+          handler.next(options);
+        },
+        onError: (error, handler) async {
+          final request = error.requestOptions;
+          if (error.response?.statusCode != 401 ||
+              !_isCloudRequest(request) ||
+              request.extra[_cloudRetryKey] == true) {
+            handler.next(error);
+            return;
+          }
+          try {
+            final token = await _cloudTokenProvider!(forceRefresh: true);
+            if (token == null || token.isEmpty) {
+              handler.next(error);
+              return;
+            }
+            request.extra[_cloudRetryKey] = true;
+            request.headers['Authorization'] = 'Bearer $token';
+            handler.resolve(await _dio.fetch<dynamic>(request));
+          } on Exception {
+            handler.next(error);
+          }
+        },
+      ),
+    );
+  }
+
+  bool _isCloudRequest(RequestOptions options) {
+    final cloud = Uri.tryParse(_cloudBaseUrl);
+    final request = options.uri;
+    return cloud != null &&
+        cloud.host.isNotEmpty &&
+        request.scheme == cloud.scheme &&
+        request.host == cloud.host &&
+        request.port == cloud.port;
+  }
+
+  Options _cloudOptions() => Options();
+
+  Options _nasOptions({String? contentType}) {
+    final headers = <String, dynamic>{};
+    if (_nasAgentKey.isNotEmpty) {
+      headers['X-API-Key'] = _nasAgentKey;
+    }
+    return Options(headers: headers, contentType: contentType);
+  }
+
+  Future<List<Song>> searchSongs(
+    String query, {
+    String? source,
+    int count = 20,
+    int page = 1,
+    CancelToken? cancelToken,
+  }) async {
+    debugPrint('[Backend] searchSongs cloud first-success source=$source');
+    try {
+      final response = await _dio.get(
+        '$_cloudBaseUrl/v1/music/search',
+        queryParameters: {
+          'q': query,
+          if (source != null && source.isNotEmpty) 'source': source,
+          'count': count,
+          'page': page,
+        },
+        options: _cloudOptions(),
+        cancelToken: cancelToken,
+      );
+
+      final data = response.data;
+      if (data is Map) {
+        final items = data['items'];
+        if (items is! List) {
+          throw const FormatException(
+            'Cloud search response items must be a list',
+          );
+        }
+        return items
+            .whereType<Map>()
+            .map((item) => Song.fromCloudJson(Map<String, dynamic>.from(item)))
+            .toList();
+      }
+      if (data is List) {
+        // Legacy monorepo /proxy shape fallback.
+        return data
+            .map((item) => Song.fromSolaraJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      throw const FormatException('Cloud search response must be an object');
+    } catch (e) {
+      debugPrint('[Backend] searchSongs ERROR: ${e.runtimeType}');
+      rethrow;
+    }
+  }
+
+  Future<String> getPlaybackUrl(Song song, {int? maxBitRate}) async {
+    final response = await _dio.get(
+      '$_cloudBaseUrl/v1/music/url',
+      queryParameters: {
+        'id': song.urlId ?? song.id,
+        'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
+        'br': _qualityFromBitRate(maxBitRate),
+      },
+      options: _cloudOptions(),
+    );
+
+    final data = response.data;
+    if (data is! Map) {
+      throw const FormatException('Cloud url response must be an object');
+    }
+    final url = data['url']?.toString() ?? '';
+    if (url.isEmpty) {
+      throw const FormatException('Cloud url response missing url');
+    }
+    return url;
+  }
+
+  String buildCoverProxyUrl(Song song, {int size = 300}) {
+    final coverArtId = song.coverArt;
+    if (coverArtId == null || coverArtId.isEmpty) return '';
+
+    final query = Uri(
+      queryParameters: {
+        'id': coverArtId,
+        'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
+        'size': '$size',
+      },
+    ).query;
+
+    // Direct cloud cover endpoint (resolved URL preferred via resolveCoverArtUrl).
+    return '$_cloudBaseUrl/v1/music/cover?$query';
+  }
+
+  Future<String> resolveCoverArtUrl(Song song, {int size = 300}) async {
+    final coverArtId = song.coverArt;
+    if (coverArtId == null || coverArtId.isEmpty) return '';
+
+    final cacheKey =
+        '${song.onlineProvider}:${song.onlineSource}:$coverArtId:$size';
+    final cached = _coverArtCache[cacheKey];
+    if (cached != null) return cached;
+
+    final response = await _dio.get(
+      '$_cloudBaseUrl/v1/music/cover',
+      queryParameters: {
+        'id': coverArtId,
+        'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
+        'size': size,
+      },
+      options: _cloudOptions(),
+    );
+
+    final data = response.data;
+    if (data is! Map) {
+      throw const FormatException('Cloud cover response must be an object');
+    }
+
+    final url = data['url']?.toString() ?? '';
+    if (url.isEmpty) return '';
+
+    _coverArtCache[cacheKey] = url;
+    return url;
+  }
+
+  Future<String?> queueNasDownload({
+    required String url,
+    required String filename,
+    required Map<String, dynamic> song,
+    String? picUrl,
+    String? lyric,
+    bool force = false,
+  }) async {
+    final base = _nasBaseUrl;
+    if (!canMutateNas) {
+      throw StateError('NAS agent URL and key are not configured');
+    }
+
+    // Prefer nas-agent contract; fall back to legacy monorepo path.
+    final primaryPath = '$base/v1/nas/import';
+    final legacyPath = '$base/api/nas-download';
+    final payload = {
+      'url': url,
+      'filename': filename,
+      'song': song,
+      if (picUrl != null && picUrl.isNotEmpty) 'picUrl': picUrl,
+      if (lyric != null && lyric.isNotEmpty) 'lyric': lyric,
+      'force': force,
+    };
+
+    try {
+      final response = await _dio.post(
+        primaryPath,
+        data: payload,
+        options: _nasOptions(contentType: 'application/json'),
+      );
+      return _parseImportResponse(response.data);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 409) {
+        final data = error.response?.data;
+        final detail = data is Map ? data['detail']?.toString() : null;
+        throw NasDuplicateException(
+          detail == null || detail.isEmpty
+              ? 'Song already exists in the Navidrome library'
+              : detail,
+        );
+      }
+      if (error.response?.statusCode == 404) {
+        final response = await _dio.post(
+          legacyPath,
+          data: payload,
+          options: _nasOptions(contentType: 'application/json'),
+        );
+        return _parseImportResponse(response.data);
+      }
+      rethrow;
+    }
+  }
+
+  String? _parseImportResponse(dynamic data) {
+    if (data is! Map) {
+      throw const FormatException('NAS import response must be an object');
+    }
+    if (data['ok'] == true || data['success'] == true) {
+      final message = data['message']?.toString().trim();
+      if (message == null || message.isEmpty) return null;
+      return message;
+    }
+    final error =
+        data['error']?.toString().trim() ?? data['detail']?.toString().trim();
+    throw StateError(
+      error == null || error.isEmpty ? 'NAS download failed' : error,
+    );
+  }
+
+  /// 获取歌词的原始 LRC 文本（用于导入/下载时保存）
+  Future<String?> getRawLyrics(Song song) async {
+    final lyricId = song.lyricId ?? song.id;
+    final response = await _dio.get(
+      '$_cloudBaseUrl/v1/music/lyric',
+      queryParameters: {
+        'id': lyricId,
+        'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
+      },
+      options: _cloudOptions(),
+    );
+
+    final data = response.data;
+    if (data is! Map) return null;
+
+    final lyric = data['lyric']?.toString() ?? '';
+    return lyric.isEmpty ? null : lyric;
+  }
+
+  Future<LyricsList?> getLyrics(Song song) async {
+    final lyricId = song.lyricId ?? song.id;
+    debugPrint('[Backend] getLyrics: source=${song.onlineSource ?? 'unknown'}');
+    final response = await _dio.get(
+      '$_cloudBaseUrl/v1/music/lyric',
+      queryParameters: {
+        'id': lyricId,
+        'source': song.onlineSource ?? 'netease',
+        if (song.onlineProvider?.isNotEmpty ?? false)
+          'provider': song.onlineProvider,
+      },
+      options: _cloudOptions(),
+    );
+
+    final data = response.data;
+    if (data is! Map) {
+      debugPrint(
+        '[Backend] getLyrics ERROR: response is not a map: ${data.runtimeType}',
+      );
+      throw const FormatException('Cloud lyric response must be an object');
+    }
+
+    final lyric = data['lyric']?.toString() ?? '';
+    debugPrint(
+      '[Backend] getLyrics: lyric length=${lyric.length}, empty=${lyric.isEmpty}',
+    );
+    if (lyric.isEmpty) return null;
+
+    final lines = lyric
+        .split('\n')
+        .map((rawLine) => rawLine.trim())
+        .where((line) => line.isNotEmpty)
+        .expand(_parseLrcLine)
+        .toList();
+
+    if (lines.isEmpty) return null;
+
+    return LyricsList(
+      lines: lines,
+      synced: lines.any((line) => line.startMs != null),
+    );
+  }
+
+  /// 按 Navidrome song ID 删除本地歌曲文件
+  Future<bool> deleteSongById(String navidromeId) async {
+    debugPrint('[Backend] deleting song via nas-agent');
+    final base = _nasBaseUrl;
+    if (!canMutateNas) {
+      throw StateError('NAS agent URL and key are not configured');
+    }
+    try {
+      final response = await _dio.post(
+        '$base/v1/songs/delete',
+        data: {
+          'song_ids': [navidromeId],
+        },
+        options: _nasOptions(contentType: 'application/json'),
+      );
+      debugPrint('[Backend]   status: ${response.statusCode}');
+      final data = response.data;
+      if (data is Map) {
+        return (data['deleted'] as int? ?? 0) > 0;
+      }
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      // Legacy monorepo accepted a bare JSON array body.
+      if (e.response?.statusCode == 422 || e.response?.statusCode == 400) {
+        try {
+          final response = await _dio.post(
+            '$base/v1/songs/delete',
+            data: [navidromeId],
+            options: _nasOptions(contentType: 'application/json'),
+          );
+          final data = response.data;
+          if (data is Map) {
+            return (data['deleted'] as int? ?? 0) > 0;
+          }
+          return response.statusCode == 200;
+        } catch (err) {
+          debugPrint('[Backend] delete ERROR: ${err.runtimeType}');
+          return false;
+        }
+      }
+      debugPrint('[Backend] delete ERROR: ${e.runtimeType}');
+      return false;
+    } catch (e) {
+      debugPrint('[Backend] delete ERROR: ${e.runtimeType}');
+      return false;
+    }
+  }
+
+  Future<RecommendationPage> createRecommendationSession(
+    List<Song> recent, {
+    bool refresh = false,
+    int pageSize = 20,
+    CancelToken? cancelToken,
+  }) async {
+    _validateRecommendationPageSize(pageSize);
+    return _recommendationRequest(() async {
+      final response = await _dio.post(
+        '$_cloudBaseUrl/v1/recommendations/sessions',
+        data: {
+          'refresh': refresh,
+          'pageSize': pageSize,
+          'recent': recent
+              .take(30)
+              .map(
+                (song) =>
+                    RecentRecommendationSongSummary.fromSong(song).toJson(),
+              )
+              .toList(),
+        },
+        options: _cloudOptions(),
+        cancelToken: cancelToken,
+      );
+      return _parseRecommendationPage(response);
+    });
+  }
+
+  Future<RecommendationPage> getRecommendationItems(
+    String sessionId, {
+    String? cursor,
+    int limit = 20,
+    CancelToken? cancelToken,
+  }) async {
+    _validateRecommendationPageSize(limit);
+    return _recommendationRequest(() async {
+      final encodedSessionId = Uri.encodeComponent(sessionId);
+      final response = await _dio.get(
+        '$_cloudBaseUrl/v1/recommendations/sessions/$encodedSessionId/items',
+        queryParameters: {
+          'limit': limit,
+          ...?cursor == null ? null : {'cursor': cursor},
+        },
+        options: _cloudOptions(),
+        cancelToken: cancelToken,
+      );
+      return _parseRecommendationPage(response);
+    });
+  }
+
+  Future<RecommendationFeedbackResponse> sendRecommendationFeedback({
+    required String idempotencyKey,
+    required String sessionId,
+    required String candidateId,
+    required RecommendationFeedbackEvent event,
+    CancelToken? cancelToken,
+  }) async {
+    return _recommendationRequest(() async {
+      final response = await _dio.post(
+        '$_cloudBaseUrl/v1/recommendations/feedback',
+        data: {
+          'idempotencyKey': idempotencyKey,
+          'sessionId': sessionId,
+          'candidateId': candidateId,
+          'event': event.name,
+        },
+        options: _cloudOptions(),
+        cancelToken: cancelToken,
+      );
+      return RecommendationFeedbackResponse.fromJson(
+        _requireRecommendationEnvelope(response),
+      );
+    });
+  }
+
+  Future<void> resetRecommendationProfile({CancelToken? cancelToken}) async {
+    await _recommendationRequest(() async {
+      final response = await _dio.delete(
+        '$_cloudBaseUrl/v1/recommendations/profile',
+        options: _cloudOptions(),
+        cancelToken: cancelToken,
+      );
+      final data = _requireRecommendationEnvelope(response);
+      if (data['reset'] != true) {
+        throw const FormatException(
+          'Recommendation profile reset was not confirmed',
+        );
+      }
+    });
+  }
+
+  RecommendationPage _parseRecommendationPage(Response<dynamic> response) {
+    final data = _requireRecommendationEnvelope(response);
+    return RecommendationPage.fromJson(data);
+  }
+
+  Map<String, dynamic> _requireRecommendationEnvelope(
+    Response<dynamic> response,
+  ) {
+    final data = response.data;
+    if (data is! Map) {
+      throw const FormatException('Recommendation response must be an object');
+    }
+    final map = Map<String, dynamic>.from(data);
+    if (map['contractVersion'] != 1) {
+      throw RecommendationApiException(
+        code: 'recommendation_unsupported_contract',
+        detail: 'Unsupported recommendation contract',
+        retryable: false,
+        statusCode: response.statusCode,
+      );
+    }
+    final code = map['code'];
+    final detail = map['detail'];
+    final retryable = map['retryable'];
+    if (code != null || detail != null || retryable != null) {
+      if (code is String && detail is String && retryable is bool) {
+        throw RecommendationApiException(
+          code: code,
+          detail: detail,
+          retryable: retryable,
+          statusCode: response.statusCode,
+        );
+      }
+      throw const FormatException('Invalid recommendation error response');
+    }
+    return map;
+  }
+
+  Future<T> _recommendationRequest<T>(Future<T> Function() request) async {
+    try {
+      return await request();
+    } on DioException catch (error) {
+      if (error.type == DioExceptionType.cancel) rethrow;
+      final response = error.response;
+      final data = response?.data;
+      if (response != null && data is Map) {
+        final map = Map<String, dynamic>.from(data);
+        if (map['contractVersion'] == 1 &&
+            map['code'] is String &&
+            map['detail'] is String &&
+            map['retryable'] is bool) {
+          throw RecommendationApiException(
+            code: map['code'] as String,
+            detail: map['detail'] as String,
+            retryable: map['retryable'] as bool,
+            statusCode: response.statusCode,
+          );
+        }
+      }
+      rethrow;
+    }
+  }
+
+  static void _validateRecommendationPageSize(int value) {
+    if (value < 1 || value > 20) {
+      throw ArgumentError.value(value, 'pageSize', 'must be between 1 and 20');
+    }
+  }
+
+  static String _normalizeBaseUrl(String raw) {
+    if (raw.isEmpty) return '';
+    return raw.endsWith('/') ? raw.substring(0, raw.length - 1) : raw;
+  }
+
+  static String _qualityFromBitRate(int? maxBitRate) {
+    if (maxBitRate == null || maxBitRate <= 0) return '999';
+    if (maxBitRate <= 128) return '128';
+    if (maxBitRate <= 192) return '192';
+    if (maxBitRate <= 320) return '320';
+    return '999';
+  }
+
+  static Iterable<LyricsLine> _parseLrcLine(String line) sync* {
+    final matches = RegExp(
+      r'\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\]',
+    ).allMatches(line);
+    final text = line.replaceAll(RegExp(r'\[[^\]]+\]'), '').trim();
+    if (matches.isEmpty) {
+      if (text.isNotEmpty) {
+        yield LyricsLine(text: text);
+      }
+      return;
+    }
+
+    for (final match in matches) {
+      final minutes = int.parse(match.group(1)!);
+      final seconds = int.parse(match.group(2)!);
+      final fractionRaw = match.group(3) ?? '0';
+      final milliseconds = switch (fractionRaw.length) {
+        1 => int.parse(fractionRaw) * 100,
+        2 => int.parse(fractionRaw) * 10,
+        _ => int.parse(fractionRaw.substring(0, 3)),
+      };
+
+      yield LyricsLine(
+        text: text,
+        startMs: (minutes * 60 * 1000) + (seconds * 1000) + milliseconds,
+      );
+    }
+  }
+}
