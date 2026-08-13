@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -133,3 +134,32 @@ def test_import_rejects_download_directory_outside_music_root(settings, media_se
     assert response.status_code == 400
     assert not outside_root.exists()
     assert server.requests == []
+
+
+def test_import_rejects_duplicate_identity_unless_forced(settings, media_server):
+    db = sqlite3.connect(settings.navidrome_db_path)
+    db.execute("CREATE TABLE media_file(title TEXT, artist TEXT, missing INTEGER DEFAULT 0)")
+    db.execute(
+        "INSERT INTO media_file(title, artist, missing) VALUES (?, ?, 0)",
+        ("花好月圆夜", "杨千嬅 & 任贤齐"),
+    )
+    db.commit()
+    db.close()
+
+    base_url, server = media_server
+    body = {
+        "url": f"{base_url}/audio.mp3",
+        "filename": "another-copy.mp3",
+        "song": {"title": "花好月圆夜(国)", "artist": "任贤齐 / 杨千嬅"},
+    }
+    with TestClient(create_app(settings)) as client:
+        rejected = client.post("/v1/nas/import", json=body, headers=_headers(settings))
+        forced = client.post(
+            "/v1/nas/import",
+            json={**body, "force": True},
+            headers=_headers(settings),
+        )
+
+    assert rejected.status_code == 409
+    assert forced.status_code == 200, forced.text
+    assert sum(path.startswith("/audio.mp3") for path in server.requests) == 1

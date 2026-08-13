@@ -36,7 +36,8 @@ The endpoint remains HTTP 200 for liveness; inspect the booleans before enabling
     "track": 1,
     "year": 2026,
     "source": "netease"
-  }
+  },
+  "force": false
 }
 ```
 
@@ -52,12 +53,17 @@ Success:
 }
 ```
 
-A repeated request for an existing regular file returns `message: "already imported"` without downloading again.
+The agent applies two duplicate rules while holding the import lock:
+
+- The same target filename is idempotent and returns `message: "already imported"`.
+- A different filename with the same normalized title/artist identity returns HTTP 409 and is not downloaded.
+- Set `force: true` only after explicit user confirmation to bypass the identity check.
 
 | Code | Meaning |
 |---|---|
 | 400 | Invalid URL, filename, extension, or path configuration |
 | 401 | Missing/invalid agent key |
+| 409 | Song identity already exists; retry with `force: true` only after confirmation |
 | 413 | Audio exceeds `MAX_DOWNLOAD_BYTES` |
 | 502 | Upstream status, redirect, or content failure |
 | 504 | Upstream timeout |
