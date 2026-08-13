@@ -8,13 +8,29 @@ import 'online_source_preferences.dart';
 
 const _searchPageSize = 30;
 
+enum SearchFailure { authentication, rateLimited, unavailable, unknown }
+
+SearchFailure classifySearchFailure(Object error) {
+  if (error is DioException) {
+    final status = error.response?.statusCode;
+    final data = error.response?.data;
+    final detail = data is Map ? data['detail']?.toString() ?? '' : '';
+    if (status == 401 || status == 403) return SearchFailure.authentication;
+    if (status == 429 || detail.contains('429')) {
+      return SearchFailure.rateLimited;
+    }
+    if (status != null && status >= 500) return SearchFailure.unavailable;
+  }
+  return SearchFailure.unknown;
+}
+
 class SearchState {
   final List<Song> songs;
   final bool searching;
   final bool loadingMore;
   final bool hasMore;
   final String? source;
-  final String? error;
+  final SearchFailure? error;
 
   const SearchState({
     this.songs = const [],
@@ -31,7 +47,7 @@ class SearchState {
     bool? loadingMore,
     bool? hasMore,
     String? source,
-    String? error,
+    SearchFailure? error,
     bool clearResult = false,
   }) {
     return SearchState(
@@ -124,7 +140,7 @@ class SearchNotifier extends Notifier<SearchState> {
       if (!cancelToken.isCancelled &&
           _cancelToken == cancelToken &&
           generation == _generation) {
-        state = SearchState(error: error.toString());
+        state = SearchState(error: classifySearchFailure(error));
       }
     }
   }
@@ -161,7 +177,10 @@ class SearchNotifier extends Notifier<SearchState> {
       );
     } catch (error) {
       if (generation != _generation || query != _query) return;
-      state = state.copyWith(loadingMore: false, error: error.toString());
+      state = state.copyWith(
+        loadingMore: false,
+        error: classifySearchFailure(error),
+      );
       rethrow;
     }
   }

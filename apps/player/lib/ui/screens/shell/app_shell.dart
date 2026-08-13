@@ -14,6 +14,27 @@ import 'package:navidrome_player/ui/widgets/update_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/request_generation.dart';
 
+class PlaybackSpaceActivator implements ShortcutActivator {
+  const PlaybackSpaceActivator();
+
+  static const _space = SingleActivator(LogicalKeyboardKey.space);
+
+  @override
+  Iterable<LogicalKeyboardKey> get triggers => _space.triggers;
+
+  @override
+  String debugDescribeKeys() => _space.debugDescribeKeys();
+
+  @override
+  bool accepts(KeyEvent event, HardwareKeyboard state) {
+    if (!_space.accepts(event, state)) return false;
+    final context = FocusManager.instance.primaryFocus?.context;
+    if (context == null) return true;
+    return context.widget is! EditableText &&
+        context.findAncestorWidgetOfExactType<EditableText>() == null;
+  }
+}
+
 /// 响应式外壳 — 移动端 BottomNavigationBar / 桌面端侧边栏
 class AppShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -358,16 +379,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _buildDesktopLayout() {
     return CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.space): () {
-          // 如果焦点在文本输入框中，不拦截空格键
-          final focus = FocusManager.instance.primaryFocus;
-          if (focus != null) {
-            final ctx = focus.context;
-            if (ctx != null &&
-                ctx.findAncestorWidgetOfExactType<EditableText>() != null) {
-              return;
-            }
-          }
+        const PlaybackSpaceActivator(): () {
           final ps = ref.read(audioPlayerServiceProvider);
           if (ps.currentSong != null) {
             ps.player.playing ? ps.pause() : ps.play();

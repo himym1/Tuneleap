@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import time
 from typing import Any
 
 import httpx
@@ -12,6 +14,9 @@ from app.core.sources import canonicalize_music_source
 
 SUPPORTED_SOURCES = frozenset({"netease", "tencent", "kugou"})
 _QQ_PAGE_SIZE_MAX = 50
+_REQUEST_INTERVAL_SECONDS = 0.35
+_RATE_LIMIT_RETRY_DELAYS = (0.75, 1.5)
+_MAX_RETRY_AFTER_SECONDS = 3.0
 
 
 def _netease_level(br: int) -> str:
@@ -91,11 +96,17 @@ class ChkszAdapter(MusicAdapter):
         api_key: str,
         *,
         timeout: float = 30.0,
+        request_interval: float = _REQUEST_INTERVAL_SECONDS,
+        retry_delays: tuple[float, ...] = _RATE_LIMIT_RETRY_DELAYS,
     ) -> None:
         self._client = client
         self._base = base_url.rstrip("/")
         self._api_key = api_key
         self._timeout = timeout
+        self._request_interval = max(request_interval, 0.0)
+        self._retry_delays = retry_delays
+        self._request_lock = asyncio.Lock()
+        self._last_request_started = 0.0
 
     def _resolve_source(self, source: str | None) -> str | None:
         resolved = canonicalize_music_source(source)
@@ -106,12 +117,41 @@ class ChkszAdapter(MusicAdapter):
     async def _get_json(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
         query = {key: value for key, value in params.items() if value is not None}
         query["apikey"] = self._api_key
-        response = await self._client.get(
-            f"{self._base}{path}",
-            params=query,
-            headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0"},
-            timeout=self._timeout,
-        )
+        async with self._request_lock:
+            for attempt in range(len(self._retry_delays) + 1):
+                elapsed = time.monotonic() - self._last_request_started
+                if elapsed < self._request_interval:
+                    await asyncio.sleep(self._request_interval - elapsed)
+                self._last_request_started = time.monotonic()
+                response = await self._client.get(
+                    f"{self._base}{path}",
+                    params=query,
+                    headers={
+                        "Accept": "application/json",
+                        "User-Agent": "Mozilla/5.0",
+                    },
+                    timeout=self._timeout,
+                )
+                if response.status_code != 429 or attempt >= len(
+                    self._retry_delays
+                ):
+                    break
+                retry_after = response.headers.get("Retry-After")
+                try:
+                    delay = float(retry_after) if retry_after is not None else None
+                except ValueError:
+                    delay = None
+                await asyncio.sleep(
+                    min(
+                        max(
+                            delay
+                            if delay is not None
+                            else self._retry_delays[attempt],
+                            0.0,
+                        ),
+                        _MAX_RETRY_AFTER_SECONDS,
+                    )
+                )
         if response.status_code >= 400:
             response.raise_for_status()
         try:

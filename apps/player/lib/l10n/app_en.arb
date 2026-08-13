@@ -273,6 +273,9 @@
       "error": { "type": "String" }
     }
   },
+  "searchRateLimited": "Too many searches. Please try again shortly.",
+  "searchServiceUnavailable": "This search service is temporarily unavailable.",
+  "searchFailedTryAgain": "Search failed. Please try again.",
     "searchResults": "Search Results",
     "searchLoadMore": "Load More",
     "searchLoadingMore": "Loading...",

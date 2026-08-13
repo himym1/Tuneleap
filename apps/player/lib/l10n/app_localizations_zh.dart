@@ -712,6 +712,15 @@ class SZh extends S {
   }
 
   @override
+  String get searchRateLimited => '搜索请求过于频繁，请稍后重试。';
+
+  @override
+  String get searchServiceUnavailable => '当前搜索服务暂不可用。';
+
+  @override
+  String get searchFailedTryAgain => '搜索失败，请重试。';
+
+  @override
   String get searchResults => '搜索结果';
 
   @override

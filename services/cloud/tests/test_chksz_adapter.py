@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import httpx
 import pytest
 
@@ -164,3 +165,59 @@ async def test_facade_skips_chksz_without_key():
         facade = MusicFacade(client, settings)
 
     assert [adapter.name for adapter in facade.adapters] == ["meting", "gdstudio"]
+
+@pytest.mark.asyncio
+async def test_chksz_serializes_concurrent_requests():
+    active = 0
+    max_active = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal active, max_active
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0.01)
+        active -= 1
+        return httpx.Response(200, json=_netease_search_payload())
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+            retry_delays=(),
+        )
+        await asyncio.gather(
+            adapter.search("one", source="netease", count=1, page=1),
+            adapter.search("two", source="netease", count=1, page=1),
+            adapter.search("three", source="netease", count=1, page=1),
+        )
+
+    assert max_active == 1
+
+
+@pytest.mark.asyncio
+async def test_chksz_retries_rate_limit_then_recovers():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return httpx.Response(429, headers={"Retry-After": "0"})
+        return httpx.Response(200, json=_netease_search_payload())
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+            retry_delays=(0,),
+        )
+        songs = await adapter.search("晴天", source="netease", count=1, page=1)
+
+    assert calls == 2
+    assert [song["title"] for song in songs] == ["晴天"]
