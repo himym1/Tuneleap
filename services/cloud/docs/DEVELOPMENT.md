@@ -55,18 +55,21 @@ SQLite is no longer opened by runtime code. Use `scripts/migrate_sqlite_to_postg
 ## Search semantics
 
 ```text
-adapters = [gdstudio, meting?]
-for each adapter (ordered) or race(N):
-  search(query)
-  first non-empty result wins
-all empty/fail → 502/504
+sources = [preferred source?, MUSIC_SEARCH_SOURCES...]
+for each source:
+  adapters = MUSIC_ADAPTER_ORDER filtered to configured bases
+  for each adapter (ordered) or race(N):
+    search(query, source)
+    first non-empty result wins
+all successful source/adapter attempts empty → 200 with []
+all source/adapter attempts fail → 502/504
 ```
 
-Do not merge NetEase + Kuwo + JOOX lists.
+The first page falls back across sources but still returns one upstream list; later pages stay pinned to the requested source (or the first configured source when omitted) so pagination never merges NetEase + Migu + JOOX results.
 
 ## Recommendation library blocking
 
-Set `NAS_AGENT_URL` and `NAS_AGENT_KEY`. Cloud calls `GET /v1/songs/library-identities` and blocks those weak identities. Cloud still never touches NAS paths or `navidrome.db`.
+Set `NAS_AGENT_URL` and `NAS_AGENT_KEY`. Cloud calls `GET /v1/songs/library-identities` and blocks those weak identities. Transport failures are retried once, then use a recent in-memory identity cache; without a cache, filtering is skipped so the recommendation API remains available. Cloud still never touches NAS paths or `navidrome.db`.
 
 ## Verification
 

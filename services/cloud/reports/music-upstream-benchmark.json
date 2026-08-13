@@ -1,0 +1,967 @@
+{
+  "generatedAtEpochMs": 1785484075006,
+  "environment": "dmit",
+  "endpoints": {
+    "gdstudio": "https://music-api.gdstudio.xyz/api.php",
+    "meting": "https://meting.mikus.ink/api"
+  },
+  "rounds": 2,
+  "queries": [
+    "周杰伦",
+    "Taylor Swift",
+    "晴天 周杰伦",
+    "Love Story Taylor Swift",
+    "海阔天空 Beyond",
+    "漠河舞厅 柳爽",
+    "陈奕迅",
+    "Adele Hello",
+    "Hotel California Eagles",
+    "pi-diagnostic-no-such-song-9f3c"
+  ],
+  "summary": {
+    "gdstudio": {
+      "attempts": 20,
+      "requestSuccessRate": 1.0,
+      "nonEmptyRate": 0.222,
+      "meanRelevantTop10Ratio": 0.222,
+      "latencyP50Ms": 303.9,
+      "latencyP95Ms": 846.4,
+      "noResultEmptyRate": 0.5
+    },
+    "meting": {
+      "attempts": 20,
+      "requestSuccessRate": 1.0,
+      "nonEmptyRate": 1.0,
+      "meanRelevantTop10Ratio": 0.989,
+      "latencyP50Ms": 859.3,
+      "latencyP95Ms": 1531.6,
+      "noResultEmptyRate": 0.0
+    }
+  },
+  "attempts": [
+    {
+      "provider": "gdstudio",
+      "round": 1,
+      "category": "artist-zh",
+      "query": "周杰伦",
+      "ok": true,
+      "latencyMs": 846.4,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "5257138",
+          "title": "屋顶",
+          "artist": "周杰伦 / 温岚 / 吴宗宪"
+        },
+        {
+          "id": "509781655",
+          "title": "想你就写信 (Live)",
+          "artist": "周杰伦 / 李硕 / 张鑫"
+        },
+        {
+          "id": "210049",
+          "title": "布拉格广场",
+          "artist": "蔡依林 / 周杰伦"
+        }
+      ]
+    },
+    {
+      "provider": "meting",
+      "round": 1,
+      "category": "artist-zh",
+      "query": "周杰伦",
+      "ok": true,
+      "latencyMs": 1683.5,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "509781655",
+          "title": "想你就写信 (Live)",
+          "artist": "周杰伦 / 李硕 / 张鑫"
+        },
+        {
+          "id": "5257138",
+          "title": "屋顶",
+          "artist": "周杰伦 / 温岚 / 吴宗宪"
+        },
+        {
+          "id": "210049",
+          "title": "布拉格广场",
+          "artist": "蔡依林 / 周杰伦"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 1,
+      "category": "artist-en",
+      "query": "Taylor Swift",
+      "ok": true,
+      "latencyMs": 753.7,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "1382576173",
+          "title": "Cruel Summer",
+          "artist": "Taylor Swift"
+        },
+        {
+          "id": "19292984",
+          "title": "Love Story",
+          "artist": "Taylor Swift"
+        },
+        {
+          "id": "2744403174",
+          "title": "The Fate of Ophelia",
+          "artist": "Taylor Swift"
+        }
+      ]
+    },
+    {
+      "provider": "meting",
+      "round": 1,
+      "category": "artist-en",
+      "query": "Taylor Swift",
+      "ok": true,
+      "latencyMs": 1238.3,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "1382576173",
+          "title": "Cruel Summer",
+          "artist": "Taylor Swift"
+        },
+        {
+          "id": "19292984",
+          "title": "Love Story",
+          "artist": "Taylor Swift"
+        },
+        {
+          "id": "1465114465",
+          "title": "exile",
+          "artist": "Taylor Swift / Bon Iver"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 1,
+      "category": "song-zh",
+      "query": "晴天 周杰伦",
+      "ok": true,
+      "latencyMs": 781.0,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "3339230677",
+          "title": "晴天",
+          "artist": "周杰伦- / A-LNK"
+        },
+        {
+          "id": "3334653818",
+          "title": "晴天",
+          "artist": "周杰伦. / Asasblue"
+        },
+        {
+          "id": "3344811140",
+          "title": "晴天(正式版)",
+          "artist": "周杰伦. / 阿图表妹"
+        }
+      ]
+    },
+    {
+      "provider": "meting",
+      "round": 1,
+      "category": "song-zh",
+      "query": "晴天 周杰伦",
+      "ok": true,
+      "latencyMs": 570.0,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "3339230677",
+          "title": "晴天",
+          "artist": "周杰伦- / A-LNK"
+        },
+        {
+          "id": "3334653818",
+          "title": "晴天",
+          "artist": "周杰伦. / Asasblue"
+        },
+        {
+          "id": "3344811140",
+          "title": "晴天(正式版)",
+          "artist": "周杰伦. / 阿图表妹"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 1,
+      "category": "song-en",
+      "query": "Love Story Taylor Swift",
+      "ok": true,
+      "latencyMs": 303.9,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 1,
+      "category": "song-en",
+      "query": "Love Story Taylor Swift",
+      "ok": true,
+      "latencyMs": 612.7,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "19292984",
+          "title": "Love Story",
+          "artist": "Taylor Swift"
+        },
+        {
+          "id": "1819857342",
+          "title": "Love Story (Taylor’s Version)",
+          "artist": "Taylor Swift"
+        },
+        {
+          "id": "26896129",
+          "title": "Love Story",
+          "artist": "Taylor Swift"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 1,
+      "category": "band-zh",
+      "query": "海阔天空 Beyond",
+      "ok": true,
+      "latencyMs": 269.2,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 1,
+      "category": "band-zh",
+      "query": "海阔天空 Beyond",
+      "ok": true,
+      "latencyMs": 688.2,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "1357375695",
+          "title": "海阔天空",
+          "artist": "Beyond"
+        },
+        {
+          "id": "347230",
+          "title": "海阔天空",
+          "artist": "Beyond"
+        },
+        {
+          "id": "22831981",
+          "title": "海阔天空",
+          "artist": "Beyond"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 1,
+      "category": "cold-zh",
+      "query": "漠河舞厅 柳爽",
+      "ok": true,
+      "latencyMs": 299.7,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 1,
+      "category": "cold-zh",
+      "query": "漠河舞厅 柳爽",
+      "ok": true,
+      "latencyMs": 1100.6,
+      "count": 30,
+      "relevantTop10Ratio": 0.9,
+      "top3": [
+        {
+          "id": "1430319727",
+          "title": "漠河舞厅",
+          "artist": "柳爽"
+        },
+        {
+          "id": "1897004864",
+          "title": "漠河舞厅 柳爽",
+          "artist": "7u"
+        },
+        {
+          "id": "1894094482",
+          "title": "漠河舞厅·2022",
+          "artist": "柳爽"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 1,
+      "category": "artist-cantonese",
+      "query": "陈奕迅",
+      "ok": true,
+      "latencyMs": 393.7,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 1,
+      "category": "artist-cantonese",
+      "query": "陈奕迅",
+      "ok": true,
+      "latencyMs": 563.1,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "65800",
+          "title": "最佳损友",
+          "artist": "陈奕迅"
+        },
+        {
+          "id": "65766",
+          "title": "富士山下",
+          "artist": "陈奕迅"
+        },
+        {
+          "id": "64093",
+          "title": "孤独患者",
+          "artist": "陈奕迅"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 1,
+      "category": "song-en-2",
+      "query": "Adele Hello",
+      "ok": true,
+      "latencyMs": 322.5,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 1,
+      "category": "song-en-2",
+      "query": "Adele Hello",
+      "ok": true,
+      "latencyMs": 859.3,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "35847388",
+          "title": "Hello",
+          "artist": "Adele"
+        },
+        {
+          "id": "36841430",
+          "title": "Hello",
+          "artist": "Adele"
+        },
+        {
+          "id": "37720973",
+          "title": "Hello (Slander Remix)",
+          "artist": "SLANDER / Adele"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 1,
+      "category": "classic-en",
+      "query": "Hotel California Eagles",
+      "ok": true,
+      "latencyMs": 302.4,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 1,
+      "category": "classic-en",
+      "query": "Hotel California Eagles",
+      "ok": true,
+      "latencyMs": 1531.6,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "26289183",
+          "title": "Hotel California (2013 Remaster)",
+          "artist": "Eagles"
+        },
+        {
+          "id": "4049399",
+          "title": "Hotel California (Live on MTV, 1994)",
+          "artist": "Eagles"
+        },
+        {
+          "id": "1302701468",
+          "title": "Hotel California",
+          "artist": "Eagles"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 1,
+      "category": "no-result",
+      "query": "pi-diagnostic-no-such-song-9f3c",
+      "ok": true,
+      "latencyMs": 944.0,
+      "count": 30,
+      "relevantTop10Ratio": 0.0,
+      "top3": [
+        {
+          "id": "4450764",
+          "title": "Nocturne No. 3 in B Major, Op. 9, No. 3",
+          "artist": "邓泰山"
+        },
+        {
+          "id": "1409790757",
+          "title": "Preludes: Op. 11: No. 1 In C Major / No. 10 In C Sharp Minor / No. 9 In E Major / No.3 In G Major / No. 16 In B Flat Major / No. 13 In G Flat Major / No. 14 In E Flat Minor / Op. 15: No. 2 In F Sharp Minor",
+          "artist": "Vladimir Horowitz"
+        },
+        {
+          "id": "1889708356",
+          "title": "3 Nocturnes, Op. 9:No. 2 in E-Flat Major. Andante",
+          "artist": "傅聪"
+        }
+      ]
+    },
+    {
+      "provider": "meting",
+      "round": 1,
+      "category": "no-result",
+      "query": "pi-diagnostic-no-such-song-9f3c",
+      "ok": true,
+      "latencyMs": 867.2,
+      "count": 30,
+      "relevantTop10Ratio": 0.0,
+      "top3": [
+        {
+          "id": "4450764",
+          "title": "Nocturne No. 3 in B Major, Op. 9, No. 3",
+          "artist": "邓泰山"
+        },
+        {
+          "id": "1409790757",
+          "title": "Preludes: Op. 11: No. 1 In C Major / No. 10 In C Sharp Minor / No. 9 In E Major / No.3 In G Major / No. 16 In B Flat Major / No. 13 In G Flat Major / No. 14 In E Flat Minor / Op. 15: No. 2 In F Sharp Minor",
+          "artist": "Vladimir Horowitz"
+        },
+        {
+          "id": "1889708356",
+          "title": "3 Nocturnes, Op. 9:No. 2 in E-Flat Major. Andante",
+          "artist": "傅聪"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 2,
+      "category": "artist-zh",
+      "query": "周杰伦",
+      "ok": true,
+      "latencyMs": 304.2,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 2,
+      "category": "artist-zh",
+      "query": "周杰伦",
+      "ok": true,
+      "latencyMs": 602.0,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "509781655",
+          "title": "想你就写信 (Live)",
+          "artist": "周杰伦 / 李硕 / 张鑫"
+        },
+        {
+          "id": "5257138",
+          "title": "屋顶",
+          "artist": "周杰伦 / 温岚 / 吴宗宪"
+        },
+        {
+          "id": "210049",
+          "title": "布拉格广场",
+          "artist": "蔡依林 / 周杰伦"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 2,
+      "category": "artist-en",
+      "query": "Taylor Swift",
+      "ok": true,
+      "latencyMs": 287.7,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 2,
+      "category": "artist-en",
+      "query": "Taylor Swift",
+      "ok": true,
+      "latencyMs": 1104.1,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "1382576173",
+          "title": "Cruel Summer",
+          "artist": "Taylor Swift"
+        },
+        {
+          "id": "19292984",
+          "title": "Love Story",
+          "artist": "Taylor Swift"
+        },
+        {
+          "id": "1465114465",
+          "title": "exile",
+          "artist": "Taylor Swift / Bon Iver"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 2,
+      "category": "song-zh",
+      "query": "晴天 周杰伦",
+      "ok": true,
+      "latencyMs": 273.7,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 2,
+      "category": "song-zh",
+      "query": "晴天 周杰伦",
+      "ok": true,
+      "latencyMs": 601.4,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "3339230677",
+          "title": "晴天",
+          "artist": "周杰伦- / A-LNK"
+        },
+        {
+          "id": "3334653818",
+          "title": "晴天",
+          "artist": "周杰伦. / Asasblue"
+        },
+        {
+          "id": "3344811140",
+          "title": "晴天(正式版)",
+          "artist": "周杰伦. / 阿图表妹"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 2,
+      "category": "song-en",
+      "query": "Love Story Taylor Swift",
+      "ok": true,
+      "latencyMs": 297.5,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 2,
+      "category": "song-en",
+      "query": "Love Story Taylor Swift",
+      "ok": true,
+      "latencyMs": 629.7,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "19292984",
+          "title": "Love Story",
+          "artist": "Taylor Swift"
+        },
+        {
+          "id": "1819857342",
+          "title": "Love Story (Taylor’s Version)",
+          "artist": "Taylor Swift"
+        },
+        {
+          "id": "26896129",
+          "title": "Love Story",
+          "artist": "Taylor Swift"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 2,
+      "category": "band-zh",
+      "query": "海阔天空 Beyond",
+      "ok": true,
+      "latencyMs": 586.2,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "1357375695",
+          "title": "海阔天空",
+          "artist": "Beyond"
+        },
+        {
+          "id": "347230",
+          "title": "海阔天空",
+          "artist": "Beyond"
+        },
+        {
+          "id": "22831981",
+          "title": "海阔天空",
+          "artist": "Beyond"
+        }
+      ]
+    },
+    {
+      "provider": "meting",
+      "round": 2,
+      "category": "band-zh",
+      "query": "海阔天空 Beyond",
+      "ok": true,
+      "latencyMs": 646.7,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "1357375695",
+          "title": "海阔天空",
+          "artist": "Beyond"
+        },
+        {
+          "id": "347230",
+          "title": "海阔天空",
+          "artist": "Beyond"
+        },
+        {
+          "id": "22831981",
+          "title": "海阔天空",
+          "artist": "Beyond"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 2,
+      "category": "cold-zh",
+      "query": "漠河舞厅 柳爽",
+      "ok": true,
+      "latencyMs": 300.8,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 2,
+      "category": "cold-zh",
+      "query": "漠河舞厅 柳爽",
+      "ok": true,
+      "latencyMs": 1023.5,
+      "count": 30,
+      "relevantTop10Ratio": 0.9,
+      "top3": [
+        {
+          "id": "1430319727",
+          "title": "漠河舞厅",
+          "artist": "柳爽"
+        },
+        {
+          "id": "1897004864",
+          "title": "漠河舞厅 柳爽",
+          "artist": "7u"
+        },
+        {
+          "id": "1894094482",
+          "title": "漠河舞厅·2022",
+          "artist": "柳爽"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 2,
+      "category": "artist-cantonese",
+      "query": "陈奕迅",
+      "ok": true,
+      "latencyMs": 234.8,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 2,
+      "category": "artist-cantonese",
+      "query": "陈奕迅",
+      "ok": true,
+      "latencyMs": 558.5,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "65800",
+          "title": "最佳损友",
+          "artist": "陈奕迅"
+        },
+        {
+          "id": "65766",
+          "title": "富士山下",
+          "artist": "陈奕迅"
+        },
+        {
+          "id": "64093",
+          "title": "孤独患者",
+          "artist": "陈奕迅"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 2,
+      "category": "song-en-2",
+      "query": "Adele Hello",
+      "ok": true,
+      "latencyMs": 282.3,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 2,
+      "category": "song-en-2",
+      "query": "Adele Hello",
+      "ok": true,
+      "latencyMs": 1113.4,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "35847388",
+          "title": "Hello",
+          "artist": "Adele"
+        },
+        {
+          "id": "36841430",
+          "title": "Hello",
+          "artist": "Adele"
+        },
+        {
+          "id": "37720973",
+          "title": "Hello (Slander Remix)",
+          "artist": "SLANDER / Adele"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 2,
+      "category": "classic-en",
+      "query": "Hotel California Eagles",
+      "ok": true,
+      "latencyMs": 303.7,
+      "count": 0,
+      "relevantTop10Ratio": 0.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 2,
+      "category": "classic-en",
+      "query": "Hotel California Eagles",
+      "ok": true,
+      "latencyMs": 643.7,
+      "count": 30,
+      "relevantTop10Ratio": 1.0,
+      "top3": [
+        {
+          "id": "26289183",
+          "title": "Hotel California (2013 Remaster)",
+          "artist": "Eagles"
+        },
+        {
+          "id": "4049399",
+          "title": "Hotel California (Live on MTV, 1994)",
+          "artist": "Eagles"
+        },
+        {
+          "id": "1302701468",
+          "title": "Hotel California",
+          "artist": "Eagles"
+        }
+      ]
+    },
+    {
+      "provider": "gdstudio",
+      "round": 2,
+      "category": "no-result",
+      "query": "pi-diagnostic-no-such-song-9f3c",
+      "ok": true,
+      "latencyMs": 317.6,
+      "count": 0,
+      "relevantTop10Ratio": 1.0,
+      "top3": []
+    },
+    {
+      "provider": "meting",
+      "round": 2,
+      "category": "no-result",
+      "query": "pi-diagnostic-no-such-song-9f3c",
+      "ok": true,
+      "latencyMs": 1139.2,
+      "count": 30,
+      "relevantTop10Ratio": 0.0,
+      "top3": [
+        {
+          "id": "4450764",
+          "title": "Nocturne No. 3 in B Major, Op. 9, No. 3",
+          "artist": "邓泰山"
+        },
+        {
+          "id": "1409790757",
+          "title": "Preludes: Op. 11: No. 1 In C Major / No. 10 In C Sharp Minor / No. 9 In E Major / No.3 In G Major / No. 16 In B Flat Major / No. 13 In G Flat Major / No. 14 In E Flat Minor / Op. 15: No. 2 In F Sharp Minor",
+          "artist": "Vladimir Horowitz"
+        },
+        {
+          "id": "1889708356",
+          "title": "3 Nocturnes, Op. 9:No. 2 in E-Flat Major. Andante",
+          "artist": "傅聪"
+        }
+      ]
+    }
+  ],
+  "pagination": [
+    {
+      "provider": "gdstudio",
+      "page": 1,
+      "ok": true,
+      "latencyMs": 249.3,
+      "count": 0,
+      "overlapPrevious": 0
+    },
+    {
+      "provider": "gdstudio",
+      "page": 2,
+      "ok": true,
+      "latencyMs": 237.2,
+      "count": 0,
+      "overlapPrevious": 0
+    },
+    {
+      "provider": "gdstudio",
+      "page": 3,
+      "ok": true,
+      "latencyMs": 741.4,
+      "count": 30,
+      "overlapPrevious": 0
+    },
+    {
+      "provider": "meting",
+      "page": 1,
+      "ok": true,
+      "latencyMs": 531.6,
+      "count": 30,
+      "overlapPrevious": 0
+    },
+    {
+      "provider": "meting",
+      "page": 2,
+      "ok": true,
+      "latencyMs": 0.0,
+      "count": 0,
+      "overlapPrevious": 0
+    },
+    {
+      "provider": "meting",
+      "page": 3,
+      "ok": true,
+      "latencyMs": 0.0,
+      "count": 0,
+      "overlapPrevious": 0
+    }
+  ],
+  "resources": [
+    {
+      "provider": "gdstudio",
+      "tested": true,
+      "url": {
+        "ok": true,
+        "latencyMs": 330.7
+      },
+      "cover": {
+        "ok": true,
+        "latencyMs": 163.2
+      },
+      "lyric": {
+        "ok": true,
+        "latencyMs": 244.9
+      }
+    },
+    {
+      "provider": "meting",
+      "tested": true,
+      "url": {
+        "ok": true,
+        "latencyMs": 355.1
+      },
+      "cover": {
+        "ok": true,
+        "latencyMs": 525.1
+      },
+      "lyric": {
+        "ok": true,
+        "latencyMs": 422.6
+      }
+    }
+  ]
+}

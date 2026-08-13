@@ -11,34 +11,43 @@ from app.adapters.base import MusicAdapter
 from app.adapters.gdstudio import GdstudioAdapter
 from app.adapters.meting import MetingAdapter
 from app.core.config import Settings
-from app.models.schemas import CoverResponse, LyricResponse, SearchResponse, SongDTO, UrlResponse
+from app.models.schemas import (
+    CoverResponse,
+    LyricResponse,
+    SearchResponse,
+    SongDTO,
+    UrlResponse,
+)
 
 
 class MusicFacade:
     def __init__(self, client: httpx.AsyncClient, settings: Settings):
         self._client = client
         self._settings = settings
-        self._adapters: list[MusicAdapter] = []
+        available: dict[str, MusicAdapter] = {}
         timeout = settings.http_timeout_seconds
         cooldown = settings.upstream_cooldown_seconds
         if settings.gdstudio_bases:
-            self._adapters.append(
-                GdstudioAdapter(
-                    client,
-                    settings.gdstudio_bases,
-                    cooldown_seconds=cooldown,
-                    timeout=timeout,
-                )
+            available["gdstudio"] = GdstudioAdapter(
+                client,
+                settings.gdstudio_bases,
+                cooldown_seconds=cooldown,
+                timeout=timeout,
             )
         if settings.meting_bases:
-            self._adapters.append(
-                MetingAdapter(
-                    client,
-                    settings.meting_bases,
-                    cooldown_seconds=cooldown,
-                    timeout=timeout,
-                )
+            available["meting"] = MetingAdapter(
+                client,
+                settings.meting_bases,
+                token=settings.meting_api_token,
+                cooldown_seconds=cooldown,
+                timeout=timeout,
             )
+        self._adapters = [
+            available.pop(name)
+            for name in settings.music_adapter_order_list
+            if name in available
+        ]
+        self._adapters.extend(available.values())
 
     @property
     def adapters(self) -> list[MusicAdapter]:
@@ -52,6 +61,11 @@ class MusicFacade:
                 return adapter
         return None
 
+    def _search_sources(self, preferred: str | None) -> tuple[str | None, ...]:
+        sources = [preferred.strip().lower()] if preferred and preferred.strip() else []
+        sources.extend(self._settings.music_search_source_list)
+        return tuple(dict.fromkeys(sources)) or (None,)
+
     async def search_first_success(
         self, query: str, *, source: str | None, count: int, page: int
     ) -> SearchResponse:
@@ -59,14 +73,37 @@ class MusicFacade:
             raise httpx.HTTPError("no music adapters configured")
 
         strategy = (self._settings.upstream_strategy or "ordered").lower()
-        if strategy == "race" and len(self._adapters) > 1:
-            return await self._search_race(query, source=source, count=count, page=page)
-        return await self._search_ordered(query, source=source, count=count, page=page)
+        search = (
+            self._search_race
+            if strategy == "race" and len(self._adapters) > 1
+            else self._search_ordered
+        )
+        last_error: Exception | None = None
+        empty_response: SearchResponse | None = None
+        candidates = self._search_sources(source)
+        if page > 1:
+            candidates = candidates[:1]
+        for candidate in candidates:
+            try:
+                response = await search(query, source=candidate, count=count, page=page)
+            except Exception as exc:  # noqa: BLE001 - fail over across sources
+                last_error = exc
+                continue
+            if response.items:
+                return response
+            empty_response = response
+
+        if empty_response is not None:
+            return empty_response
+        if last_error is not None:
+            raise last_error
+        raise httpx.HTTPError("all music sources failed")
 
     async def _search_ordered(
         self, query: str, *, source: str | None, count: int, page: int
     ) -> SearchResponse:
         last_error: Exception | None = None
+        empty_adapter: MusicAdapter | None = None
         for adapter in self._adapters:
             try:
                 items = await adapter.search(
@@ -84,27 +121,40 @@ class MusicFacade:
                     items=songs,
                     strategy="first-success",
                 )
+            empty_adapter = adapter
+        if empty_adapter is not None:
+            return SearchResponse(
+                query=query,
+                provider=empty_adapter.name,
+                source=source,
+                items=[],
+                strategy="first-success-empty",
+            )
         if last_error is not None:
             raise last_error
-        raise httpx.HTTPError("all music adapters returned empty results")
+        raise httpx.HTTPError("all music adapters failed")
 
     async def _search_race(
         self, query: str, *, source: str | None, count: int, page: int
     ) -> SearchResponse:
-        async def run(adapter: MusicAdapter) -> tuple[MusicAdapter, list[dict[str, Any]]]:
+        async def run(
+            adapter: MusicAdapter,
+        ) -> tuple[MusicAdapter, list[dict[str, Any]]]:
             items = await adapter.search(query, source=source, count=count, page=page)
-            if not items:
-                raise httpx.HTTPError(f"{adapter.name} returned empty")
             return adapter, items
 
         tasks = [asyncio.create_task(run(adapter)) for adapter in self._adapters]
         last_error: Exception | None = None
+        empty_adapter: MusicAdapter | None = None
         try:
             for finished in asyncio.as_completed(tasks):
                 try:
                     adapter, items = await finished
                 except Exception as exc:  # noqa: BLE001
                     last_error = exc
+                    continue
+                if not items:
+                    empty_adapter = adapter
                     continue
                 for task in tasks:
                     if not task.done():
@@ -125,9 +175,17 @@ class MusicFacade:
                     task.cancel()
             if tasks:
                 await asyncio.gather(*tasks, return_exceptions=True)
+        if empty_adapter is not None:
+            return SearchResponse(
+                query=query,
+                provider=empty_adapter.name,
+                source=source,
+                items=[],
+                strategy="first-success-race-empty",
+            )
         if last_error is not None:
             raise last_error
-        raise httpx.HTTPError("all music adapters returned empty results")
+        raise httpx.HTTPError("all music adapters failed")
 
     async def get_url(
         self, id: str, *, source: str, br: int, provider: str | None = None
@@ -196,17 +254,34 @@ class MusicFacade:
             raise last_error
         return []
 
-    async def is_playable(self, id: str, source: str, br: int = 999) -> bool:
+    async def is_playable(
+        self,
+        id: str,
+        source: str,
+        br: int = 999,
+        provider: str | None = None,
+    ) -> bool:
+        preferred = self._adapter_by_name(provider)
+        order = [preferred] if preferred is not None else []
+        order.extend(adapter for adapter in self._adapters if adapter is not preferred)
         last_error: Exception | None = None
-        for adapter in self._adapters:
+        saw_result = False
+        for adapter in order:
             probe = getattr(adapter, "is_playable", None)
             if probe is None:
                 continue
             try:
-                return bool(await probe(id, source=source, br=br))
+                playable = bool(await probe(id, source=source, br=br))
             except Exception as exc:  # noqa: BLE001
                 last_error = exc
                 continue
+            saw_result = True
+            if playable:
+                return True
+            if adapter is preferred:
+                return False
+        if saw_result:
+            return False
         if last_error is not None:
             raise last_error
         return False

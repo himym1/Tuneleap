@@ -4,9 +4,7 @@ from typing import Self
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_SUPPORTED_RECOMMENDATION_SOURCES = frozenset(
-    {"netease", "migu", "joox", "kuwo", "kugou"}
-)
+_SUPPORTED_MUSIC_SOURCES = frozenset({"netease", "migu", "joox", "kuwo", "kugou"})
 
 
 def _split_csv(value: str, *, lowercase: bool = False) -> tuple[str, ...]:
@@ -26,9 +24,12 @@ class Settings(BaseSettings):
     api_key: str = "change-me-cloud"
     gdstudio_api_base_urls: str = "https://music-api.gdstudio.xyz/api.php"
     meting_api_base_urls: str = ""
+    meting_api_token: str = ""
     http_timeout_seconds: float = 30.0
     upstream_cooldown_seconds: int = 60
     upstream_strategy: str = "ordered"  # ordered | race
+    music_adapter_order: str = "meting,gdstudio"
+    music_search_sources: str = "netease,migu,joox"
     release_dir: str = "./releases"
 
     # Optional NAS agent for recommendation library blocking (no local navidrome.db mount)
@@ -48,8 +49,8 @@ class Settings(BaseSettings):
 
     # Auth / JWT
     jwt_secret: str = "change-me-jwt-secret"
-    jwt_access_ttl_minutes: int = 60
-    jwt_refresh_ttl_days: int = 30
+    jwt_access_ttl_minutes: int = 1440
+    jwt_refresh_ttl_days: int = 90
 
     # Legacy SQLite sources used only by scripts/migrate_sqlite_to_postgres.py.
     auth_db_path: str = "./data/auth.db"
@@ -69,16 +70,14 @@ class Settings(BaseSettings):
     rate_limit_music: str = "60/minute"
     rate_limit_auth: str = "20/minute"
 
-    @field_validator("recommendation_sources")
+    @field_validator("music_search_sources", "recommendation_sources")
     @classmethod
-    def _require_supported_recommendation_source(cls, value: str) -> str:
+    def _require_supported_music_source(cls, value: str) -> str:
         if not any(
-            source in _SUPPORTED_RECOMMENDATION_SOURCES
+            source in _SUPPORTED_MUSIC_SOURCES
             for source in _split_csv(value, lowercase=True)
         ):
-            raise ValueError(
-                "recommendation_sources must contain at least one supported source"
-            )
+            raise ValueError("must contain at least one supported music source")
         return value
 
     @field_validator(
@@ -110,11 +109,28 @@ class Settings(BaseSettings):
         return _split_csv(self.meting_api_base_urls)
 
     @property
+    def music_adapter_order_list(self) -> tuple[str, ...]:
+        names = tuple(
+            name
+            for name in _split_csv(self.music_adapter_order, lowercase=True)
+            if name in {"gdstudio", "meting"}
+        )
+        return names or ("meting", "gdstudio")
+
+    @property
+    def music_search_source_list(self) -> tuple[str, ...]:
+        return tuple(
+            source
+            for source in _split_csv(self.music_search_sources, lowercase=True)
+            if source in _SUPPORTED_MUSIC_SOURCES
+        )
+
+    @property
     def recommendation_source_list(self) -> tuple[str, ...]:
         return tuple(
             source
             for source in _split_csv(self.recommendation_sources, lowercase=True)
-            if source in _SUPPORTED_RECOMMENDATION_SOURCES
+            if source in _SUPPORTED_MUSIC_SOURCES
         )
 
     @property
