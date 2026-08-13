@@ -2,7 +2,7 @@
 
 Implemented local import/delete agent. Keep this service small and limited to the accepted ADR boundary.
 
-Authority: `navidrome_player/docs/adr/0004-cloud-control-plane-and-nas-agent.md`.
+Authority: [`apps/player/docs/adr/0004-cloud-control-plane-and-nas-agent.md`](../../../apps/player/docs/adr/0004-cloud-control-plane-and-nas-agent.md).
 
 ## Scope
 

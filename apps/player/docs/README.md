@@ -1,6 +1,6 @@
-# Navidrome Player 文档中心
+# 播放器文档
 
-这里维护当前产品、架构、开发和发布文档。已完成任务的临时计划、证据草稿和旧 `navidrome-backend` 操作手册不再保留在主文档树中。
+产品级架构在仓库根目录 [docs/](../../../docs/README.md)。这里是 Flutter 客户端的开发、发布和 PRD。已完成任务的临时计划和旧 `navidrome-backend` 操作手册不再保留。
 
 ## 首选入口
 

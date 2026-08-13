@@ -1,0 +1,59 @@
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea/
+*.iml
+.vscode/
+.history
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Flutter / Dart
+**/doc/api/
+**/.dart_tool/
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+apps/player/build/
+apps/player/dist/
+apps/player/coverage/
+**/.flutter-plugins
+
+# Xcode / CocoaPods (generated)
+**/Pods/
+**/.last_build_id
+*.xcuserstate
+
+# Android local
+local.properties
+android/app/debug
+android/app/profile
+android/app/release
+
+# Service runtime data
+services/cloud/releases/*
+!services/cloud/releases/.gitkeep
+services/cloud/data/
+services/nas-agent/data/*
+!services/nas-agent/data/.gitkeep
+
+# Tooling scratch
+.worktrees/
+.workflow/
+.ccw/
+.pi/
+.ace-tool/

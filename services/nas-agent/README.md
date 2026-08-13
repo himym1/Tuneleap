@@ -1,6 +1,8 @@
-# navidrome-nas-agent
+# NAS agent
 
-Local **NAS agent** for [navidrome_player](../navidrome_player). It imports online audio onto the music volume, writes tags/cover/lyrics, deletes tracks from disk plus `navidrome.db`, and can trigger a Navidrome scan.
+Local **NAS agent** for [音跃 player](../../apps/player). It imports online audio onto the music volume, writes tags/cover/lyrics, deletes tracks from disk plus `navidrome.db`, and can trigger a Navidrome scan.
+
+Source path in this repo: `services/nas-agent`. Production directory is still `nas-host:/path/to/nas-agent`.
 
 ## Implemented MVP
 
@@ -20,14 +22,14 @@ Local **NAS agent** for [navidrome_player](../navidrome_player). It imports onli
 | Delete files + Navidrome DB rows | App register/login |
 | Optional Navidrome scan trigger | Private update CDN / `version.json` API |
 
-Sibling service: [`navidrome-cloud`](../navidrome-cloud) owns search/auth/updates.
+Sibling service: [`cloud`](../cloud) owns search/auth/updates.
 
-Player ADR: `../navidrome_player/docs/adr/0004-cloud-control-plane-and-nas-agent.md`
+Runtime split: [ADR-0004](../../apps/player/docs/adr/0004-cloud-control-plane-and-nas-agent.md). Product repo: [ADR-0005](../../docs/adr/0005-product-monorepo.md).
 
 ## Quick start
 
 ```bash
-cd navidrome-nas-agent
+cd services/nas-agent
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
@@ -65,8 +67,7 @@ Send `X-API-Key: <NAS_AGENT_KEY>`. The key must contain at least 32 non-space ch
 - [docs/SECURITY.md](docs/SECURITY.md)
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
-## Related projects
+## Related trees
 
-- App: `../navidrome_player`
-- Cloud: `../navidrome-cloud`
-- Legacy migration reference: `../navidrome-backend`
+- App: [`../../apps/player`](../../apps/player)
+- Cloud: [`../cloud`](../cloud)
