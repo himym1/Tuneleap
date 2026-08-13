@@ -144,27 +144,7 @@ class SettingsScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
 
                   _SectionLabel(S.of(context).settingsOnlineSources),
-                  _SettingsCard(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                        child: Text(
-                          S.of(context).settingsOnlineSourcesHint,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ),
-                      for (final source in kOnlineCatalogSources) ...[
-                        if (source != kOnlineCatalogSources.first)
-                          const Divider(height: 1, indent: 54),
-                        _OnlineSourceToggle(source: source),
-                      ],
-                    ],
-                  ),
+                  _OnlineSearchSettingsCard(),
 
                   const SizedBox(height: 24),
 
@@ -376,10 +356,110 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+class _OnlineSearchSettingsCard extends ConsumerWidget {
+  const _OnlineSearchSettingsCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final capabilities = ref.watch(musicCapabilitiesProvider);
+    final selected = ref.watch(effectiveOnlineSearchAdapterProvider);
+    final supported = ref.watch(supportedOnlineSourcesProvider);
+    final adapters = capabilities.value?.adapters ?? const [];
+    final selectedAvailable = adapters.any((adapter) => adapter.id == selected);
+
+    return _SettingsCard(
+      children: [
+        ListTile(
+          leading: Icon(
+            Icons.hub_outlined,
+            size: 22,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          title: Text(
+            S.of(context).settingsOnlineAdapter,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          trailing: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 150),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String?>(
+                value: selected,
+                isExpanded: true,
+                items: [
+                  DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text(
+                      onlineAdapterLabel(context, null),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (selected != null && !selectedAvailable)
+                    DropdownMenuItem<String?>(
+                      value: selected,
+                      child: Text(
+                        onlineAdapterLabel(context, selected),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  for (final adapter in adapters)
+                    DropdownMenuItem<String?>(
+                      value: adapter.id,
+                      child: Text(
+                        onlineAdapterLabel(context, adapter.id),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: capabilities.isLoading
+                    ? null
+                    : (provider) async {
+                        await ref
+                            .read(onlineSearchAdapterProvider.notifier)
+                            .setProvider(provider);
+                        final nextCapabilities = ref
+                            .read(musicCapabilitiesProvider)
+                            .value;
+                        final nextSupported = catalogSourcesSupportedBy(
+                          nextCapabilities,
+                          provider,
+                        );
+                        await ref
+                            .read(onlineSourcePreferencesProvider.notifier)
+                            .ensureAny(nextSupported);
+                      },
+              ),
+            ),
+          ),
+        ),
+        const Divider(height: 1, indent: 54),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Text(
+            capabilities.hasError
+                ? S.of(context).settingsOnlineAdapterUnavailable
+                : S.of(context).settingsOnlineSourcesHint,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        for (final source in supported) ...[
+          if (source != supported.first) const Divider(height: 1, indent: 54),
+          _OnlineSourceToggle(source: source, requiredSources: supported),
+        ],
+      ],
+    );
+  }
+}
+
 class _OnlineSourceToggle extends ConsumerWidget {
-  const _OnlineSourceToggle({required this.source});
+  const _OnlineSourceToggle({
+    required this.source,
+    required this.requiredSources,
+  });
 
   final String source;
+  final List<String> requiredSources;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -398,7 +478,11 @@ class _OnlineSourceToggle extends ConsumerWidget {
       onChanged: (value) async {
         final kept = await ref
             .read(onlineSourcePreferencesProvider.notifier)
-            .setEnabled(source, enabled: value);
+            .setEnabled(
+              source,
+              enabled: value,
+              requiredSources: requiredSources,
+            );
         if (!kept && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(S.of(context).settingsOnlineSourcesKeepOne)),

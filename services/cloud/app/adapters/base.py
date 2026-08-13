@@ -7,6 +7,11 @@ class MusicAdapter(ABC):
 
     name: str
 
+    supported_sources: frozenset[str] = frozenset()
+
+    def supports(self, source: str | None) -> bool:
+        return source is None or source in self.supported_sources
+
     @abstractmethod
     async def search(
         self, query: str, *, source: str | None, count: int, page: int

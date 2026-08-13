@@ -49,6 +49,7 @@ def _search_payload(response: httpx.Response) -> Any:
 
 class MetingAdapter(MusicAdapter):
     name = "meting"
+    supported_sources = SUPPORTED_SOURCES
 
     def __init__(
         self,

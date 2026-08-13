@@ -1987,6 +1987,24 @@ abstract class S {
   /// **'至少保留一个搜索源'**
   String get settingsOnlineSourcesKeepOne;
 
+  /// No description provided for @settingsOnlineAdapter.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索 API'**
+  String get settingsOnlineAdapter;
+
+  /// No description provided for @settingsOnlineAdapterAuto.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动'**
+  String get settingsOnlineAdapterAuto;
+
+  /// No description provided for @settingsOnlineAdapterUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法加载 Cloud 搜索 API，已使用自动兼容模式。'**
+  String get settingsOnlineAdapterUnavailable;
+
   /// No description provided for @searchFilterOnline.
   ///
   /// In zh, this message translates to:

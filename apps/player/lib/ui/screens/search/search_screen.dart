@@ -27,7 +27,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String? _selectedSource;
 
   Future<void> _loadMore() async {
-    final source = _currentSource(ref.read(onlineSourcePreferencesProvider));
+    final source = _currentSource(ref.read(effectiveOnlineSourcesProvider));
     if (source == null) return;
     try {
       await ref.read(searchProvider(source).notifier).loadMore();
@@ -89,13 +89,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _searchAll(String query) {
-    for (final source in ref.read(onlineSourcePreferencesProvider)) {
+    for (final source in ref.read(effectiveOnlineSourcesProvider)) {
       ref.read(searchProvider(source).notifier).search(query);
     }
   }
 
   void _clearAllResults() {
-    for (final source in ref.read(onlineSourcePreferencesProvider)) {
+    for (final source in ref.read(effectiveOnlineSourcesProvider)) {
       ref.read(searchProvider(source).notifier).clearResult();
     }
   }
@@ -109,7 +109,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sources = ref.watch(onlineSourcePreferencesProvider);
+    final sources = ref.watch(effectiveOnlineSourcesProvider);
     final selected = _currentSource(sources);
     final searchState = selected == null
         ? const SearchState()

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:navidrome_player/api/models/music_capabilities.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/online_source_preferences.dart';
 import 'package:navidrome_player/providers/server_config_provider.dart';
@@ -14,13 +15,37 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'active_server_id': 'server-a',
       'server_url': 'http://music.local',
-      onlineSourcesPreferenceKey('server-a'): ['netease', 'tencent'],
+      onlineSourcesPreferenceKey('server-a'): [
+        'netease',
+        'tencent',
+        'kugou',
+        'migu',
+        'joox',
+      ],
+      onlineAdapterPreferenceKey('server-a'): 'gdstudio',
     });
     final prefs = await SharedPreferences.getInstance();
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          musicCapabilitiesProvider.overrideWith(
+            (ref) async => const MusicCapabilities(
+              defaultProvider: 'meting',
+              adapters: [
+                MusicAdapterCapability(
+                  id: 'meting',
+                  sources: ['netease', 'tencent', 'kugou'],
+                ),
+                MusicAdapterCapability(
+                  id: 'gdstudio',
+                  sources: ['netease', 'kugou', 'migu', 'joox'],
+                ),
+              ],
+            ),
+          ),
+        ],
         child: MaterialApp(
           locale: const Locale('zh'),
           localizationsDelegates: S.localizationsDelegates,
@@ -32,7 +57,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('网易云'), findsOneWidget);
-    expect(find.text('QQ'), findsOneWidget);
-    expect(find.text('酷狗'), findsNothing);
+    expect(find.text('QQ'), findsNothing);
+    expect(find.text('酷狗'), findsOneWidget);
+    expect(find.text('咪咕'), findsOneWidget);
+    expect(find.text('JOOX'), findsOneWidget);
   });
 }

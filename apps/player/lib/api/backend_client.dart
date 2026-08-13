@@ -175,9 +175,24 @@ class BackendClient {
     return Options(headers: headers, contentType: contentType);
   }
 
+  Future<MusicCapabilities> getMusicCapabilities() async {
+    final response = await _dio.get(
+      '$_cloudBaseUrl/v1/music/capabilities',
+      options: _cloudOptions(),
+    );
+    final data = response.data;
+    if (data is! Map) {
+      throw const FormatException(
+        'Cloud music capabilities response must be an object',
+      );
+    }
+    return MusicCapabilities.fromJson(Map<String, dynamic>.from(data));
+  }
+
   Future<List<Song>> searchSongs(
     String query, {
     String? source,
+    String? provider,
     int count = 20,
     int page = 1,
     CancelToken? cancelToken,
@@ -189,6 +204,7 @@ class BackendClient {
         queryParameters: {
           'q': query,
           if (source != null && source.isNotEmpty) 'source': source,
+          if (provider != null && provider.isNotEmpty) 'provider': provider,
           'count': count,
           'page': page,
         },

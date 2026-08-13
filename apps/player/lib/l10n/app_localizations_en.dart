@@ -1046,6 +1046,16 @@ class SEn extends S {
   String get settingsOnlineSourcesKeepOne => 'Keep at least one search source';
 
   @override
+  String get settingsOnlineAdapter => 'Search API';
+
+  @override
+  String get settingsOnlineAdapterAuto => 'Automatic';
+
+  @override
+  String get settingsOnlineAdapterUnavailable =>
+      'Could not load Cloud search APIs. Automatic compatibility mode is active.';
+
+  @override
   String get searchFilterOnline => 'Online';
 
   @override

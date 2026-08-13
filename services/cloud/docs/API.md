@@ -19,12 +19,28 @@ No auth.
 
 ## Music
 
+### `GET /v1/music/capabilities`
+
+Returns configured adapters in failover order and the platforms each adapter supports. The Player uses this response to limit source tabs for a selected search API.
+
+```json
+{
+  "default_provider": "meting",
+  "adapters": [
+    { "id": "meting", "sources": ["netease", "tencent", "kugou"] },
+    { "id": "gdstudio", "sources": ["netease", "kugou", "migu", "joox"] }
+  ]
+}
+```
+
+
 ### `GET /v1/music/search`
 
 | Param | Required | Notes |
 |---|---|---|
 | `q` | yes | User search string |
 | `source` | no | Platform id: `netease`, `tencent` (`qq` accepted), `kugou`, `migu`, `joox`, `kuwo`. When set, search stays on that platform. When omitted, Cloud walks `MUSIC_SEARCH_SOURCES`. |
+| `provider` | no | Adapter id from `/v1/music/capabilities`. When set, search stays on that configured adapter and rejects unsupported platform combinations. |
 | `count` | no | default 20, max 50 |
 | `page` | no | default 1 |
 
@@ -58,6 +74,7 @@ Success:
 | Code | When |
 |---|---|
 | 401 | Missing/invalid key/token |
+| 400 | Requested adapter is unavailable or does not support the requested platform |
 | 502/504 | All upstreams failed / timeout |
 
 ### `GET /v1/music/url`
