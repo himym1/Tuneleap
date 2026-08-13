@@ -1,6 +1,6 @@
 # 音跃
 
-私人音乐产品仓。用户看见的名字是 **音跃**，英文 **Yinyue**。仓库里是一个产品、三个产物。
+私人音乐产品仓。用户看见的名字是 **音跃**，英文 **Tuneleap**。仓库是 [`himym1/Tuneleap`](https://github.com/himym1/Tuneleap)。一个产品、三个产物。
 
 Navidrome 只是曲库后端，不是本仓的名字。
 
@@ -43,6 +43,13 @@ make nas-agent-test
 ```
 
 发布 App：`make android`、`make macos`、`make publish`。步骤见 [`apps/player/docs/release.md`](apps/player/docs/release.md)。
+
+## 克隆
+
+```bash
+git clone https://github.com/himym1/Tuneleap.git
+cd Tuneleap
+```
 
 ## 旧仓库
 

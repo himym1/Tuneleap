@@ -15,7 +15,7 @@
 
 ```bash
 git clone <repo-url>
-cd yinyue/apps/player
+cd Tuneleap/apps/player
 flutter pub get
 flutter doctor
 ```

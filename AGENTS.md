@@ -2,7 +2,7 @@
 
 ## Product
 
-- User-facing name: 音跃. English: Yinyue. Repo: `yinyue`.
+- User-facing name: 音跃. English: Tuneleap. Repo: `himym1/Tuneleap`.
 - This is one product and three deployables. Do not collapse Cloud and NAS Agent into one process.
 - Navidrome/Subsonic is an external library server. Do not treat this repository as a Navidrome fork.
 - Android applicationId `com.himym.player` and production host paths stay unchanged unless the user explicitly asks to migrate deploy.
