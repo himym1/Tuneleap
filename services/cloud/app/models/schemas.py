@@ -32,6 +32,15 @@ class SearchResponse(BaseModel):
     items: list[SongDTO]
     strategy: str = "first-success"
 
+class MusicAdapterCapability(BaseModel):
+    id: str
+    sources: list[str]
+
+
+class MusicCapabilitiesResponse(BaseModel):
+    default_provider: Optional[str] = None
+    adapters: list[MusicAdapterCapability]
+
 
 class UrlResponse(BaseModel):
     url: str

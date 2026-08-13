@@ -8,9 +8,11 @@ from app.core.sources import canonicalize_music_source
 from app.models.schemas import (
     CoverResponse,
     LyricResponse,
+    MusicCapabilitiesResponse,
     SearchResponse,
     UrlResponse,
 )
+from app.services.music_facade import MusicSearchSelectionError
 
 router = APIRouter(
     prefix="/v1/music",
@@ -36,6 +38,15 @@ def _map_upstream(exc: Exception) -> HTTPException:
     return HTTPException(502, f"music upstream failure: {exc}")
 
 
+@router.get(
+    "/capabilities",
+    response_model=MusicCapabilitiesResponse,
+    summary="Configured music adapters and supported platforms",
+)
+async def capabilities(request: Request):
+    return _facade(request).capabilities()
+
+
 @router.get("/search", response_model=SearchResponse, summary="First-success search")
 @limiter.limit("60/minute")
 async def search(
@@ -45,17 +56,27 @@ async def search(
         None,
         description="Pinned platform when set; omit to walk MUSIC_SEARCH_SOURCES",
     ),
+    provider: str | None = Query(
+        None,
+        description="Pinned adapter id; omit for configured adapter failover",
+    ),
     count: int = Query(20, ge=1, le=50),
     page: int = Query(1, ge=1),
 ):
-    """One user query → one result list from the first successful upstream."""
+    """One user query -> one result list from the first successful upstream."""
     facade = _facade(request)
     try:
         return await facade.search_first_success(
-            q, source=canonicalize_music_source(source), count=count, page=page
+            q,
+            source=canonicalize_music_source(source),
+            provider=provider.strip().lower() if provider else None,
+            count=count,
+            page=page,
         )
     except HTTPException:
         raise
+    except MusicSearchSelectionError as exc:
+        raise HTTPException(400, str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         raise _map_upstream(exc) from exc
 

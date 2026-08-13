@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "在线搜索新增可配置音乐源，并按网易云、QQ、酷狗、咪咕、JOOX 分标签展示结果。"
+    "changelog": "搜索 API 可选自动、Meting、GDStudio 或 ChKSz；平台标签会按所选 API 的实际能力自动切换。"
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

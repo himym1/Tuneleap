@@ -19,6 +19,9 @@ DEFAULT_SOURCE = "netease"
 
 class GdstudioAdapter(MusicAdapter):
     name = "gdstudio"
+    supported_sources = frozenset(
+        {"netease", "kugou", "migu", "joox", "kuwo"}
+    )
 
     def __init__(
         self,

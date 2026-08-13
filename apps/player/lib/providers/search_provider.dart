@@ -4,6 +4,7 @@ import 'package:navidrome_player/api/models/song.dart';
 
 import 'audio_providers.dart';
 import 'server_config_provider.dart';
+import 'online_source_preferences.dart';
 
 const _searchPageSize = 30;
 
@@ -53,6 +54,7 @@ class SearchNotifier extends Notifier<SearchState> {
   SearchNotifier(this.source);
 
   final String source;
+  String? _provider;
   CancelToken? _cancelToken;
   String _query = '';
   int _page = 0;
@@ -61,6 +63,7 @@ class SearchNotifier extends Notifier<SearchState> {
   @override
   SearchState build() {
     ref.watch(serverConfigProvider.select((config) => config.serverId));
+    _provider = ref.watch(effectiveOnlineSearchAdapterProvider);
     _cancelToken?.cancel();
     _cancelToken = null;
     _query = '';
@@ -99,6 +102,7 @@ class SearchNotifier extends Notifier<SearchState> {
           .searchSongs(
             trimmed,
             source: source,
+            provider: _provider,
             count: _searchPageSize,
             page: 1,
             cancelToken: cancelToken,
@@ -139,6 +143,7 @@ class SearchNotifier extends Notifier<SearchState> {
           .searchSongs(
             query,
             source: source,
+            provider: _provider,
             count: _searchPageSize,
             page: nextPage,
           );

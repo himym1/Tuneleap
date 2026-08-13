@@ -181,7 +181,11 @@ async def test_qq_alias_is_pinned_as_tencent():
     calls: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
-        calls.append(request.url.params.get("source") or "")
+        calls.append(
+            request.url.params.get("source")
+            or request.url.params.get("server")
+            or ""
+        )
         return httpx.Response(200, json=[_song(3, source="tencent")])
 
     transport = httpx.MockTransport(handler)
@@ -189,8 +193,8 @@ async def test_qq_alias_is_pinned_as_tencent():
         settings = Settings(
             _env_file=None,
             api_key="k",
-            gdstudio_api_base_urls="https://gds.test/api.php",
-            meting_api_base_urls="",
+            gdstudio_api_base_urls="",
+            meting_api_base_urls="https://meting.test/api",
             music_search_sources="netease,migu",
             upstream_strategy="ordered",
         )
@@ -201,6 +205,90 @@ async def test_qq_alias_is_pinned_as_tencent():
     assert calls == ["tencent"]
     assert result.source == "tencent"
 
+
+@pytest.mark.asyncio
+async def test_capabilities_and_provider_pin_follow_adapter_support():
+    calls: list[tuple[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        source = request.url.params.get("source") or ""
+        calls.append((request.url.host, source))
+        return httpx.Response(200, json=[_song(4, source=source)])
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                gdstudio_api_base_urls="https://gds.test/api.php",
+                meting_api_base_urls="https://meting.test/api",
+                chksz_api_base_url="https://chksz.test",
+                chksz_api_key="test-key",
+                music_adapter_order="meting,gdstudio,chksz",
+                upstream_strategy="ordered",
+            ),
+        )
+
+        capabilities = facade.capabilities()
+        result = await facade.search_first_success(
+            "q",
+            source="migu",
+            provider="gdstudio",
+            count=1,
+            page=1,
+        )
+
+        assert capabilities == {
+            "default_provider": "meting",
+            "adapters": [
+                {
+                    "id": "meting",
+                    "sources": ["baidu", "kugou", "kuwo", "netease", "tencent"],
+                },
+                {
+                    "id": "gdstudio",
+                    "sources": ["joox", "kugou", "kuwo", "migu", "netease"],
+                },
+                {
+                    "id": "chksz",
+                    "sources": ["kugou", "netease", "tencent"],
+                },
+            ],
+        }
+        assert result.provider == "gdstudio"
+        assert calls == [("gds.test", "migu")]
+
+
+@pytest.mark.asyncio
+async def test_provider_pin_rejects_unsupported_source_without_fallback():
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.host)
+        return httpx.Response(200, json=[_song(1)])
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                gdstudio_api_base_urls="https://gds.test/api.php",
+                meting_api_base_urls="https://meting.test/api",
+                music_adapter_order="meting,gdstudio",
+            ),
+        )
+        with pytest.raises(ValueError, match="does not support source migu"):
+            await facade.search_first_success(
+                "q",
+                source="migu",
+                provider="meting",
+                count=1,
+                page=1,
+            )
+
+    assert calls == []
 
 def test_search_api_happy_path():
     def handler(request: httpx.Request) -> httpx.Response:

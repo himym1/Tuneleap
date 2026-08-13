@@ -115,6 +115,7 @@ void main() {
             expect(options.path, 'http://nas:10086/v1/music/search');
             expect(options.queryParameters['q'], '屋顶');
             expect(options.queryParameters['source'], 'netease');
+            expect(options.queryParameters['provider'], 'chksz');
             expect(options.headers['X-API-Key'], isNull);
             return _jsonBody({
               'query': '屋顶',
@@ -142,6 +143,7 @@ void main() {
         final songs = await client.searchSongs(
           '屋顶',
           source: 'netease',
+          provider: 'chksz',
           count: 1,
           page: 1,
         );
@@ -153,6 +155,42 @@ void main() {
         expect(songs.first.storageKey, 'solara:netease:5257138');
       },
     );
+
+    test('getMusicCapabilities parses configured adapters', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          expect(options.path, 'http://cloud/v1/music/capabilities');
+          return _jsonBody({
+            'default_provider': 'meting',
+            'adapters': [
+              {
+                'id': 'meting',
+                'sources': ['netease', 'tencent', 'kugou'],
+              },
+              {
+                'id': 'gdstudio',
+                'sources': ['netease', 'kugou', 'migu', 'joox'],
+              },
+            ],
+          });
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(baseUrl: 'http://cloud');
+
+      final capabilities = await client.getMusicCapabilities();
+
+      expect(capabilities.defaultProvider, 'meting');
+      expect(capabilities.adapters.map((adapter) => adapter.id), [
+        'meting',
+        'gdstudio',
+      ]);
+      expect(capabilities.sourcesFor('gdstudio'), [
+        'netease',
+        'kugou',
+        'migu',
+        'joox',
+      ]);
+    });
 
     test('getPlaybackUrl maps bitrate to Solara quality parameter', () async {
       late RequestOptions captured;

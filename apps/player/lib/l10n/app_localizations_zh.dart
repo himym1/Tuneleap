@@ -1025,6 +1025,15 @@ class SZh extends S {
   String get settingsOnlineSourcesKeepOne => '至少保留一个搜索源';
 
   @override
+  String get settingsOnlineAdapter => '搜索 API';
+
+  @override
+  String get settingsOnlineAdapterAuto => '自动';
+
+  @override
+  String get settingsOnlineAdapterUnavailable => '无法加载 Cloud 搜索 API，已使用自动兼容模式。';
+
+  @override
   String get searchFilterOnline => '在线';
 
   @override

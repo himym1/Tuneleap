@@ -82,6 +82,7 @@ def _is_http_url(value: str) -> bool:
 
 class ChkszAdapter(MusicAdapter):
     name = "chksz"
+    supported_sources = SUPPORTED_SOURCES
 
     def __init__(
         self,

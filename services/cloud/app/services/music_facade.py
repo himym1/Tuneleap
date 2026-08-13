@@ -22,6 +22,10 @@ from app.models.schemas import (
 )
 
 
+class MusicSearchSelectionError(ValueError):
+    """Requested adapter/platform selection cannot be served."""
+
+
 class MusicFacade:
     def __init__(self, client: httpx.AsyncClient, settings: Settings):
         self._client = client
@@ -62,6 +66,19 @@ class MusicFacade:
     def adapters(self) -> list[MusicAdapter]:
         return list(self._adapters)
 
+    def capabilities(self) -> dict[str, Any]:
+        return {
+            "default_provider": self._adapters[0].name if self._adapters else None,
+            "adapters": [
+                {
+                    "id": adapter.name,
+                    "sources": sorted(adapter.supported_sources),
+                }
+                for adapter in self._adapters
+            ],
+        }
+
+
     def _adapter_by_name(self, provider: str | None) -> MusicAdapter | None:
         if not provider:
             return None
@@ -77,25 +94,58 @@ class MusicFacade:
         return self._settings.music_search_source_list or (None,)
 
     async def search_first_success(
-        self, query: str, *, source: str | None, count: int, page: int
+        self,
+        query: str,
+        *,
+        source: str | None,
+        count: int,
+        page: int,
+        provider: str | None = None,
     ) -> SearchResponse:
         if not self._adapters:
             raise httpx.HTTPError("no music adapters configured")
 
-        strategy = (self._settings.upstream_strategy or "ordered").lower()
-        search = (
-            self._search_race
-            if strategy == "race" and len(self._adapters) > 1
-            else self._search_ordered
-        )
+        pinned_adapter = self._adapter_by_name(provider)
+        if provider and pinned_adapter is None:
+            raise MusicSearchSelectionError(f"music adapter unavailable: {provider}")
+
         last_error: Exception | None = None
         empty_response: SearchResponse | None = None
         candidates = self._search_sources(source)
         if page > 1:
             candidates = candidates[:1]
         for candidate in candidates:
+            adapters = (
+                [pinned_adapter]
+                if pinned_adapter is not None
+                else [
+                    adapter
+                    for adapter in self._adapters
+                    if adapter.supports(candidate)
+                ]
+            )
+            if not adapters or any(
+                not adapter.supports(candidate) for adapter in adapters
+            ):
+                if provider:
+                    raise MusicSearchSelectionError(
+                        f"music adapter {provider} does not support source {candidate}"
+                    )
+                continue
+            strategy = (self._settings.upstream_strategy or "ordered").lower()
+            search = (
+                self._search_race
+                if strategy == "race" and len(adapters) > 1
+                else self._search_ordered
+            )
             try:
-                response = await search(query, source=candidate, count=count, page=page)
+                response = await search(
+                    query,
+                    adapters=adapters,
+                    source=candidate,
+                    count=count,
+                    page=page,
+                )
             except Exception as exc:  # noqa: BLE001 - fail over across sources
                 last_error = exc
                 continue
@@ -107,14 +157,22 @@ class MusicFacade:
             return empty_response
         if last_error is not None:
             raise last_error
-        raise httpx.HTTPError("all music sources failed")
+        raise MusicSearchSelectionError(
+            "no music adapter supports the requested source"
+        )
 
     async def _search_ordered(
-        self, query: str, *, source: str | None, count: int, page: int
+        self,
+        query: str,
+        *,
+        adapters: list[MusicAdapter],
+        source: str | None,
+        count: int,
+        page: int,
     ) -> SearchResponse:
         last_error: Exception | None = None
         empty_adapter: MusicAdapter | None = None
-        for adapter in self._adapters:
+        for adapter in adapters:
             try:
                 items = await adapter.search(
                     query, source=source, count=count, page=page
@@ -145,7 +203,13 @@ class MusicFacade:
         raise httpx.HTTPError("all music adapters failed")
 
     async def _search_race(
-        self, query: str, *, source: str | None, count: int, page: int
+        self,
+        query: str,
+        *,
+        adapters: list[MusicAdapter],
+        source: str | None,
+        count: int,
+        page: int,
     ) -> SearchResponse:
         async def run(
             adapter: MusicAdapter,
@@ -153,7 +217,7 @@ class MusicFacade:
             items = await adapter.search(query, source=source, count=count, page=page)
             return adapter, items
 
-        tasks = [asyncio.create_task(run(adapter)) for adapter in self._adapters]
+        tasks = [asyncio.create_task(run(adapter)) for adapter in adapters]
         last_error: Exception | None = None
         empty_adapter: MusicAdapter | None = None
         try:

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:navidrome_player/api/backend_client.dart';
+import 'package:navidrome_player/api/models/music_capabilities.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/providers/audio_providers.dart';
 import 'package:navidrome_player/providers/online_source_preferences.dart';
@@ -14,17 +15,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _PagedBackendClient extends BackendClient {
   final pages = <int>[];
   final sources = <String?>[];
+  final providers = <String?>[];
 
   @override
   Future<List<Song>> searchSongs(
     String query, {
     String? source,
+    String? provider,
     int count = 20,
     int page = 1,
     CancelToken? cancelToken,
   }) async {
     pages.add(page);
     sources.add(source);
+    providers.add(provider);
     if (page == 1) {
       return [_song('0', source: 'migu'), _song('1', source: 'migu')];
     }
@@ -42,6 +46,7 @@ class _RepeatingBackendClient extends BackendClient {
   Future<List<Song>> searchSongs(
     String query, {
     String? source,
+    String? provider,
     int count = 20,
     int page = 1,
     CancelToken? cancelToken,
@@ -58,6 +63,7 @@ class _DelayedBackendClient extends BackendClient {
   Future<List<Song>> searchSongs(
     String query, {
     String? source,
+    String? provider,
     int count = 20,
     int page = 1,
     CancelToken? cancelToken,
@@ -89,6 +95,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'active_server_id': 'server-a',
       'server_url': 'http://music.local',
+      onlineAdapterPreferenceKey('server-a'): 'gdstudio',
     });
     final prefs = await SharedPreferences.getInstance();
     final backend = _PagedBackendClient();
@@ -96,11 +103,22 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         backendClientProvider.overrideWithValue(backend),
+        musicCapabilitiesProvider.overrideWith(
+          (ref) async => const MusicCapabilities(
+            adapters: [
+              MusicAdapterCapability(
+                id: 'gdstudio',
+                sources: ['netease', 'tencent', 'kugou'],
+              ),
+            ],
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
     final subscription = container.listen(searchProvider('migu'), (_, _) {});
     addTearDown(subscription.close);
+    await container.read(musicCapabilitiesProvider.future);
 
     final notifier = container.read(searchProvider('migu').notifier);
     await notifier.search('query');
@@ -121,6 +139,7 @@ void main() {
     expect(backend.pages, [1, 2, 3]);
     expect(backend.sources, ['migu', 'migu', 'migu']);
     expect(state.songs, hasLength(3));
+    expect(backend.providers, ['gdstudio', 'gdstudio', 'gdstudio']);
     expect(state.hasMore, isFalse);
     expect(state.loadingMore, isFalse);
   });
