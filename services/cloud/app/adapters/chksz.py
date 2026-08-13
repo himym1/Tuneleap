@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -18,6 +19,7 @@ _REQUEST_INTERVAL_SECONDS = 0.35
 _RATE_LIMIT_RETRY_DELAYS = (0.75, 1.5)
 _MAX_RETRY_AFTER_SECONDS = 3.0
 _DETAIL_CACHE_TTL_SECONDS = 60.0
+_CHINA_TIMEZONE = timezone(timedelta(hours=8))
 
 
 def _netease_level(br: int) -> str:
@@ -125,6 +127,18 @@ class ChkszAdapter(MusicAdapter):
         self._detail_cache: dict[
             tuple[str, str], tuple[float, dict[str, Any]]
         ] = {}
+        self._quota_exhausted_until = 0.0
+
+    @property
+    def available(self) -> bool:
+        return time.time() >= self._quota_exhausted_until
+
+    def _mark_daily_quota_exhausted(self) -> None:
+        now = datetime.now(_CHINA_TIMEZONE)
+        tomorrow = (now + timedelta(days=1)).date()
+        reset = datetime.combine(tomorrow, datetime.min.time(), _CHINA_TIMEZONE)
+        self._quota_exhausted_until = reset.timestamp()
+
 
     def _resolve_source(self, source: str | None) -> str | None:
         resolved = canonicalize_music_source(source)
@@ -144,6 +158,8 @@ class ChkszAdapter(MusicAdapter):
         query["apikey"] = self._api_key
         cache_key = (path, tuple(sorted(params.items())))
         async with self._request_lock:
+            if not self.available:
+                raise httpx.HTTPError("chksz daily quota exhausted")
             cached = self._response_cache.get(cache_key)
             now = time.monotonic()
             if cached is not None and cached[0] > now:
@@ -185,6 +201,8 @@ class ChkszAdapter(MusicAdapter):
                 now = time.monotonic()
             if response.status_code == 404 and not_found_is_empty:
                 return {}
+            if response.status_code == 402:
+                self._mark_daily_quota_exhausted()
             if response.status_code >= 400:
                 response.raise_for_status()
             try:

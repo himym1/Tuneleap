@@ -104,7 +104,14 @@ final musicCapabilitiesProvider = FutureProvider<MusicCapabilities>((
   ref,
 ) async {
   ref.watch(serverConfigProvider.select((config) => config.serverId));
-  return ref.watch(backendClientProvider).getMusicCapabilities();
+  final capabilities = await ref
+      .watch(backendClientProvider)
+      .getMusicCapabilities();
+  final selected = ref.read(onlineSearchAdapterProvider);
+  if (selected != null && capabilities.adapter(selected) == null) {
+    await ref.read(onlineSearchAdapterProvider.notifier).setProvider(null);
+  }
+  return capabilities;
 });
 
 final onlineSearchAdapterProvider =

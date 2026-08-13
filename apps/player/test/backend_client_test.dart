@@ -350,6 +350,40 @@ void main() {
       },
     );
 
+    test('missing cover response is negatively cached', () async {
+      var requestCount = 0;
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          requestCount++;
+          return _jsonBody({
+            'detail': 'upstream API error: chksz cover empty',
+          }, statusCode: 502);
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(baseUrl: 'http://cloud');
+      const song = Song(
+        id: 'legacy-kugou',
+        title: 'Song',
+        album: '',
+        albumId: '',
+        artist: 'Artist',
+        artistId: '',
+        backend: SongBackend.solara,
+        onlineSource: 'kugou',
+        onlineProvider: 'chksz',
+        urlId: 'legacy-kugou',
+        coverArt: 'legacy-kugou',
+      );
+
+      final results = await Future.wait([
+        client.resolveCoverArtUrl(song),
+        client.resolveCoverArtUrl(song),
+      ]);
+      expect(results, ['', '']);
+      expect(await client.resolveCoverArtUrl(song), isEmpty);
+      expect(requestCount, 1);
+    });
+
     test(
       'resolveCoverArtUrl returns direct online cover without proxy',
       () async {
@@ -543,6 +577,37 @@ void main() {
       expect(lyrics.lines[0].startMs, 1230);
       expect(lyrics.lines[2].text, '纯文本结尾');
       expect(lyrics.lines[2].startMs, isNull);
+    });
+
+    test('empty lyrics response is negatively cached', () async {
+      var requestCount = 0;
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          requestCount++;
+          return _jsonBody({
+            'lyric': '',
+            'provider': 'chksz',
+            'source': 'kugou',
+          });
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(baseUrl: 'http://cloud');
+      const song = Song(
+        id: 'kugou-1',
+        title: 'Song',
+        album: '',
+        albumId: '',
+        artist: 'Artist',
+        artistId: '',
+        backend: SongBackend.solara,
+        onlineSource: 'kugou',
+        onlineProvider: 'chksz',
+        lyricId: 'kugou-1',
+      );
+
+      expect(await client.getLyrics(song), isNull);
+      expect(await client.getLyrics(song), isNull);
+      expect(requestCount, 1);
     });
   });
 

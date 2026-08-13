@@ -141,6 +141,7 @@ class SearchNotifier extends Notifier<SearchState> {
           _cancelToken == cancelToken &&
           generation == _generation) {
         state = SearchState(error: classifySearchFailure(error));
+        ref.invalidate(musicCapabilitiesProvider);
       }
     }
   }

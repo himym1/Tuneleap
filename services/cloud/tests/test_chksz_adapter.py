@@ -127,10 +127,16 @@ async def test_chksz_url_and_http_cover():
 
 @pytest.mark.asyncio
 async def test_chksz_quota_errors_fail_over():
+    chksz_calls = 0
+
     def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal chksz_calls
         if request.url.host == "api.chksz.test":
+            chksz_calls += 1
             return httpx.Response(402, json={"code": 402, "msg": "quota"})
-        return httpx.Response(200, json=[{"id": "1", "name": "Song", "source": "netease"}])
+        return httpx.Response(
+            200, json=[{"id": "1", "name": "Song", "source": "netease"}]
+        )
 
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as client:
@@ -144,12 +150,28 @@ async def test_chksz_quota_errors_fail_over():
             music_adapter_order="chksz,gdstudio",
             upstream_strategy="ordered",
         )
-        result = await MusicFacade(client, settings).search_first_success(
+        facade = MusicFacade(client, settings)
+        result = await facade.search_first_success(
             "q", source="netease", count=20, page=1
         )
 
+        capabilities = facade.capabilities()
+        with pytest.raises(ValueError, match="music adapter unavailable: chksz"):
+            await facade.search_first_success(
+                "q",
+                source="netease",
+                provider="chksz",
+                count=20,
+                page=1,
+            )
+
     assert result.provider == "gdstudio"
     assert [item.id for item in result.items] == ["1"]
+    assert chksz_calls == 1
+    assert [adapter["id"] for adapter in capabilities["adapters"]] == [
+        "gdstudio"
+    ]
+    assert capabilities["default_provider"] == "gdstudio"
 
 
 @pytest.mark.asyncio
@@ -195,6 +217,35 @@ async def test_chksz_serializes_concurrent_requests():
         )
 
     assert max_active == 1
+
+@pytest.mark.asyncio
+async def test_chksz_quota_stops_already_queued_requests():
+    calls = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        await asyncio.sleep(0.01)
+        return httpx.Response(402, json={"code": 402, "msg": "quota"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+            retry_delays=(),
+        )
+        results = await asyncio.gather(
+            adapter.search("one", source="netease", count=1, page=1),
+            adapter.search("two", source="tencent", count=1, page=1),
+            adapter.search("three", source="kugou", count=1, page=1),
+            return_exceptions=True,
+        )
+
+    assert calls == 1
+    assert all(isinstance(result, httpx.HTTPError) for result in results)
+    assert adapter.available is False
 
 
 @pytest.mark.asyncio

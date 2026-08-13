@@ -275,6 +275,12 @@
   },
   "searchRateLimited": "Too many searches. Please try again shortly.",
   "searchServiceUnavailable": "This search service is temporarily unavailable.",
+  "searchSourceUnavailable": "{source} search is temporarily unavailable.",
+  "@searchSourceUnavailable": {
+    "placeholders": {
+      "source": { "type": "String" }
+    }
+  },
   "searchFailedTryAgain": "Search failed. Please try again.",
     "searchResults": "Search Results",
     "searchLoadMore": "Load More",

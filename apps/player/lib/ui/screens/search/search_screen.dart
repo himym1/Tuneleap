@@ -25,6 +25,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _resultsScrollController = ScrollController();
   Timer? _debounce;
   String? _selectedSource;
+  String? _lastProvider;
 
   Future<void> _loadMore() async {
     final source = _currentSource(ref.read(effectiveOnlineSourcesProvider));
@@ -64,6 +65,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void initState() {
     super.initState();
     _resultsScrollController.addListener(_onResultsScrolled);
+    _lastProvider = ref.read(effectiveOnlineSearchAdapterProvider);
   }
 
   @override
@@ -107,9 +109,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _debounce = Timer(const Duration(milliseconds: 800), _doSearch);
   }
 
+  void _syncProviderSelection(String? provider, List<String> sources) {
+    if (_lastProvider == provider) return;
+    _lastProvider = provider;
+    _selectedSource = sources.isEmpty ? null : sources.first;
+    if (_resultsScrollController.hasClients) {
+      _resultsScrollController.jumpTo(0);
+    }
+    final query = _searchController.text.trim();
+    if (query.isNotEmpty && sources.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _searchAll(query);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final sources = ref.watch(effectiveOnlineSourcesProvider);
+    final provider = ref.watch(effectiveOnlineSearchAdapterProvider);
+    _syncProviderSelection(provider, sources);
     final selected = _currentSource(sources);
     final searchState = selected == null
         ? const SearchState()
@@ -208,9 +227,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (searchState.error != null && searchState.songs.isEmpty) {
       final failure = searchState.error!;
       final isAuth = failure == SearchFailure.authentication;
+      final sourceLabel = source == null
+          ? null
+          : onlineSourceLabel(context, source);
       final message = switch (failure) {
         SearchFailure.authentication => S.of(context).searchAuthRequired,
         SearchFailure.rateLimited => S.of(context).searchRateLimited,
+        SearchFailure.unavailable when sourceLabel != null =>
+          S.of(context).searchSourceUnavailable(sourceLabel),
         SearchFailure.unavailable => S.of(context).searchServiceUnavailable,
         SearchFailure.unknown => S.of(context).searchFailedTryAgain,
       };
@@ -353,6 +377,7 @@ class _SourceTabs extends StatelessWidget {
             final source = sources[index];
             final isSelected = source == selected;
             return Semantics(
+              key: ValueKey('search-source-$source'),
               button: true,
               selected: isSelected,
               child: Material(
@@ -428,6 +453,7 @@ class _SongResultTile extends ConsumerWidget {
                   url: snapshot.data ?? '',
                   size: 40,
                   borderRadius: 6,
+                  loading: snapshot.connectionState == ConnectionState.waiting,
                 ),
               ),
               title: Text(

@@ -21,7 +21,7 @@ No auth.
 
 ### `GET /v1/music/capabilities`
 
-Returns configured adapters in failover order and the platforms each adapter supports. The Player uses this response to limit source tabs for a selected search API.
+Returns currently available configured adapters in failover order and the platforms each adapter supports. An adapter may be omitted temporarily after a runtime quota failure. The Player uses this response to limit source tabs for a selected search API.
 
 ```json
 {

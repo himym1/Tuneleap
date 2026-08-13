@@ -20,6 +20,7 @@ class NasDuplicateException implements Exception {
 /// - nas agent: API-key-authenticated import/delete only
 class BackendClient {
   static const _playbackUrlCacheTtl = Duration(seconds: 60);
+  static const _missingMediaCacheTtl = Duration(minutes: 5);
   static const _cloudRetryKey = 'cloud-auth-retried';
 
   late final Dio _dio;
@@ -30,6 +31,9 @@ class BackendClient {
   final Map<String, String> _coverArtCache = {};
   final Map<String, (String, DateTime)> _playbackUrlCache = {};
   final Map<String, String> _lyricsCache = {};
+  final Map<String, DateTime> _missingCoverCache = {};
+  final Map<String, DateTime> _missingLyricsCache = {};
+  final Map<String, Future<String>> _coverRequests = {};
 
   BackendClient({Dio? dio, CloudTokenProvider? cloudTokenProvider})
     : _cloudTokenProvider = cloudTokenProvider {
@@ -69,6 +73,9 @@ class BackendClient {
       _coverArtCache.clear();
       _playbackUrlCache.clear();
       _lyricsCache.clear();
+      _missingCoverCache.clear();
+      _missingLyricsCache.clear();
+      _coverRequests.clear();
     }
     _cloudBaseUrl = normalizedCloud;
     _nasBaseUrl = _normalizeBaseUrl(nasAgentUrl);
@@ -322,6 +329,9 @@ class BackendClient {
     final detailCacheKey = _coverCacheKey(song, song.urlId ?? song.id);
     final detailCached = _coverArtCache[detailCacheKey];
     if (detailCached != null) return detailCached;
+    final missingUntil = _missingCoverCache[detailCacheKey];
+    if (missingUntil != null && missingUntil.isAfter(DateTime.now())) return '';
+    _missingCoverCache.remove(detailCacheKey);
 
     final coverArtId = song.coverArt;
     if (coverArtId == null || coverArtId.isEmpty) return '';
@@ -336,28 +346,70 @@ class BackendClient {
     final cached = _coverArtCache[cacheKey];
     if (cached != null) return cached;
 
-    final response = await _dio.get(
-      '$_cloudBaseUrl/v1/music/cover',
-      queryParameters: {
-        'id': coverArtId,
-        'source': song.onlineSource ?? 'netease',
-        if (song.onlineProvider?.isNotEmpty ?? false)
-          'provider': song.onlineProvider,
-        'size': size,
-      },
-      options: _cloudOptions(),
+    final pending = _coverRequests[cacheKey];
+    if (pending != null) return pending;
+    final request = _fetchCoverArtUrl(
+      song,
+      coverArtId: coverArtId,
+      size: size,
+      cacheKey: cacheKey,
+      detailCacheKey: detailCacheKey,
     );
-
-    final data = response.data;
-    if (data is! Map) {
-      throw const FormatException('Cloud cover response must be an object');
+    _coverRequests[cacheKey] = request;
+    try {
+      return await request;
+    } finally {
+      if (identical(_coverRequests[cacheKey], request)) {
+        _coverRequests.remove(cacheKey);
+      }
     }
+  }
 
-    final url = data['url']?.toString() ?? '';
-    if (url.isEmpty) return '';
+  Future<String> _fetchCoverArtUrl(
+    Song song, {
+    required String coverArtId,
+    required int size,
+    required String cacheKey,
+    required String detailCacheKey,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '$_cloudBaseUrl/v1/music/cover',
+        queryParameters: {
+          'id': coverArtId,
+          'source': song.onlineSource ?? 'netease',
+          if (song.onlineProvider?.isNotEmpty ?? false)
+            'provider': song.onlineProvider,
+          'size': size,
+        },
+        options: _cloudOptions(),
+      );
+      final data = response.data;
+      if (data is! Map) {
+        throw const FormatException('Cloud cover response must be an object');
+      }
+      final url = data['url']?.toString() ?? '';
+      if (url.isEmpty) {
+        _cacheMissingCover(detailCacheKey);
+        return '';
+      }
+      _coverArtCache[cacheKey] = url;
+      return url;
+    } on DioException catch (error) {
+      final detail = error.response?.data is Map
+          ? (error.response?.data as Map)['detail']?.toString() ?? ''
+          : '';
+      if (detail.contains('cover empty') ||
+          detail.contains('music adapter unavailable')) {
+        _cacheMissingCover(detailCacheKey);
+        return '';
+      }
+      rethrow;
+    }
+  }
 
-    _coverArtCache[cacheKey] = url;
-    return url;
+  void _cacheMissingCover(String key) {
+    _missingCoverCache[key] = DateTime.now().add(_missingMediaCacheTtl);
   }
 
   Future<String?> queueNasDownload({
@@ -455,6 +507,11 @@ class BackendClient {
     final lyricId = song.lyricId ?? song.id;
     final cached = _lyricsCache[_mediaCacheKey(song, lyricId)];
     if (cached != null) return _parseLyrics(cached);
+    final missingUntil = _missingLyricsCache[_mediaCacheKey(song, lyricId)];
+    if (missingUntil != null && missingUntil.isAfter(DateTime.now())) {
+      return null;
+    }
+    _missingLyricsCache.remove(_mediaCacheKey(song, lyricId));
     debugPrint('[Backend] getLyrics: source=${song.onlineSource ?? 'unknown'}');
     final response = await _dio.get(
       '$_cloudBaseUrl/v1/music/lyric',
@@ -479,7 +536,12 @@ class BackendClient {
     debugPrint(
       '[Backend] getLyrics: lyric length=${lyric.length}, empty=${lyric.isEmpty}',
     );
-    if (lyric.isEmpty) return null;
+    if (lyric.isEmpty) {
+      _missingLyricsCache[_mediaCacheKey(song, lyricId)] = DateTime.now().add(
+        _missingMediaCacheTtl,
+      );
+      return null;
+    }
 
     return _parseLyrics(lyric);
   }

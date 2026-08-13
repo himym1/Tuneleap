@@ -72,7 +72,10 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "优化在线歌曲播放速度；修复搜索结果封面请求过多，并恢复可用的封面和歌词。"
+    "changelog": (
+        "搜索 API额度耗尽时自动切换可用服务；切换 API后自动回到可用平台；"
+        "缺失封面和歌词不再持续显示加载状态。"
+    )
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

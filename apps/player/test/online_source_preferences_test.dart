@@ -1,9 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/models/music_capabilities.dart';
+import 'package:navidrome_player/providers/audio_providers.dart';
 import 'package:navidrome_player/providers/online_source_preferences.dart';
 import 'package:navidrome_player/providers/server_config_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class _CapabilitiesBackendClient extends BackendClient {
+  @override
+  Future<MusicCapabilities> getMusicCapabilities() async =>
+      const MusicCapabilities(
+        defaultProvider: 'meting',
+        adapters: [
+          MusicAdapterCapability(
+            id: 'meting',
+            sources: ['netease', 'tencent', 'kugou'],
+          ),
+        ],
+      );
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -93,5 +109,34 @@ void main() {
     addTearDown(container.dispose);
 
     expect(container.read(onlineSourcePreferencesProvider), ['netease']);
+  });
+
+  test('unavailable saved adapter falls back to automatic mode', () async {
+    SharedPreferences.setMockInitialValues({
+      'active_server_id': 'server-a',
+      'server_url': 'http://a.local',
+      onlineAdapterPreferenceKey('server-a'): 'chksz',
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        backendClientProvider.overrideWithValue(_CapabilitiesBackendClient()),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      effectiveOnlineSearchAdapterProvider,
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+
+    await container.read(musicCapabilitiesProvider.future);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(container.read(onlineSearchAdapterProvider), isNull);
+    expect(prefs.getString(onlineAdapterPreferenceKey('server-a')), isNull);
   });
 }
