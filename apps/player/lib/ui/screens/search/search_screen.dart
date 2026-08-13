@@ -206,16 +206,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
 
     if (searchState.error != null && searchState.songs.isEmpty) {
-      final raw = searchState.error!;
-      final isAuth =
-          raw.contains('401') ||
-          raw.toLowerCase().contains('unauthorized') ||
-          raw.toLowerCase().contains('invalid api key');
+      final failure = searchState.error!;
+      final isAuth = failure == SearchFailure.authentication;
+      final message = switch (failure) {
+        SearchFailure.authentication => S.of(context).searchAuthRequired,
+        SearchFailure.rateLimited => S.of(context).searchRateLimited,
+        SearchFailure.unavailable => S.of(context).searchServiceUnavailable,
+        SearchFailure.unknown => S.of(context).searchFailedTryAgain,
+      };
       return EmptyState(
         icon: isAuth ? Icons.lock_outline : Icons.error_outline,
-        message: isAuth
-            ? S.of(context).searchAuthRequired
-            : S.of(context).searchError(raw),
+        message: message,
         actionLabel: isAuth ? S.of(context).cloudSignIn : null,
         onAction: isAuth
             ? () async {

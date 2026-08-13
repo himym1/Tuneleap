@@ -370,6 +370,9 @@
       "error": { "type": "String" }
     }
   },
+  "searchRateLimited": "搜索请求过于频繁，请稍后重试。",
+  "searchServiceUnavailable": "当前搜索服务暂不可用。",
+  "searchFailedTryAgain": "搜索失败，请重试。",
     "searchResults": "搜索结果",
     "searchLoadMore": "加载更多",
     "searchLoadingMore": "加载中…",

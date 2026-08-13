@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "搜索 API 可选自动、Meting、GDStudio 或 ChKSz；平台标签会按所选 API 的实际能力自动切换。"
+    "changelog": "修复多平台搜索触发上游限流的问题；桌面端搜索框现在支持输入空格。"
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

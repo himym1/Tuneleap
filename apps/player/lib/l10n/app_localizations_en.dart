@@ -730,6 +730,17 @@ class SEn extends S {
   }
 
   @override
+  String get searchRateLimited =>
+      'Too many searches. Please try again shortly.';
+
+  @override
+  String get searchServiceUnavailable =>
+      'This search service is temporarily unavailable.';
+
+  @override
+  String get searchFailedTryAgain => 'Search failed. Please try again.';
+
+  @override
   String get searchResults => 'Search Results';
 
   @override

@@ -1417,6 +1417,24 @@ abstract class S {
   /// **'搜索失败: {error}'**
   String searchError(String error);
 
+  /// No description provided for @searchRateLimited.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索请求过于频繁，请稍后重试。'**
+  String get searchRateLimited;
+
+  /// No description provided for @searchServiceUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前搜索服务暂不可用。'**
+  String get searchServiceUnavailable;
+
+  /// No description provided for @searchFailedTryAgain.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索失败，请重试。'**
+  String get searchFailedTryAgain;
+
   /// No description provided for @searchResults.
   ///
   /// In zh, this message translates to:
