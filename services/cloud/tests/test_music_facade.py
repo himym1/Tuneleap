@@ -426,6 +426,54 @@ async def test_is_playable_falls_back_after_preferred_provider_error():
     assert playable is True
     assert calls == ["meting", "gdstudio"]
 
+class _MediaAdapter:
+    def __init__(self, name: str, result: dict | Exception, calls: list[str]):
+        self.name = name
+        self.result = result
+        self.calls = calls
+
+    async def get_url(self, id: str, *, source: str, br: int) -> dict:
+        self.calls.append(self.name)
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.result
+
+
+@pytest.mark.asyncio
+async def test_media_request_pins_explicit_provider_without_fallback():
+    calls: list[str] = []
+    async with httpx.AsyncClient() as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                gdstudio_api_base_urls="",
+                meting_api_base_urls="",
+            ),
+        )
+    facade._adapters = [  # type: ignore[assignment]
+        _MediaAdapter("chksz", httpx.HTTPError("down"), calls),
+        _MediaAdapter(
+            "meting",
+            {
+                "url": "https://cdn.example.com/wrong.mp3",
+                "provider": "meting",
+                "source": "netease",
+            },
+            calls,
+        ),
+    ]
+
+    with pytest.raises(httpx.HTTPError, match="down"):
+        await facade.get_url(
+            "provider-specific-id",
+            source="netease",
+            br=320,
+            provider="chksz",
+        )
+
+    assert calls == ["chksz"]
+
 
 @pytest.mark.asyncio
 async def test_recommendation_playability_forwards_winning_provider():

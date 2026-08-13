@@ -47,6 +47,8 @@ class UrlResponse(BaseModel):
     br: Optional[int] = None
     provider: str
     source: str
+    cover_url: Optional[str] = None
+    lyric: Optional[str] = None
 
 
 class CoverResponse(BaseModel):

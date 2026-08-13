@@ -19,6 +19,7 @@ class NasDuplicateException implements Exception {
 /// - cloud: Bearer-authenticated search, media, recommendations, and updates
 /// - nas agent: API-key-authenticated import/delete only
 class BackendClient {
+  static const _playbackUrlCacheTtl = Duration(seconds: 60);
   static const _cloudRetryKey = 'cloud-auth-retried';
 
   late final Dio _dio;
@@ -27,6 +28,8 @@ class BackendClient {
   String _nasBaseUrl = '';
   String _nasAgentKey = '';
   final Map<String, String> _coverArtCache = {};
+  final Map<String, (String, DateTime)> _playbackUrlCache = {};
+  final Map<String, String> _lyricsCache = {};
 
   BackendClient({Dio? dio, CloudTokenProvider? cloudTokenProvider})
     : _cloudTokenProvider = cloudTokenProvider {
@@ -61,7 +64,13 @@ class BackendClient {
     final resolvedCloud = cloudBaseUrl.isNotEmpty
         ? cloudBaseUrl
         : (baseUrl ?? '');
-    _cloudBaseUrl = _normalizeBaseUrl(resolvedCloud);
+    final normalizedCloud = _normalizeBaseUrl(resolvedCloud);
+    if (_cloudBaseUrl != normalizedCloud) {
+      _coverArtCache.clear();
+      _playbackUrlCache.clear();
+      _lyricsCache.clear();
+    }
+    _cloudBaseUrl = normalizedCloud;
     _nasBaseUrl = _normalizeBaseUrl(nasAgentUrl);
     _nasAgentKey = nasAgentKey;
     debugPrint(
@@ -239,14 +248,24 @@ class BackendClient {
   }
 
   Future<String> getPlaybackUrl(Song song, {int? maxBitRate}) async {
+    final id = song.urlId ?? song.id;
+    final source = song.onlineSource ?? 'netease';
+    final provider = song.onlineProvider ?? '';
+    final bitRate = _qualityFromBitRate(maxBitRate);
+    final cacheKey = '$provider:$source:$id:$bitRate';
+    final cached = _playbackUrlCache[cacheKey];
+    if (cached != null && cached.$2.isAfter(DateTime.now())) {
+      return cached.$1;
+    }
+    _playbackUrlCache.remove(cacheKey);
+
     final response = await _dio.get(
       '$_cloudBaseUrl/v1/music/url',
       queryParameters: {
-        'id': song.urlId ?? song.id,
-        'source': song.onlineSource ?? 'netease',
-        if (song.onlineProvider?.isNotEmpty ?? false)
-          'provider': song.onlineProvider,
-        'br': _qualityFromBitRate(maxBitRate),
+        'id': id,
+        'source': source,
+        if (provider.isNotEmpty) 'provider': provider,
+        'br': bitRate,
       },
       options: _cloudOptions(),
     );
@@ -259,8 +278,27 @@ class BackendClient {
     if (url.isEmpty) {
       throw const FormatException('Cloud url response missing url');
     }
+    _playbackUrlCache[cacheKey] = (
+      url,
+      DateTime.now().add(_playbackUrlCacheTtl),
+    );
+
+    final coverUrl = data['cover_url']?.toString() ?? '';
+    if (coverUrl.isNotEmpty) {
+      _coverArtCache[_coverCacheKey(song, id)] = coverUrl;
+    }
+    final lyric = data['lyric']?.toString() ?? '';
+    if (lyric.isNotEmpty) {
+      _lyricsCache[_mediaCacheKey(song, id)] = lyric;
+    }
     return url;
   }
+
+  String _mediaCacheKey(Song song, String id) =>
+      '${song.onlineProvider}:${song.onlineSource}:$id';
+
+  String _coverCacheKey(Song song, String id) =>
+      '${_mediaCacheKey(song, id)}:300';
 
   String buildCoverProxyUrl(Song song, {int size = 300}) {
     final coverArtId = song.coverArt;
@@ -281,9 +319,18 @@ class BackendClient {
   }
 
   Future<String> resolveCoverArtUrl(Song song, {int size = 300}) async {
+    final detailCacheKey = _coverCacheKey(song, song.urlId ?? song.id);
+    final detailCached = _coverArtCache[detailCacheKey];
+    if (detailCached != null) return detailCached;
+
     final coverArtId = song.coverArt;
     if (coverArtId == null || coverArtId.isEmpty) return '';
-
+    final direct = Uri.tryParse(coverArtId);
+    if (direct != null &&
+        (direct.scheme == 'http' || direct.scheme == 'https') &&
+        direct.host.isNotEmpty) {
+      return direct.toString();
+    }
     final cacheKey =
         '${song.onlineProvider}:${song.onlineSource}:$coverArtId:$size';
     final cached = _coverArtCache[cacheKey];
@@ -406,6 +453,8 @@ class BackendClient {
 
   Future<LyricsList?> getLyrics(Song song) async {
     final lyricId = song.lyricId ?? song.id;
+    final cached = _lyricsCache[_mediaCacheKey(song, lyricId)];
+    if (cached != null) return _parseLyrics(cached);
     debugPrint('[Backend] getLyrics: source=${song.onlineSource ?? 'unknown'}');
     final response = await _dio.get(
       '$_cloudBaseUrl/v1/music/lyric',
@@ -432,15 +481,17 @@ class BackendClient {
     );
     if (lyric.isEmpty) return null;
 
+    return _parseLyrics(lyric);
+  }
+
+  LyricsList? _parseLyrics(String lyric) {
     final lines = lyric
         .split('\n')
         .map((rawLine) => rawLine.trim())
         .where((line) => line.isNotEmpty)
         .expand(_parseLrcLine)
         .toList();
-
     if (lines.isEmpty) return null;
-
     return LyricsList(
       lines: lines,
       synced: lines.any((line) => line.startMs != null),

@@ -116,5 +116,5 @@ async def recommendation_exception_handler(request: Request, exc: Exception):
 
 async def recommendation_rate_limit_handler(request: Request, exc: RateLimitExceeded):
     if not _is_recommendation(request):
-        return await _rate_limit_exceeded_handler(request, exc)
+        return _rate_limit_exceeded_handler(request, exc)
     return error_response(429, "recommendation_rate_limited", "rate limit exceeded", True)

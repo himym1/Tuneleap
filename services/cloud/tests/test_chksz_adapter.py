@@ -265,3 +265,72 @@ async def test_chksz_url_keeps_not_found_as_error():
         )
         with pytest.raises(httpx.HTTPStatusError):
             await adapter.get_url("missing", source="kugou", br=320)
+
+@pytest.mark.asyncio
+async def test_chksz_search_without_real_cover_does_not_invent_cover_id():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 200,
+                "list": [
+                    {
+                        "name": "Bad Boy",
+                        "singer": "Artist",
+                        "mid": "qq-1",
+                    }
+                ],
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+        )
+        songs = await adapter.search(
+            "Bad Boy", source="tencent", count=1, page=1
+        )
+
+    assert songs[0]["cover_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_chksz_reuses_detail_for_url_cover_and_lyric():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(
+            200,
+            json={
+                "code": 200,
+                "url": "https://cdn.example.com/song.mp3",
+                "cover": "https://cdn.example.com/cover.jpg",
+                "lrc": "[00:01.00]First line",
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+        )
+        playback = await adapter.get_url("qq-1", source="tencent", br=320)
+        cover = await adapter.get_cover("qq-1", source="tencent", size=300)
+        lyric = await adapter.get_lyric("qq-1", source="tencent")
+        repeated = await adapter.get_url("qq-1", source="tencent", br=320)
+
+    assert calls == 1
+    assert playback["cover_url"].endswith("cover.jpg")
+    assert playback["lyric"] == "[00:01.00]First line"
+    assert cover["url"].endswith("cover.jpg")
+    assert lyric["lyric"] == "[00:01.00]First line"
+    assert repeated["url"].endswith("song.mp3")
