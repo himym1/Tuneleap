@@ -24,11 +24,11 @@ No auth.
 | Param | Required | Notes |
 |---|---|---|
 | `q` | yes | User search string |
-| `source` | no | Preferred platform; configured search sources are fallback candidates |
+| `source` | no | Platform id: `netease`, `tencent` (`qq` accepted), `kugou`, `migu`, `joox`, `kuwo`. When set, search stays on that platform. When omitted, Cloud walks `MUSIC_SEARCH_SOURCES`. |
 | `count` | no | default 20, max 50 |
 | `page` | no | default 1 |
 
-For `page > 1`, reuse the `source` returned by page 1; later pages do not switch sources.
+An explicit `source` is pinned. Do not send a source if you want first-success across configured platforms. For `page > 1` without `source`, Cloud stays on the first configured search source.
 
 Success:
 

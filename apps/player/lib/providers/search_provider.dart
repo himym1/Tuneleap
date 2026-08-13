@@ -44,11 +44,15 @@ class SearchState {
   }
 }
 
-final searchProvider = NotifierProvider<SearchNotifier, SearchState>(
-  SearchNotifier.new,
-);
+final searchProvider =
+    NotifierProvider.family<SearchNotifier, SearchState, String>(
+      SearchNotifier.new,
+    );
 
 class SearchNotifier extends Notifier<SearchState> {
+  SearchNotifier(this.source);
+
+  final String source;
   CancelToken? _cancelToken;
   String _query = '';
   int _page = 0;
@@ -94,6 +98,7 @@ class SearchNotifier extends Notifier<SearchState> {
           .read(backendClientProvider)
           .searchSongs(
             trimmed,
+            source: source,
             count: _searchPageSize,
             page: 1,
             cancelToken: cancelToken,
@@ -131,7 +136,12 @@ class SearchNotifier extends Notifier<SearchState> {
     try {
       final result = await ref
           .read(backendClientProvider)
-          .searchSongs(query, count: _searchPageSize, page: nextPage);
+          .searchSongs(
+            query,
+            source: source,
+            count: _searchPageSize,
+            page: nextPage,
+          );
       if (generation != _generation || query != _query) return;
       final seen = existing.map((song) => song.storageKey).toSet();
       final appended = result

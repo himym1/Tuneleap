@@ -72,7 +72,7 @@ data = {
         "url": f"{origin}/{macos_name}",
         "sha256": digest(macos_name),
     },
-    "changelog": "播放队列每首歌曲新增弹出操作菜单，可直接加入歌单、收藏、播放或删除本地歌曲。"
+    "changelog": "在线搜索新增可配置音乐源，并按网易云、QQ、酷狗、咪咕、JOOX 分标签展示结果。"
 }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

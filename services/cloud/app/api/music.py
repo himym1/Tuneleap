@@ -4,6 +4,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.core.auth import verify_api_key
 from app.core.limiter import limiter
+from app.core.sources import canonicalize_music_source
 from app.models.schemas import (
     CoverResponse,
     LyricResponse,
@@ -41,7 +42,8 @@ async def search(
     request: Request,
     q: str = Query(..., min_length=1, max_length=200, description="Search query"),
     source: str | None = Query(
-        None, description="Optional preferred platform hint, not multi-merge"
+        None,
+        description="Pinned platform when set; omit to walk MUSIC_SEARCH_SOURCES",
     ),
     count: int = Query(20, ge=1, le=50),
     page: int = Query(1, ge=1),
@@ -50,7 +52,7 @@ async def search(
     facade = _facade(request)
     try:
         return await facade.search_first_success(
-            q, source=source, count=count, page=page
+            q, source=canonicalize_music_source(source), count=count, page=page
         )
     except HTTPException:
         raise
@@ -69,7 +71,12 @@ async def get_url(
 ):
     facade = _facade(request)
     try:
-        return await facade.get_url(id, source=source, br=br, provider=provider)
+        return await facade.get_url(
+            id,
+            source=canonicalize_music_source(source) or source,
+            br=br,
+            provider=provider,
+        )
     except Exception as exc:  # noqa: BLE001
         raise _map_upstream(exc) from exc
 
@@ -85,7 +92,12 @@ async def get_cover(
 ):
     facade = _facade(request)
     try:
-        return await facade.get_cover(id, source=source, size=size, provider=provider)
+        return await facade.get_cover(
+            id,
+            source=canonicalize_music_source(source) or source,
+            size=size,
+            provider=provider,
+        )
     except Exception as exc:  # noqa: BLE001
         raise _map_upstream(exc) from exc
 
@@ -100,6 +112,10 @@ async def get_lyric(
 ):
     facade = _facade(request)
     try:
-        return await facade.get_lyric(id, source=source, provider=provider)
+        return await facade.get_lyric(
+            id,
+            source=canonicalize_music_source(source) or source,
+            provider=provider,
+        )
     except Exception as exc:  # noqa: BLE001
         raise _map_upstream(exc) from exc

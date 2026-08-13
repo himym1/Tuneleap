@@ -1001,10 +1001,28 @@ class SZh extends S {
   String get searchBackendNetease => '网易云';
 
   @override
+  String get searchBackendTencent => 'QQ';
+
+  @override
+  String get searchBackendKugou => '酷狗';
+
+  @override
+  String get searchBackendMigu => '咪咕';
+
+  @override
   String get searchBackendKuwo => '酷我';
 
   @override
   String get searchBackendJoox => 'JOOX';
+
+  @override
+  String get settingsOnlineSources => '在线搜索源';
+
+  @override
+  String get settingsOnlineSourcesHint => '按平台分开搜索。请求仍走 Cloud，不用在 App 里填第三方密钥。';
+
+  @override
+  String get settingsOnlineSourcesKeepOne => '至少保留一个搜索源';
 
   @override
   String get searchFilterOnline => '在线';

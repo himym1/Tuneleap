@@ -40,8 +40,12 @@ The current bounded benchmark recommends Meting first and GDStudio second:
 
 ```env
 METING_API_BASE_URLS=https://meting.mikus.ink/api
-MUSIC_ADAPTER_ORDER=meting,gdstudio
+MUSIC_ADAPTER_ORDER=meting,gdstudio,chksz
+CHKSZ_API_BASE_URL=https://api.chksz.com
+CHKSZ_API_KEY=
 ```
+
+Leave `CHKSZ_API_KEY` empty until a key is available. Do not put ChKSz first.
 
 The public Meting endpoint is third-party infrastructure. A self-hosted `ghcr.io/metowolf/meting-api` instance should replace it only after configuring a NetEase cookie and passing `scripts/probe_meting_playability.py`. See `reports/music-upstream-benchmark.md` for evidence.
 

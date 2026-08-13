@@ -1939,6 +1939,24 @@ abstract class S {
   /// **'网易云'**
   String get searchBackendNetease;
 
+  /// No description provided for @searchBackendTencent.
+  ///
+  /// In zh, this message translates to:
+  /// **'QQ'**
+  String get searchBackendTencent;
+
+  /// No description provided for @searchBackendKugou.
+  ///
+  /// In zh, this message translates to:
+  /// **'酷狗'**
+  String get searchBackendKugou;
+
+  /// No description provided for @searchBackendMigu.
+  ///
+  /// In zh, this message translates to:
+  /// **'咪咕'**
+  String get searchBackendMigu;
+
   /// No description provided for @searchBackendKuwo.
   ///
   /// In zh, this message translates to:
@@ -1950,6 +1968,24 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'JOOX'**
   String get searchBackendJoox;
+
+  /// No description provided for @settingsOnlineSources.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线搜索源'**
+  String get settingsOnlineSources;
+
+  /// No description provided for @settingsOnlineSourcesHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'按平台分开搜索。请求仍走 Cloud，不用在 App 里填第三方密钥。'**
+  String get settingsOnlineSourcesHint;
+
+  /// No description provided for @settingsOnlineSourcesKeepOne.
+  ///
+  /// In zh, this message translates to:
+  /// **'至少保留一个搜索源'**
+  String get settingsOnlineSourcesKeepOne;
 
   /// No description provided for @searchFilterOnline.
   ///

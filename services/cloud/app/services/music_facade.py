@@ -8,9 +8,11 @@ from typing import Any
 import httpx
 
 from app.adapters.base import MusicAdapter
+from app.adapters.chksz import ChkszAdapter
 from app.adapters.gdstudio import GdstudioAdapter
 from app.adapters.meting import MetingAdapter
 from app.core.config import Settings
+from app.core.sources import canonicalize_music_source
 from app.models.schemas import (
     CoverResponse,
     LyricResponse,
@@ -42,6 +44,13 @@ class MusicFacade:
                 cooldown_seconds=cooldown,
                 timeout=timeout,
             )
+        if settings.chksz_api_key.strip() and settings.chksz_base:
+            available["chksz"] = ChkszAdapter(
+                client,
+                settings.chksz_base,
+                settings.chksz_api_key.strip(),
+                timeout=timeout,
+            )
         self._adapters = [
             available.pop(name)
             for name in settings.music_adapter_order_list
@@ -62,9 +71,10 @@ class MusicFacade:
         return None
 
     def _search_sources(self, preferred: str | None) -> tuple[str | None, ...]:
-        sources = [preferred.strip().lower()] if preferred and preferred.strip() else []
-        sources.extend(self._settings.music_search_source_list)
-        return tuple(dict.fromkeys(sources)) or (None,)
+        pinned = canonicalize_music_source(preferred)
+        if pinned:
+            return (pinned,)
+        return self._settings.music_search_source_list or (None,)
 
     async def search_first_success(
         self, query: str, *, source: str | None, count: int, page: int
@@ -190,27 +200,30 @@ class MusicFacade:
     async def get_url(
         self, id: str, *, source: str, br: int, provider: str | None = None
     ) -> UrlResponse:
+        resolved = canonicalize_music_source(source) or source
         data = await self._with_adapters(
             provider,
-            lambda adapter: adapter.get_url(id, source=source, br=br),
+            lambda adapter: adapter.get_url(id, source=resolved, br=br),
         )
         return UrlResponse.model_validate(data)
 
     async def get_cover(
         self, id: str, *, source: str, size: int, provider: str | None = None
     ) -> CoverResponse:
+        resolved = canonicalize_music_source(source) or source
         data = await self._with_adapters(
             provider,
-            lambda adapter: adapter.get_cover(id, source=source, size=size),
+            lambda adapter: adapter.get_cover(id, source=resolved, size=size),
         )
         return CoverResponse.model_validate(data)
 
     async def get_lyric(
         self, id: str, *, source: str, provider: str | None = None
     ) -> LyricResponse:
+        resolved = canonicalize_music_source(source) or source
         data = await self._with_adapters(
             provider,
-            lambda adapter: adapter.get_lyric(id, source=source),
+            lambda adapter: adapter.get_lyric(id, source=resolved),
         )
         return LyricResponse.model_validate(data)
 
