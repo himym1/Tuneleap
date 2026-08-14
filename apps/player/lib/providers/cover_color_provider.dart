@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:palette_generator/palette_generator.dart';
 import 'package:navidrome_player/api/media_request_headers.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/utils/cover_color.dart';
 
 // ============================================================
 // 封面取色 — 从封面 URL 提取主色调
@@ -17,18 +17,10 @@ final coverColorProvider = FutureProvider.family<Color, String>((
 ) async {
   if (url.isEmpty) return AppColors.primary;
   try {
-    final generator = await PaletteGenerator.fromImageProvider(
+    return await extractCoverSeedColorFromProvider(
       CachedNetworkImageProvider(url, headers: mediaRequestHeaders(url)),
-      size: const Size(100, 100),
-      timeout: const Duration(seconds: 5),
+      fallback: AppColors.primary,
     );
-    // 优先选择鲜艳色，其次亮鲜艳色/暗鲜艳色，最后主色调
-    return generator.vibrantColor?.color ??
-        generator.lightVibrantColor?.color ??
-        generator.darkVibrantColor?.color ??
-        generator.mutedColor?.color ??
-        generator.dominantColor?.color ??
-        AppColors.primary;
   } catch (_) {
     return AppColors.primary;
   }
