@@ -80,7 +80,9 @@ class _LibraryAlbumArtistsScreenState
       serverConfigProvider.select((config) => config.serverId),
     );
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
-    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
+    final h = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -109,9 +111,7 @@ class _LibraryAlbumArtistsScreenState
           ),
           Expanded(
             child: artistsAsync.when(
-              loading: () => Center(
-                child: const CircularProgressIndicator(),
-              ),
+              loading: () => Center(child: const CircularProgressIndicator()),
               error: (_, _) => Center(
                 child: Text(
                   S.of(context).libraryNoArtists,

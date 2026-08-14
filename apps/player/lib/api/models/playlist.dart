@@ -28,7 +28,11 @@ class Playlist {
       duration: json['duration'] as int?,
       coverArt: json['coverArt'] as String?,
       owner: json['owner'] as String?,
-      songs: entries?.map((e) => Song.fromJson(e as Map<String, dynamic>)).toList() ?? [],
+      songs:
+          entries
+              ?.map((e) => Song.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 }

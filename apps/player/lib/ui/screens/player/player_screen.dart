@@ -410,98 +410,93 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               return Stack(
                 children: [
                   NotificationListener<ScrollNotification>(
-                      onNotification: (notification) {
-                        if (notification is UserScrollNotification) {
-                          if (!_userScrolling &&
-                              _lyricsScrollController.hasClients) {
-                            // First scroll event: immediately calculate seek line
-                            final offset = _lyricsScrollController.offset;
-                            final viewportH = _lyricsScrollController
-                                .position
-                                .viewportDimension;
-                            final centerOffset = offset + viewportH / 2 - 24;
-                            final idx =
-                                (centerOffset / AppDimensions.lyricsLineHeight)
-                                    .round()
-                                    .clamp(0, lyrics.length - 1);
-                            _seekLineIndex = idx;
-                          }
-                          setState(() => _userScrolling = true);
-                          _userScrollTimer?.cancel();
-                          _userScrollTimer = Timer(
-                            const Duration(seconds: 3),
-                            () {
-                              if (mounted) {
-                                setState(() => _userScrolling = false);
-                              }
-                            },
-                          );
-                        }
-                        if (notification is ScrollUpdateNotification &&
-                            _userScrolling &&
+                    onNotification: (notification) {
+                      if (notification is UserScrollNotification) {
+                        if (!_userScrolling &&
                             _lyricsScrollController.hasClients) {
+                          // First scroll event: immediately calculate seek line
                           final offset = _lyricsScrollController.offset;
                           final viewportH = _lyricsScrollController
                               .position
                               .viewportDimension;
-                          final centerOffset =
-                              offset +
-                              viewportH / 2 -
-                              24; // subtract top padding
+                          final centerOffset = offset + viewportH / 2 - 24;
                           final idx =
                               (centerOffset / AppDimensions.lyricsLineHeight)
                                   .round()
                                   .clamp(0, lyrics.length - 1);
-                          if (idx != _seekLineIndex) {
-                            setState(() => _seekLineIndex = idx);
-                          }
+                          _seekLineIndex = idx;
                         }
-                        return false;
-                      },
-                      child: ListView.builder(
-                        controller: _lyricsScrollController,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 24,
-                          horizontal: 16,
-                        ),
-                        itemCount: lyrics.length,
-                        itemBuilder: (context, index) {
-                          final isActive = index == activeIndex;
-                          return SizedBox(
-                            height: AppDimensions.lyricsLineHeight,
-                            child: Center(
-                              child: AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 200),
-                                style: TextStyle(
-                                  fontSize: isActive ? 18 : 14,
-                                  fontWeight: isActive
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                  color: isActive
-                                      ? (activeFg ?? context.colors.primary)
-                                      : (inactiveFg ??
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant),
-                                  shadows: [
-                                    Shadow(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .surface
-                                          .withValues(alpha: 0.8),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  lyrics[index].text,
-                                  textAlign: TextAlign.center,
-                                ),
+                        setState(() => _userScrolling = true);
+                        _userScrollTimer?.cancel();
+                        _userScrollTimer = Timer(
+                          const Duration(seconds: 3),
+                          () {
+                            if (mounted) {
+                              setState(() => _userScrolling = false);
+                            }
+                          },
+                        );
+                      }
+                      if (notification is ScrollUpdateNotification &&
+                          _userScrolling &&
+                          _lyricsScrollController.hasClients) {
+                        final offset = _lyricsScrollController.offset;
+                        final viewportH =
+                            _lyricsScrollController.position.viewportDimension;
+                        final centerOffset =
+                            offset + viewportH / 2 - 24; // subtract top padding
+                        final idx =
+                            (centerOffset / AppDimensions.lyricsLineHeight)
+                                .round()
+                                .clamp(0, lyrics.length - 1);
+                        if (idx != _seekLineIndex) {
+                          setState(() => _seekLineIndex = idx);
+                        }
+                      }
+                      return false;
+                    },
+                    child: ListView.builder(
+                      controller: _lyricsScrollController,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
+                      itemCount: lyrics.length,
+                      itemBuilder: (context, index) {
+                        final isActive = index == activeIndex;
+                        return SizedBox(
+                          height: AppDimensions.lyricsLineHeight,
+                          child: Center(
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: TextStyle(
+                                fontSize: isActive ? 18 : 14,
+                                fontWeight: isActive
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: isActive
+                                    ? (activeFg ?? context.colors.primary)
+                                    : (inactiveFg ??
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant),
+                                shadows: [
+                                  Shadow(
+                                    color: Theme.of(context).colorScheme.surface
+                                        .withValues(alpha: 0.8),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                lyrics[index].text,
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                   // Seek timeline indicator (shown during user scroll)
                   Positioned(
@@ -583,8 +578,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             style: Theme.of(context).textTheme.songSubtitle.copyWith(
               fontSize: 15,
               color:
-                  inactiveFg ??
-                  Theme.of(context).colorScheme.onSurfaceVariant,
+                  inactiveFg ?? Theme.of(context).colorScheme.onSurfaceVariant,
               shadows: [
                 Shadow(
                   color: Theme.of(
@@ -626,143 +620,153 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       child: Focus(
         autofocus: true,
         child: StreamBuilder<Song?>(
-      stream: playerService.currentSongStream,
-      builder: (context, snapshot) {
-        final currentSong = snapshot.data ?? playerService.currentSong;
+          stream: playerService.currentSongStream,
+          builder: (context, snapshot) {
+            final currentSong = snapshot.data ?? playerService.currentSong;
 
-        if (currentSong == null) {
-          return Scaffold(
-            backgroundColor: Colors.transparent,
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.music_off,
-                    size: 80,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    S.of(context).playerNoContent,
-                    style: Theme.of(context).textTheme.playerSongName.copyWith(
-                      fontWeight: FontWeight.normal,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    S.of(context).playerNoContentHint,
-                    style: Theme.of(context).textTheme.playerSubtitle.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return FutureBuilder<String>(
-          future: resolver.coverArtUrl(currentSong, size: 300),
-          builder: (context, coverSnapshot) {
-            final coverUrl = coverSnapshot.data ?? '';
-            final accentColor = coverUrl.isEmpty
-                ? context.colors.primary
-                : (ref.watch(coverColorProvider(coverUrl)).value ??
-                      context.colors.primary);
-            final isMobile = AppBreakpoints.isMobile(
-              MediaQuery.of(context).size.width,
-            );
-            final surfaceColor = Theme.of(context).colorScheme.surface;
-            // 使用不透明预混色，避免半透明渲染导致不可预测的对比度
-            final gradientTop = Color.lerp(surfaceColor, accentColor, 0.45)!;
-
-            return Scaffold(
-              backgroundColor: surfaceColor,
-              body: isMobile
-                  // ── 移动端：原有渐变 ──
-                  ? AnimatedContainer(
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.easeInOut,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [gradientTop, surfaceColor],
-                          stops: const [0.0, 0.65],
-                        ),
+            if (currentSong == null) {
+              return Scaffold(
+                backgroundColor: Colors.transparent,
+                body: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.music_off,
+                        size: 80,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                       ),
-                      child: _buildDismissibleMobilePlayer(
-                        context,
-                        currentSong,
-                        playerService,
-                        coverUrl,
-                        accentColor,
-                      ),
-                    )
-                  // ── 桌面端：模糊封面背景 + 渐变叠加 ──
-                  : Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // 层 1：模糊封面图
-                        if (coverUrl.isNotEmpty)
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 800),
-                            child: SizedBox.expand(
-                              key: ValueKey(coverUrl),
-                              child: ImageFiltered(
-                                imageFilter: ImageFilter.blur(
-                                  sigmaX: 80,
-                                  sigmaY: 80,
-                                ),
-                                child: Opacity(
-                                  opacity: 0.18,
-                                  child: Image.network(
-                                    coverUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) =>
-                                        const SizedBox.shrink(),
-                                  ),
-                                ),
-                              ),
+                      const SizedBox(height: 20),
+                      Text(
+                        S.of(context).playerNoContent,
+                        style: Theme.of(context).textTheme.playerSongName
+                            .copyWith(
+                              fontWeight: FontWeight.normal,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
-                          ),
-                        // 层 2：半透明渐变叠加层（保证文字可读性）
-                        AnimatedContainer(
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        S.of(context).playerNoContentHint,
+                        style: Theme.of(context).textTheme.playerSubtitle
+                            .copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return FutureBuilder<String>(
+              future: resolver.coverArtUrl(currentSong, size: 300),
+              builder: (context, coverSnapshot) {
+                final coverUrl = coverSnapshot.data ?? '';
+                final accentColor = coverUrl.isEmpty
+                    ? context.colors.primary
+                    : (ref.watch(coverColorProvider(coverUrl)).value ??
+                          context.colors.primary);
+                final isMobile = AppBreakpoints.isMobile(
+                  MediaQuery.of(context).size.width,
+                );
+                final surfaceColor = Theme.of(context).colorScheme.surface;
+                // 使用不透明预混色，避免半透明渲染导致不可预测的对比度
+                final gradientTop = Color.lerp(
+                  surfaceColor,
+                  accentColor,
+                  0.45,
+                )!;
+
+                return Scaffold(
+                  backgroundColor: surfaceColor,
+                  body: isMobile
+                      // ── 移动端：原有渐变 ──
+                      ? AnimatedContainer(
                           duration: const Duration(milliseconds: 800),
                           curve: Curves.easeInOut,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [
-                                Color.lerp(
-                                  surfaceColor,
-                                  accentColor,
-                                  0.40,
-                                )!.withValues(alpha: 0.85),
-                                surfaceColor.withValues(alpha: 0.92),
-                              ],
+                              colors: [gradientTop, surfaceColor],
+                              stops: const [0.0, 0.65],
                             ),
                           ),
+                          child: _buildDismissibleMobilePlayer(
+                            context,
+                            currentSong,
+                            playerService,
+                            coverUrl,
+                            accentColor,
+                          ),
+                        )
+                      // ── 桌面端：模糊封面背景 + 渐变叠加 ──
+                      : Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            // 层 1：模糊封面图
+                            if (coverUrl.isNotEmpty)
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 800),
+                                child: SizedBox.expand(
+                                  key: ValueKey(coverUrl),
+                                  child: ImageFiltered(
+                                    imageFilter: ImageFilter.blur(
+                                      sigmaX: 80,
+                                      sigmaY: 80,
+                                    ),
+                                    child: Opacity(
+                                      opacity: 0.18,
+                                      child: Image.network(
+                                        coverUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) =>
+                                            const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            // 层 2：半透明渐变叠加层（保证文字可读性）
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 800),
+                              curve: Curves.easeInOut,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Color.lerp(
+                                      surfaceColor,
+                                      accentColor,
+                                      0.40,
+                                    )!.withValues(alpha: 0.85),
+                                    surfaceColor.withValues(alpha: 0.92),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // 层 3：播放器内容
+                            _buildDesktopPlayer(
+                              currentSong,
+                              playerService,
+                              coverUrl,
+                              accentColor,
+                            ),
+                          ],
                         ),
-                        // 层 3：播放器内容
-                        _buildDesktopPlayer(
-                          currentSong,
-                          playerService,
-                          coverUrl,
-                          accentColor,
-                        ),
-                      ],
-                    ),
+                );
+              },
             );
           },
-        );
-      },
-    ),
+        ),
       ),
     );
   }

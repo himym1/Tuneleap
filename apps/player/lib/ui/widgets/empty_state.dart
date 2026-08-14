@@ -93,7 +93,9 @@ class ErrorState extends StatelessWidget {
                 onPressed: onRetry,
                 child: Text(
                   retryLabel ??
-                      MaterialLocalizations.of(context).modalBarrierDismissLabel,
+                      MaterialLocalizations.of(
+                        context,
+                      ).modalBarrierDismissLabel,
                 ),
               ),
             ],

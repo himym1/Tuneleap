@@ -184,9 +184,7 @@ void main() {
 
   setUpAll(initializeAppColors);
 
-  testWidgets('mobile playlist header stays above the list', (
-    tester,
-  ) async {
+  testWidgets('mobile playlist header stays above the list', (tester) async {
     await _pumpPlaylists(tester);
 
     final header = find.byKey(const Key('playlist-header-title'));

@@ -31,7 +31,10 @@ class SongTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (song.duration != null)
-            Text(song.formattedDuration, style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              song.formattedDuration,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           if (onMore != null)
             IconButton(
               icon: const Icon(Icons.more_vert, size: 20),

@@ -34,7 +34,11 @@ class Album {
       songCount: json['songCount'] as int?,
       duration: json['duration'] as int?,
       year: json['year'] as int?,
-      songs: songList?.map((s) => Song.fromJson(s as Map<String, dynamic>)).toList() ?? [],
+      songs:
+          songList
+              ?.map((s) => Song.fromJson(s as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 }

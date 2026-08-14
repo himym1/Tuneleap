@@ -26,12 +26,8 @@ class AppSegmentedTabBar extends StatelessWidget {
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         labelColor: context.colors.onEmphasis,
-        unselectedLabelColor:
-            Theme.of(context).colorScheme.onSurfaceVariant,
-        labelStyle: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
+        unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w400,

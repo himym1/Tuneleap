@@ -585,51 +585,50 @@ class _AppShellState extends ConsumerState<AppShell> {
               // 可滚动的导航区域
               Expanded(
                 child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Logo + Refresh（顶部留出 macOS 标题栏 / 红绿灯空间）
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            20,
-                            MediaQuery.of(context).padding.top +
-                                (isMacOS
-                                    ? AppDimensions.macosTrafficLightClearance
-                                    : 0) +
-                                24,
-                            12,
-                            24,
-                          ),
-                          child: isDesktop
-                              ? DragToMoveArea(child: _sidebarBrand(context))
-                              : _sidebarBrand(context),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Logo + Refresh（顶部留出 macOS 标题栏 / 红绿灯空间）
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          MediaQuery.of(context).padding.top +
+                              (isMacOS
+                                  ? AppDimensions.macosTrafficLightClearance
+                                  : 0) +
+                              24,
+                          12,
+                          24,
                         ),
+                        child: isDesktop
+                            ? DragToMoveArea(child: _sidebarBrand(context))
+                            : _sidebarBrand(context),
+                      ),
 
-                        // ── NAV section ──
-                        _buildSectionHeader(S.of(context).sidebarNav),
-                        ..._navItems.map(
-                          (item) => _buildDesktopNavItem(
-                            item,
-                            _isPathSelected(item.path, location),
-                            () => _openDesktopPath(context, item.path),
-                          ),
+                      // ── NAV section ──
+                      _buildSectionHeader(S.of(context).sidebarNav),
+                      ..._navItems.map(
+                        (item) => _buildDesktopNavItem(
+                          item,
+                          _isPathSelected(item.path, location),
+                          () => _openDesktopPath(context, item.path),
                         ),
+                      ),
 
-                        const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                        // ── MORE section ──
-                        _buildSectionHeader(S.of(context).sidebarMore),
-                        ..._moreNavItems.map(
-                          (item) => _buildDesktopNavItem(
-                            item,
-                            _isPathSelected(item.path, location),
-                            () => _openDesktopPath(context, item.path),
-                          ),
+                      // ── MORE section ──
+                      _buildSectionHeader(S.of(context).sidebarMore),
+                      ..._moreNavItems.map(
+                        (item) => _buildDesktopNavItem(
+                          item,
+                          _isPathSelected(item.path, location),
+                          () => _openDesktopPath(context, item.path),
                         ),
+                      ),
 
-                        const SizedBox(height: 24),
-                      ],
-                    ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
               ),

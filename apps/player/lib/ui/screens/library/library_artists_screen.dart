@@ -41,12 +41,16 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
   @override
   Widget build(BuildContext context) {
     final artistsAsync = ref.watch(artistsProvider);
-    final searchState = ref.watch(librarySearchProvider(LibrarySearchType.artists));
+    final searchState = ref.watch(
+      librarySearchProvider(LibrarySearchType.artists),
+    );
     final serverId = ref.watch(
       serverConfigProvider.select((config) => config.serverId),
     );
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
-    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
+    final h = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -79,9 +83,7 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
           ),
           Expanded(
             child: artistsAsync.when(
-              loading: () => Center(
-                child: const CircularProgressIndicator(),
-              ),
+              loading: () => Center(child: const CircularProgressIndicator()),
               error: (_, _) => Center(
                 child: Text(
                   S.of(context).libraryNoArtists,

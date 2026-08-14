@@ -215,73 +215,74 @@ class MiniPlayer extends ConsumerWidget {
                 // Transport controls
                 StatefulBuilder(
                   builder: (context, setLocalState) => Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.shuffle,
-                        size: 18,
-                        color: playerService.shuffle
-                            ? context.colors.primary
-                            : context.colors.onSurfaceVariant,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.shuffle,
+                          size: 18,
+                          color: playerService.shuffle
+                              ? context.colors.primary
+                              : context.colors.onSurfaceVariant,
+                        ),
+                        onPressed: () {
+                          playerService.toggleShuffle();
+                          setLocalState(() {});
+                        },
+                        tooltip: S.of(context).playerShuffle,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                       ),
-                      onPressed: () {
-                        playerService.toggleShuffle();
-                        setLocalState(() {});
-                      },
-                      tooltip: S.of(context).playerShuffle,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
+                      IconButton(
+                        icon: const Icon(Icons.skip_previous_rounded, size: 24),
+                        onPressed: () => playerService.previous(),
+                        tooltip: S.of(context).playerPrevious,
+                        iconSize: 24,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.skip_previous_rounded, size: 24),
-                      onPressed: () => playerService.previous(),
-                      tooltip: S.of(context).playerPrevious,
-                      iconSize: 24,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 36,
-                        minHeight: 36,
+                      _buildPlayPauseButton(playerService),
+                      IconButton(
+                        icon: const Icon(Icons.skip_next_rounded, size: 24),
+                        onPressed: () => playerService.next(),
+                        tooltip: S.of(context).playerNext,
+                        iconSize: 24,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
                       ),
-                    ),
-                    _buildPlayPauseButton(playerService),
-                    IconButton(
-                      icon: const Icon(Icons.skip_next_rounded, size: 24),
-                      onPressed: () => playerService.next(),
-                      tooltip: S.of(context).playerNext,
-                      iconSize: 24,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 36,
-                        minHeight: 36,
+                      IconButton(
+                        icon: Icon(
+                          playerService.repeatMode == PlaybackRepeatMode.one
+                              ? Icons.repeat_one
+                              : Icons.repeat,
+                          size: 18,
+                          color:
+                              playerService.repeatMode != PlaybackRepeatMode.off
+                              ? context.colors.primary
+                              : context.colors.onSurfaceVariant,
+                        ),
+                        onPressed: () {
+                          playerService.cycleRepeatMode();
+                          setLocalState(() {});
+                        },
+                        tooltip: S.of(context).playerRepeat,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        playerService.repeatMode == PlaybackRepeatMode.one
-                            ? Icons.repeat_one
-                            : Icons.repeat,
-                        size: 18,
-                        color: playerService.repeatMode != PlaybackRepeatMode.off
-                            ? context.colors.primary
-                            : context.colors.onSurfaceVariant,
-                      ),
-                      onPressed: () {
-                        playerService.cycleRepeatMode();
-                        setLocalState(() {});
-                      },
-                      tooltip: S.of(context).playerRepeat,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 ),
                 // Progress bar
                 _buildProgressBar(context, playerService),

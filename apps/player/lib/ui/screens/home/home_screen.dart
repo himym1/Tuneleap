@@ -269,111 +269,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           key: const Key('home-refresh-indicator'),
           onRefresh: _refresh,
           child: ListView(
-              key: const Key('home-scroll-view'),
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(h, h, h, h),
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _greeting(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.pageTitle.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+            key: const Key('home-scroll-view'),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(h, h, h, h),
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      _greeting(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.pageTitle.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    SizedBox.square(
-                      dimension: 40,
-                      child: _refreshingHome
-                          ? const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : IconButton(
-                              key: const Key('home-refresh-button'),
-                              tooltip: S.of(context).commonRefresh,
-                              onPressed: _refresh,
-                              icon: const Icon(Icons.refresh),
-                            ),
-                    ),
-                    const SizedBox(width: 4),
-                    _buildWeather(),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _buildSectionHeader(
-                  S.of(context).homeYourMusic,
-                  onMore: () => context.go('/library/songs'),
-                ),
-                const SizedBox(height: 8),
-                if (recentSongs.isNotEmpty) ...[
-                  Text(
-                    S.of(context).homeContinueListening,
-                    style: Theme.of(context).textTheme.chipLabel.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
                   ),
-                  const SizedBox(height: 6),
-                  _buildRecentSongs(recentSongs),
-                  const SizedBox(height: 12),
+                  const SizedBox(width: 8),
+                  SizedBox.square(
+                    dimension: 40,
+                    child: _refreshingHome
+                        ? const Padding(
+                            padding: EdgeInsets.all(10),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : IconButton(
+                            key: const Key('home-refresh-button'),
+                            tooltip: S.of(context).commonRefresh,
+                            onPressed: _refresh,
+                            icon: const Icon(Icons.refresh),
+                          ),
+                  ),
+                  const SizedBox(width: 4),
+                  _buildWeather(),
                 ],
-                _buildLocalActions(),
-                const SizedBox(height: 20),
-
-                _buildSectionHeader(
-                  S.of(context).homeDailyRecommend,
-                  onMore: () => context.go('/recommendations'),
-                ),
-                const SizedBox(height: 8),
-                if (recommendations.initialLoading &&
-                    recommendations.visibleItems.isEmpty)
-                  const SizedBox(
-                    height: 80,
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (recommendations.error != null &&
-                    recommendations.visibleItems.isEmpty)
-                  ErrorState(
-                    message: cloudAuthenticated
-                        ? S.of(context).commonError
-                        : S.of(context).cloudAuthRequired,
-                    onRetry: () async {
-                      if (!cloudAuthenticated) {
-                        final ok = await CloudAuthDialog.show(context);
-                        if (!ok || !mounted) return;
-                      }
-                      await ref.read(recommendationProvider.notifier).refresh();
-                    },
-                    retryLabel: cloudAuthenticated
-                        ? S.of(context).recommendationsRetry
-                        : S.of(context).cloudSignIn,
-                  )
-                else if (recommendations.visibleItems.isEmpty)
-                  EmptyState(
-                    icon: Icons.queue_music_rounded,
-                    message: S.of(context).recommendationsEmpty,
-                    actionLabel: S.of(context).recommendationsRetry,
-                    onAction: () =>
-                        ref.read(recommendationProvider.notifier).refresh(),
-                  )
-                else
-                  _buildRecommendationList(
-                    recommendations.visibleItems.take(6).toList(),
+              ),
+              const SizedBox(height: 20),
+              _buildSectionHeader(
+                S.of(context).homeYourMusic,
+                onMore: () => context.go('/library/songs'),
+              ),
+              const SizedBox(height: 8),
+              if (recentSongs.isNotEmpty) ...[
+                Text(
+                  S.of(context).homeContinueListening,
+                  style: Theme.of(context).textTheme.chipLabel.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                const SizedBox(height: 20),
-                _buildSectionHeader(
-                  S.of(context).homeNewestAlbums,
-                  onMore: () => context.go('/library/albums'),
                 ),
+                const SizedBox(height: 6),
+                _buildRecentSongs(recentSongs),
                 const SizedBox(height: 12),
-                _buildAlbumRow(newest),
               ],
-            ),
+              _buildLocalActions(),
+              const SizedBox(height: 20),
+
+              _buildSectionHeader(
+                S.of(context).homeDailyRecommend,
+                onMore: () => context.go('/recommendations'),
+              ),
+              const SizedBox(height: 8),
+              if (recommendations.initialLoading &&
+                  recommendations.visibleItems.isEmpty)
+                const SizedBox(
+                  height: 80,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (recommendations.error != null &&
+                  recommendations.visibleItems.isEmpty)
+                ErrorState(
+                  message: cloudAuthenticated
+                      ? S.of(context).commonError
+                      : S.of(context).cloudAuthRequired,
+                  onRetry: () async {
+                    if (!cloudAuthenticated) {
+                      final ok = await CloudAuthDialog.show(context);
+                      if (!ok || !mounted) return;
+                    }
+                    await ref.read(recommendationProvider.notifier).refresh();
+                  },
+                  retryLabel: cloudAuthenticated
+                      ? S.of(context).recommendationsRetry
+                      : S.of(context).cloudSignIn,
+                )
+              else if (recommendations.visibleItems.isEmpty)
+                EmptyState(
+                  icon: Icons.queue_music_rounded,
+                  message: S.of(context).recommendationsEmpty,
+                  actionLabel: S.of(context).recommendationsRetry,
+                  onAction: () =>
+                      ref.read(recommendationProvider.notifier).refresh(),
+                )
+              else
+                _buildRecommendationList(
+                  recommendations.visibleItems.take(6).toList(),
+                ),
+              const SizedBox(height: 20),
+              _buildSectionHeader(
+                S.of(context).homeNewestAlbums,
+                onMore: () => context.go('/library/albums'),
+              ),
+              const SizedBox(height: 12),
+              _buildAlbumRow(newest),
+            ],
+          ),
         ),
       ),
     );
