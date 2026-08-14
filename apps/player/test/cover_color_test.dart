@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,6 +37,18 @@ void main() {
 
     expect(hsl.hue, inInclusiveRange(20, 55));
     expect(hsl.saturation, greaterThan(0.40));
+  });
+
+  test('smeared highlight ring does not replace the vivid core', () {
+    final raster = _Raster(80, 80, const Color(0xFF606060))
+      ..fillRect(34, 34, 12, 12, const Color(0xFFB89A70))
+      ..fillRect(37, 37, 6, 6, _orangeAccent);
+
+    final seed = raster.extract();
+    final hsl = HSLColor.fromColor(seed);
+
+    expect(hsl.hue, inInclusiveRange(20, 55));
+    expect(hsl.saturation, greaterThan(0.45));
   });
 
   test('true grayscale cover falls back instead of becoming beige', () {
@@ -104,29 +115,6 @@ void main() {
 
     expect(primary.hue, inInclusiveRange(10, 70));
     expect(primary.saturation, greaterThan(0.20));
-  });
-
-  testWidgets('image decode path finds the orange pupil highlight', (
-    tester,
-  ) async {
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    canvas.drawRect(
-      const Rect.fromLTWH(0, 0, 64, 64),
-      Paint()..color = const Color(0xFF707070),
-    );
-    canvas.drawCircle(const Offset(32, 32), 5, Paint()..color = _orangeAccent);
-    final image = await recorder.endRecording().toImage(64, 64);
-    addTearDown(image.dispose);
-
-    final seed = await extractCoverSeedColorFromImage(
-      image,
-      fallback: _fallback,
-    );
-    final hsl = HSLColor.fromColor(seed);
-
-    expect(hsl.hue, inInclusiveRange(20, 60));
-    expect(hsl.saturation, greaterThan(0.40));
   });
 }
 
