@@ -7,7 +7,6 @@ import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
-import 'package:navidrome_player/utils/reorder.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 class PlaylistsScreen extends ConsumerWidget {
@@ -540,13 +539,10 @@ class PlaylistsScreen extends ConsumerWidget {
                         : ReorderableListView.builder(
                             shrinkWrap: true,
                             itemCount: songs.length,
-                            onReorder: (oldIndex, newIndex) async {
+                            onReorderItem: (oldIndex, newIndex) async {
                               final previous = List<Song>.from(songs);
                               final song = songs.removeAt(oldIndex);
-                              songs.insert(
-                                adjustedReorderIndex(oldIndex, newIndex),
-                                song,
-                              );
+                              songs.insert(newIndex, song);
                               setDialogState(() {});
                               try {
                                 await service.updatePlaylist(

@@ -16,7 +16,6 @@ import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/api/subsonic_client.dart' show LyricsLine;
 import 'package:navidrome_player/utils/cover_color.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
-import 'package:navidrome_player/utils/reorder.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/request_generation.dart';
 import 'package:navidrome_player/providers/server_scope.dart';
@@ -237,10 +236,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                 return ReorderableListView.builder(
                                   scrollController: scrollController,
                                   itemCount: queue.length,
-                                  onReorder: (oldIndex, newIndex) {
+                                  onReorderItem: (oldIndex, newIndex) {
                                     playerService.reorderQueue(
                                       oldIndex,
-                                      adjustedReorderIndex(oldIndex, newIndex),
+                                      newIndex,
                                     );
                                     setSheetState(() {});
                                     if (mounted) setState(() {});
@@ -1296,12 +1295,9 @@ class _QueuePanelState extends State<_QueuePanel> {
                       )
                     : ReorderableListView.builder(
                         itemCount: ps.queue.length,
-                        onReorder: (oldIndex, newIndex) {
+                        onReorderItem: (oldIndex, newIndex) {
                           setState(() {
-                            ps.reorderQueue(
-                              oldIndex,
-                              adjustedReorderIndex(oldIndex, newIndex),
-                            );
+                            ps.reorderQueue(oldIndex, newIndex);
                           });
                         },
                         buildDefaultDragHandles: false,
