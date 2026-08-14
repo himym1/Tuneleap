@@ -69,6 +69,14 @@ void main() {
     expect(theme.colorScheme.surfaceContainerHigh, const Color(0xFF111111));
   });
 
+  test('light theme sliders follow the seed color', () {
+    const seed = Color(0xFFFF8A00);
+    final theme = AppTheme.light(seedColor: seed);
+
+    expect(theme.sliderTheme.activeTrackColor, theme.colorScheme.primary);
+    expect(theme.sliderTheme.thumbColor, theme.colorScheme.primary);
+  });
+
   test('dynamic theme derives material and semantic colors from artwork', () {
     const artworkColor = Color(0xFFB3261E);
     final theme = AppTheme.dark(seedColor: artworkColor);

@@ -108,6 +108,11 @@ class AppTheme {
           height: 1.5,
         ),
       ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: primary,
+        thumbColor: primary,
+        inactiveTrackColor: base.colorScheme.surfaceContainerHighest,
+      ),
       segmentedButtonTheme: const SegmentedButtonThemeData(
         style: ButtonStyle(
           visualDensity: VisualDensity.compact,
@@ -285,12 +290,17 @@ extension AppTextStyles on TextTheme {
   TextStyle get settingsVersionLabel => const TextStyle(fontSize: 13);
 
   // ── Mini player compact slider ──
-  static SliderThemeData miniSliderTheme(BuildContext context) =>
-      SliderThemeData(
-        trackHeight: 3,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-      );
+  static SliderThemeData miniSliderTheme(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SliderThemeData(
+      trackHeight: 3,
+      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+      overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+      activeTrackColor: scheme.primary,
+      thumbColor: scheme.primary,
+      inactiveTrackColor: scheme.surfaceContainerHighest,
+    );
+  }
 }
 
 // ── ThemeExtension: semantic colors accessible via context.colors ──

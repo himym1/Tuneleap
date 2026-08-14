@@ -333,7 +333,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     }
   }
 
-  /// 拖拽排序；[newIndex] 使用 Flutter `onReorderItem` 的已调整索引。
+  /// 拖拽排序；[newIndex] 为移除原项后的插入位置。
   void reorderQueue(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= _queue.length) return;
     if (newIndex < 0 || newIndex >= _queue.length) return;

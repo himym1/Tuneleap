@@ -14,6 +14,9 @@ import 'package:navidrome_player/ui/screens/library/library_albums_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_artists_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_album_artists_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_genres_screen.dart';
+import 'package:navidrome_player/ui/screens/library/library_radio_screen.dart';
+import 'package:navidrome_player/ui/screens/favorites/favorites_screen.dart';
+import 'package:navidrome_player/ui/screens/audio_quality/audio_quality_screen.dart';
 import 'package:navidrome_player/ui/screens/search/search_screen.dart';
 import 'package:navidrome_player/ui/screens/player/player_screen.dart';
 import 'package:navidrome_player/ui/screens/playlists/playlists_screen.dart';
@@ -108,6 +111,10 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
     if (!isDesktop) return;
     final strings = systemLocalizations();
     await windowManager.ensureInitialized();
+    await windowManager.setTitleBarStyle(
+      TitleBarStyle.hidden,
+      windowButtonVisibility: true,
+    );
     await windowManager.setMinimumSize(const Size(800, 600));
     await windowManager.setSize(const Size(1200, 800));
     await windowManager.setTitle(strings.appName);
@@ -280,6 +287,15 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   ),
                 ),
                 GoRoute(
+                  path: '/library/radio',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryRadioScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
                   path: '/album/:id',
                   pageBuilder: (context, state) => _detailSlidePage(
                     key: state.pageKey,
@@ -348,6 +364,24 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
                     child: const ScrobbleScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/favorites',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const FavoritesScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/audio-quality',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const AudioQualityScreen(),
                     transitionsBuilder: _fadeThroughTransition,
                     transitionDuration: _kFadeDuration,
                   ),

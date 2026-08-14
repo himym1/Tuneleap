@@ -563,6 +563,35 @@ void main() {
     );
   });
 
+  test('clearing the queue stops playback and drops the current song', () async {
+    final player = _FakeAudioPlayer();
+    final client = _ScrobbleClient()
+      ..configure(serverUrl: 'http://a', username: 'u', password: 'p');
+    final handler = NavidromeAudioHandler(
+      client,
+      BackendClient(),
+      player: player,
+      serverId: 'a',
+    );
+    const song = Song(
+      id: 'a',
+      title: 'A',
+      artist: 'x',
+      artistId: 'x',
+      album: 'A',
+      albumId: 'A',
+    );
+
+    await handler.setQueue([song]);
+    expect(handler.currentSong, isNotNull);
+
+    await handler.setQueue(const []);
+    expect(handler.songQueue, isEmpty);
+    expect(handler.currentSong, isNull);
+    expect(handler.currentIndex, -1);
+    expect(player.stopCalls, greaterThan(0));
+  });
+
   test('publishes sanitized terminal failure with origin', () async {
     final player = _FakeAudioPlayer()
       ..setUrlError = StateError('source missing');

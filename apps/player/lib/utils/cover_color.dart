@@ -68,6 +68,13 @@ Color extractCoverSeedColor({
   return polishCoverSeed(accent);
 }
 
+/// Readable icon/text color on a cover-tinted background.
+Color foregroundOn(Color background) {
+  return background.computeLuminance() < 0.45
+      ? const Color(0xFFFFFFFF)
+      : const Color(0xDE000000);
+}
+
 /// Tightens a seed so Material 3 does not collapse it into taupe.
 Color polishCoverSeed(Color color) {
   final hsl = HSLColor.fromColor(color);

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/services/update_checker.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
@@ -8,6 +9,7 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/update_dialog.dart';
 import 'package:navidrome_player/ui/widgets/responsive_content.dart';
 import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
+import 'package:navidrome_player/ui/widgets/keyboard_shortcuts_dialog.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
@@ -52,7 +54,9 @@ class SettingsScreen extends ConsumerWidget {
                     children: [
                       _SettingsTile(
                         icon: Icons.dns_outlined,
-                        title: config.url.isNotEmpty ? config.url : '未配置',
+                        title: config.url.isNotEmpty
+                            ? config.url
+                            : S.of(context).settingsServerUnconfigured,
                         subtitle: config.username.isNotEmpty
                             ? '${S.of(context).settingsUser}: ${config.username}'
                             : null,
@@ -264,6 +268,55 @@ class SettingsScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  _SectionLabel(S.of(context).settingsTools),
+                  _SettingsCard(
+                    children: [
+                      _SettingsTile(
+                        icon: Icons.favorite_outline,
+                        title: S.of(context).navFavorites,
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.go('/favorites'),
+                      ),
+                      const Divider(height: 1, indent: 54),
+                      _SettingsTile(
+                        icon: Icons.high_quality_outlined,
+                        title: S.of(context).settingsAudioQuality,
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.go('/audio-quality'),
+                      ),
+                      const Divider(height: 1, indent: 54),
+                      _SettingsTile(
+                        icon: Icons.download_outlined,
+                        title: S.of(context).navDownloads,
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.go('/downloads'),
+                      ),
+                      const Divider(height: 1, indent: 54),
+                      _SettingsTile(
+                        icon: Icons.dns_outlined,
+                        title: S.of(context).navServers,
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.go('/servers'),
+                      ),
+                      const Divider(height: 1, indent: 54),
+                      _SettingsTile(
+                        icon: Icons.history,
+                        title: S.of(context).navScrobble,
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.go('/scrobble'),
+                      ),
+                      const Divider(height: 1, indent: 54),
+                      _SettingsTile(
+                        icon: Icons.keyboard_outlined,
+                        title: S.of(context).shortcutsTitle,
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => KeyboardShortcutsDialog.show(context),
                       ),
                     ],
                   ),

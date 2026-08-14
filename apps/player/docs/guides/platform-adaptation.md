@@ -49,11 +49,15 @@ Navidrome Player 支持 Android 和 macOS 两个平台，各有特定的配置�
 通过 `window_manager` 在 `app.dart` 中配置：
 
 ```dart
-if (Platform.isMacOS) {
+if (isDesktop) {
   await windowManager.ensureInitialized();
-  await windowManager.setMinimumSize(const Size(400, 600));
-  await windowManager.setSize(const Size(1000, 700));
-  await windowManager.setTitle('Navidrome Player');
+  await windowManager.setTitleBarStyle(
+    TitleBarStyle.hidden,
+    windowButtonVisibility: true,
+  );
+  await windowManager.setMinimumSize(const Size(800, 600));
+  await windowManager.setSize(const Size(1200, 800));
+  await windowManager.setTitle(strings.appName);
   await windowManager.show();
 }
 ```

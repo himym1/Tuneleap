@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/models.dart';
+import 'package:navidrome_player/api/subsonic_client.dart';
 import 'audio_providers.dart';
 
 // ============================================================
@@ -62,4 +63,18 @@ final playlistsProvider = FutureProvider.autoDispose<List<Playlist>>((
   ref.keepAlive();
   final client = ref.watch(subsonicClientProvider);
   return await client.getPlaylists();
+});
+
+final starredProvider = FutureProvider.autoDispose<StarredResult>((ref) async {
+  ref.keepAlive();
+  final client = ref.watch(subsonicClientProvider);
+  return client.getStarred2();
+});
+
+final radioStationsProvider = FutureProvider.autoDispose<List<RadioStation>>((
+  ref,
+) async {
+  ref.keepAlive();
+  final client = ref.watch(subsonicClientProvider);
+  return client.getInternetRadioStations();
 });

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
@@ -13,7 +14,9 @@ import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/api/subsonic_client.dart' show LyricsLine;
+import 'package:navidrome_player/utils/cover_color.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
+import 'package:navidrome_player/utils/reorder.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/request_generation.dart';
 import 'package:navidrome_player/providers/server_scope.dart';
@@ -32,7 +35,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   static const int _lyricsCacheLimit = 100;
   static bool _lastShowLyrics = false;
   static bool _lastShowQueue = false;
-  static int _lastDesktopPage = 0;
 
   bool _showQueue = _lastShowQueue;
   bool _showLyrics = _lastShowLyrics;
@@ -43,11 +45,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool _userScrolling = false;
   Timer? _userScrollTimer;
   int _seekLineIndex = 0;
-  // PC 端页面切换
-  late final PageController _desktopPageController = PageController(
-    initialPage: _lastDesktopPage,
-  );
-  int _desktopCurrentPage = _lastDesktopPage;
   StreamSubscription<Song?>? _songChangeSub;
 
   @override
@@ -58,19 +55,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       if (!mounted) return;
       final playerService = ref.read(audioPlayerServiceProvider);
       _songChangeSub = playerService.currentSongStream.listen((song) {
-        if (song != null) {
-          // 移动端：歌词面板可见时才加载
-          // 桌面端：停留在歌词页（page 1）时才加载
-          final shouldLoad = _showLyrics || _desktopCurrentPage == 1;
-          if (shouldLoad) _loadLyrics(song);
-        }
+        if (song != null && _showLyrics) _loadLyrics(song);
       });
-      // 初始歌曲：若已有当前歌曲且相应面板可见则立即加载
       final currentSong = playerService.currentSong;
-      if (currentSong != null) {
-        final shouldLoad = _showLyrics || _desktopCurrentPage == 1;
-        if (shouldLoad) _loadLyrics(currentSong);
-      }
+      if (currentSong != null && _showLyrics) _loadLyrics(currentSong);
     });
   }
 
@@ -80,7 +68,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _userScrollTimer?.cancel();
     _lyricsRequests.invalidate();
     _lyricsScrollController.dispose();
-    _desktopPageController.dispose();
     super.dispose();
   }
 
@@ -216,6 +203,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               SaveQueuePlaylistButton(
                                 queue: playerService.queue,
                               ),
+                              IconButton(
+                                tooltip: S.of(context).playerClearQueue,
+                                onPressed: queue.isEmpty
+                                    ? null
+                                    : () async {
+                                        await playerService.clearQueue();
+                                        if (ctx.mounted) Navigator.pop(ctx);
+                                      },
+                                icon: const Icon(Icons.clear_all, size: 20),
+                              ),
                             ],
                           ),
                         ],
@@ -235,74 +232,89 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                     ),
                               ),
                             )
-                          : ListView.builder(
-                              controller: scrollController,
-                              itemCount: queue.length,
-                              itemBuilder: (context, index) {
-                                final song = queue[index];
-                                final isCurrent =
-                                    index == playerService.currentIndex;
-                                return ListTile(
-                                  dense: true,
-                                  leading: isCurrent
-                                      ? Icon(
-                                          Icons.equalizer,
-                                          color: context.colors.primary,
-                                          size: 18,
-                                        )
-                                      : Text(
-                                          '${index + 1}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .playerTimestamp
-                                              .copyWith(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
-                                              ),
-                                        ),
-                                  title: Text(
-                                    song.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.songTitle
-                                        .copyWith(
-                                          fontWeight: isCurrent
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                          color: isCurrent
-                                              ? context.colors.primary
-                                              : Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurface,
-                                        ),
-                                  ),
-                                  subtitle: Text(
-                                    song.artist,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .songSubtitle
-                                        .copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                  trailing: _QueueSongMenuButton(
-                                    song: song,
-                                    onPlay: () {
-                                      playerService.skipToIndex(index);
-                                      Navigator.pop(ctx);
-                                    },
-                                    onDeleted: () {
-                                      if (mounted) setState(() {});
-                                    },
-                                  ),
-                                  onTap: () {
-                                    playerService.skipToIndex(index);
-                                    Navigator.pop(ctx);
+                          : StatefulBuilder(
+                              builder: (context, setSheetState) {
+                                return ReorderableListView.builder(
+                                  scrollController: scrollController,
+                                  itemCount: queue.length,
+                                  onReorder: (oldIndex, newIndex) {
+                                    playerService.reorderQueue(
+                                      oldIndex,
+                                      adjustedReorderIndex(oldIndex, newIndex),
+                                    );
+                                    setSheetState(() {});
+                                    if (mounted) setState(() {});
+                                  },
+                                  itemBuilder: (context, index) {
+                                    final song = queue[index];
+                                    final isCurrent =
+                                        index == playerService.currentIndex;
+                                    return ListTile(
+                                      key: ValueKey('${song.id}_$index'),
+                                      dense: true,
+                                      leading: isCurrent
+                                          ? Icon(
+                                              Icons.equalizer,
+                                              color: context.colors.primary,
+                                              size: 18,
+                                            )
+                                          : Text(
+                                              '${index + 1}',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .playerTimestamp
+                                                  .copyWith(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                            ),
+                                      title: Text(
+                                        song.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .songTitle
+                                            .copyWith(
+                                              fontWeight: isCurrent
+                                                  ? FontWeight.w600
+                                                  : FontWeight.w400,
+                                              color: isCurrent
+                                                  ? context.colors.primary
+                                                  : Theme.of(
+                                                      context,
+                                                    ).colorScheme.onSurface,
+                                            ),
+                                      ),
+                                      subtitle: Text(
+                                        song.artist,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .songSubtitle
+                                            .copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                      trailing: _QueueSongMenuButton(
+                                        song: song,
+                                        onPlay: () {
+                                          playerService.skipToIndex(index);
+                                          Navigator.pop(ctx);
+                                        },
+                                        onDeleted: () {
+                                          if (mounted) setState(() {});
+                                        },
+                                      ),
+                                      onTap: () {
+                                        playerService.skipToIndex(index);
+                                        Navigator.pop(ctx);
+                                      },
+                                    );
                                   },
                                 );
                               },
@@ -372,7 +384,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_lyricsScrollController.hasClients) {
                 final target =
-                    (activeIndex * 44.0) -
+                    (activeIndex * AppDimensions.lyricsLineHeight) -
                     (_lyricsScrollController.position.viewportDimension / 2);
                 _lyricsScrollController.animateTo(
                   target.clamp(
@@ -397,11 +409,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             builder: (context, constraints) {
               return Stack(
                 children: [
-                  ScrollConfiguration(
-                    behavior: ScrollConfiguration.of(
-                      context,
-                    ).copyWith(scrollbars: false),
-                    child: NotificationListener<ScrollNotification>(
+                  NotificationListener<ScrollNotification>(
                       onNotification: (notification) {
                         if (notification is UserScrollNotification) {
                           if (!_userScrolling &&
@@ -412,10 +420,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                 .position
                                 .viewportDimension;
                             final centerOffset = offset + viewportH / 2 - 24;
-                            final idx = (centerOffset / 44.0).round().clamp(
-                              0,
-                              lyrics.length - 1,
-                            );
+                            final idx =
+                                (centerOffset / AppDimensions.lyricsLineHeight)
+                                    .round()
+                                    .clamp(0, lyrics.length - 1);
                             _seekLineIndex = idx;
                           }
                           setState(() => _userScrolling = true);
@@ -440,10 +448,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               offset +
                               viewportH / 2 -
                               24; // subtract top padding
-                          final idx = (centerOffset / 44.0).round().clamp(
-                            0,
-                            lyrics.length - 1,
-                          );
+                          final idx =
+                              (centerOffset / AppDimensions.lyricsLineHeight)
+                                  .round()
+                                  .clamp(0, lyrics.length - 1);
                           if (idx != _seekLineIndex) {
                             setState(() => _seekLineIndex = idx);
                           }
@@ -460,7 +468,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         itemBuilder: (context, index) {
                           final isActive = index == activeIndex;
                           return SizedBox(
-                            height: 44,
+                            height: AppDimensions.lyricsLineHeight,
                             child: Center(
                               child: AnimatedDefaultTextStyle(
                                 duration: const Duration(milliseconds: 200),
@@ -494,7 +502,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           );
                         },
                       ),
-                    ),
                   ),
                   // Seek timeline indicator (shown during user scroll)
                   Positioned(
@@ -564,36 +571,47 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }
 
     // Unsynced lyrics — simple scrollable list
-    return ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        itemCount: lyrics.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text(
-              lyrics[index].text,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                fontSize: 15,
-                color:
-                    inactiveFg ??
-                    Theme.of(context).colorScheme.onSurfaceVariant,
-                shadows: [
-                  Shadow(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0.8),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      itemCount: lyrics.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(
+            lyrics[index].text,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.songSubtitle.copyWith(
+              fontSize: 15,
+              color:
+                  inactiveFg ??
+                  Theme.of(context).colorScheme.onSurfaceVariant,
+              shadows: [
+                Shadow(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surface.withValues(alpha: 0.8),
+                  blurRadius: 4,
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
+  }
+
+  void _closePlayer() {
+    if (GoRouter.of(context).canPop()) {
+      context.pop();
+    } else {
+      context.go('/home');
+    }
+  }
+
+  void _toggleLyrics(Song currentSong) {
+    setState(() => _showLyrics = !_showLyrics);
+    _lastShowLyrics = _showLyrics;
+    if (_showLyrics) _loadLyrics(currentSong);
   }
 
   @override
@@ -601,7 +619,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final playerService = ref.watch(audioPlayerServiceProvider);
     final resolver = ref.watch(songMediaResolverProvider);
 
-    return StreamBuilder<Song?>(
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): _closePlayer,
+      },
+      child: Focus(
+        autofocus: true,
+        child: StreamBuilder<Song?>(
       stream: playerService.currentSongStream,
       builder: (context, snapshot) {
         final currentSong = snapshot.data ?? playerService.currentSong;
@@ -730,6 +754,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           currentSong,
                           playerService,
                           coverUrl,
+                          accentColor,
                         ),
                       ],
                     ),
@@ -737,6 +762,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           },
         );
       },
+    ),
+      ),
     );
   }
 
@@ -749,8 +776,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     Color accentColor,
   ) {
     return _DragDismissWrapper(
-      onDismiss: () =>
-          GoRouter.of(context).canPop() ? context.pop() : context.go('/home'),
+      onDismiss: _closePlayer,
       child: _buildMobilePlayer(
         context,
         currentSong,
@@ -772,14 +798,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     // 根据封面色计算自适应前景色
     final surfaceColor = Theme.of(context).colorScheme.surface;
     final blendedBg = Color.lerp(surfaceColor, accentColor, 0.45)!;
-    final isDarkBg = blendedBg.computeLuminance() < 0.4;
-    final playerFg = isDarkBg
-        ? Colors.white
-        : Theme.of(context).colorScheme.onSurface;
-    final playerFgMuted = isDarkBg
-        ? Colors.white.withValues(alpha: 0.7)
-        : Theme.of(context).colorScheme.onSurfaceVariant;
-    final playerActiveFg = isDarkBg ? Colors.white : context.colors.primary;
+    final playerFg = foregroundOn(blendedBg);
+    final playerFgMuted = playerFg.withValues(alpha: 0.7);
+    final playerActiveFg = playerFg;
 
     return SafeArea(
       child: Padding(
@@ -791,9 +812,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  onPressed: () => GoRouter.of(context).canPop()
-                      ? context.pop()
-                      : context.go('/home'),
+                  onPressed: _closePlayer,
                   tooltip: S.of(context).commonBack,
                   icon: Icon(
                     Icons.keyboard_arrow_down,
@@ -812,13 +831,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      onPressed: () {
-                        setState(() => _showLyrics = !_showLyrics);
-                        _lastShowLyrics = _showLyrics;
-                        if (_showLyrics) {
-                          _loadLyrics(currentSong);
-                        }
-                      },
+                      onPressed: () => _toggleLyrics(currentSong),
                       tooltip: S.of(context).playerLyrics,
                       icon: Icon(
                         Icons.lyrics_outlined,
@@ -841,6 +854,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         color: playerFgMuted,
                       ),
                     ),
+                    _PlayerOverflowMenu(
+                      song: currentSong,
+                      iconColor: playerFgMuted,
+                    ),
                   ],
                 ),
               ],
@@ -850,13 +867,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             Flexible(
               flex: 5,
               child: GestureDetector(
-                onTap: () {
-                  setState(() => _showLyrics = !_showLyrics);
-                  _lastShowLyrics = _showLyrics;
-                  if (_showLyrics) {
-                    _loadLyrics(currentSong);
-                  }
-                },
+                onTap: () => _toggleLyrics(currentSong),
                 behavior: HitTestBehavior.opaque,
                 child: _showLyrics
                     ? _buildLyricsPanel(
@@ -882,7 +893,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.playerMediumTitle.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
+                color: playerFg,
                 letterSpacing: -0.3,
               ),
             ),
@@ -892,9 +903,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.playerSubtitle.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.playerSubtitle.copyWith(color: playerFgMuted),
             ),
             if (currentSong.suffix != null ||
                 currentSong.bitRate != null ||
@@ -914,37 +925,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ),
               ),
             ],
-            if (!currentSong.isOnline) ...[
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton.filledTonal(
-                    key: const Key('player-add-to-playlist-button'),
-                    onPressed: () => SongContextMenu.addToPlaylist(
-                      context,
-                      ref,
-                      currentSong,
-                    ),
-                    tooltip: S.of(context).contextMenuAddPlaylist,
-                    icon: const Icon(Icons.playlist_add),
-                  ),
-                  const SizedBox(width: 12),
-                  IconButton(
-                    key: const Key('player-delete-song-button'),
-                    onPressed: () =>
-                        SongContextMenu.deleteSong(context, ref, currentSong),
-                    tooltip: S.of(context).contextMenuDelete,
-                    color: Theme.of(context).colorScheme.error,
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                ],
-              ),
-            ],
             const SizedBox(height: 24),
             // 进度条
             _ProgressBar(playerService: playerService),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            _SpeedAndVolumeRow(
+              playerService: playerService,
+              foreground: playerFgMuted,
+            ),
+            const SizedBox(height: 8),
             // 播放控制
             _PlaybackControls(
               playerService: playerService,
@@ -957,33 +946,39 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  /// PC 端播放器 — 参考音流设计：播放控制由底部 MiniPlayer 承载，
-  /// PlayerScreen 只展示封面/歌词 + 辅助操作（收藏/速度/队列）
+  /// PC 全屏播放页覆盖 shell，因此必须自带进度与控制，不能依赖 MiniPlayer。
   Widget _buildDesktopPlayer(
     Song currentSong,
     AudioPlayerService playerService,
     String coverUrl,
+    Color accentColor,
   ) {
+    final wide = MediaQuery.of(context).size.width >= AppBreakpoints.medium;
+    final showLyricsPane = _showLyrics || wide;
+    if (showLyricsPane &&
+        (_lyrics == null || _lyricsForSongId != _lyricsKey(currentSong))) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadLyrics(currentSong);
+      });
+    }
+
     return Row(
       children: [
         Expanded(
           flex: 3,
           child: Column(
             children: [
-              // 顶部栏：关闭按钮 + 辅助操作
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      onPressed: () => GoRouter.of(context).canPop()
-                          ? context.pop()
-                          : context.go('/home'),
-                      tooltip: S.of(context).commonBack,
+                      onPressed: _closePlayer,
+                      tooltip: S.of(context).playerClose,
                       icon: Icon(
-                        Icons.keyboard_arrow_down,
-                        size: 28,
+                        Icons.close,
+                        size: 22,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -992,7 +987,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       children: [
                         if (currentSong.isOnline)
                           ImportToNavidromeButton(song: currentSong),
-                        if (!currentSong.isOnline) ...[
+                        if (!currentSong.isOnline && !currentSong.isRadio) ...[
                           IconButton(
                             key: const Key('player-add-to-playlist-button'),
                             onPressed: () => SongContextMenu.addToPlaylist(
@@ -1003,19 +998,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             tooltip: S.of(context).contextMenuAddPlaylist,
                             icon: const Icon(Icons.playlist_add),
                           ),
-                          IconButton(
-                            key: const Key('player-delete-song-button'),
-                            onPressed: () => SongContextMenu.deleteSong(
-                              context,
-                              ref,
-                              currentSong,
-                            ),
-                            tooltip: S.of(context).contextMenuDelete,
-                            color: Theme.of(context).colorScheme.error,
-                            icon: const Icon(Icons.delete_outline),
-                          ),
+                          _PlayerOverflowMenu(song: currentSong),
                         ],
-                        // 播放速度
                         StreamBuilder<double>(
                           stream: playerService.player.speedStream,
                           builder: (context, snap) {
@@ -1078,7 +1062,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             );
                           },
                         ),
-                        const SizedBox(width: 4),
+                        if (!wide)
+                          IconButton(
+                            icon: Icon(
+                              Icons.lyrics_outlined,
+                              size: 22,
+                              color: _showLyrics
+                                  ? context.colors.primary
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                            ),
+                            onPressed: () => _toggleLyrics(currentSong),
+                            tooltip: S.of(context).playerLyrics,
+                          ),
                         IconButton(
                           icon: Icon(
                             Icons.queue_music,
@@ -1102,63 +1099,27 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   ],
                 ),
               ),
-              // 主内容区 — PageView 切换封面/歌词
               Expanded(
-                child: ScrollConfiguration(
-                  behavior: ScrollConfiguration.of(context).copyWith(
-                    dragDevices: {
-                      PointerDeviceKind.touch,
-                      PointerDeviceKind.mouse,
-                      PointerDeviceKind.trackpad,
-                    },
-                  ),
-                  child: PageView(
-                    controller: _desktopPageController,
-                    scrollDirection: Axis.horizontal,
-                    onPageChanged: (page) {
-                      setState(() => _desktopCurrentPage = page);
-                      _lastDesktopPage = page;
-                      // 切换到歌词页（page 1）时触发加载，在 onPageChanged 回调中
-                      // 调用是安全的（非 build 阶段）
-                      if (page == 1) _loadLyrics(currentSong);
-                    },
-                    children: [
-                      _buildDesktopInfoPage(coverUrl),
-                      _buildDesktopLyricsPage(currentSong, playerService),
-                    ],
-                  ),
-                ),
+                child: wide
+                    ? Row(
+                        children: [
+                          Expanded(child: _buildDesktopInfoPage(coverUrl)),
+                          Expanded(
+                            child: _buildDesktopLyricsPage(
+                              currentSong,
+                              playerService,
+                            ),
+                          ),
+                        ],
+                      )
+                    : (_showLyrics
+                          ? _buildDesktopLyricsPage(currentSong, playerService)
+                          : _buildDesktopInfoPage(coverUrl)),
               ),
-              // 底部：进度条 + 控制按钮 + 歌曲信息
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
                   children: [
-                    // 页面指示器（小圆点）
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(2, (i) {
-                          final isActive = _desktopCurrentPage == i;
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: isActive ? 20 : 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? context.colors.primary
-                                  : Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant
-                                        .withValues(alpha: 0.25),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
                     Text(
                       currentSong.title,
                       maxLines: 1,
@@ -1201,14 +1162,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       ),
                     ],
                     const SizedBox(height: 12),
-                    // 进度条
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 500),
                       child: _ProgressBar(playerService: playerService),
                     ),
                     const SizedBox(height: 4),
-                    // 播放控制
-                    _PlaybackControls(playerService: playerService),
+                    _PlaybackControls(
+                      playerService: playerService,
+                      accentColor: accentColor,
+                    ),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -1242,7 +1204,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   /// PC 歌词页 — 全屏歌词滚动高亮
   Widget _buildDesktopLyricsPage(
-    dynamic currentSong,
+    Song currentSong,
     AudioPlayerService playerService,
   ) {
     return Padding(
@@ -1270,7 +1232,7 @@ class _QueuePanelState extends State<_QueuePanel> {
       stream: ps.currentSongStream,
       builder: (context, _) {
         return Container(
-          width: 320,
+          width: AppDimensions.queuePanelWidth,
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHigh,
           ),
@@ -1299,6 +1261,16 @@ class _QueuePanelState extends State<_QueuePanel> {
                               ),
                         ),
                         SaveQueuePlaylistButton(queue: ps.queue),
+                        IconButton(
+                          tooltip: S.of(context).playerClearQueue,
+                          onPressed: ps.queue.isEmpty
+                              ? null
+                              : () async {
+                                  await ps.clearQueue();
+                                  if (mounted) setState(() {});
+                                },
+                          icon: const Icon(Icons.clear_all, size: 20),
+                        ),
                       ],
                     ),
                   ],
@@ -1320,9 +1292,12 @@ class _QueuePanelState extends State<_QueuePanel> {
                       )
                     : ReorderableListView.builder(
                         itemCount: ps.queue.length,
-                        onReorderItem: (oldIndex, newIndex) {
+                        onReorder: (oldIndex, newIndex) {
                           setState(() {
-                            ps.reorderQueue(oldIndex, newIndex);
+                            ps.reorderQueue(
+                              oldIndex,
+                              adjustedReorderIndex(oldIndex, newIndex),
+                            );
                           });
                         },
                         buildDefaultDragHandles: false,
@@ -1622,9 +1597,7 @@ class _PlaybackControlsState extends State<_PlaybackControls>
     // 播放按钮使用封面色，让控制区与背景协调
     final btnColor = widget.accentColor ?? context.colors.primary;
     // 确保按钮上的图标可见：深色按钮用白色图标，浅色按钮用深色图标
-    final btnFg = btnColor.computeLuminance() < 0.4
-        ? Colors.white
-        : Colors.black87;
+    final btnFg = foregroundOn(btnColor);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -1764,6 +1737,106 @@ class _DragDismissWrapperState extends State<_DragDismissWrapper>
         offset: Offset(0, _dragExtent),
         child: Opacity(opacity: 1.0 - progress * 0.4, child: widget.child),
       ),
+    );
+  }
+}
+
+class _PlayerOverflowMenu extends ConsumerWidget {
+  const _PlayerOverflowMenu({required this.song, this.iconColor});
+
+  final Song song;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final canMutate = ref
+        .read(songMediaResolverProvider)
+        .supportsLibraryMutations(song);
+    if (!canMutate) return const SizedBox.shrink();
+    return PopupMenuButton<String>(
+      key: const Key('player-overflow-menu'),
+      tooltip: S.of(context).playerMoreActions,
+      icon: Icon(Icons.more_vert, color: iconColor),
+      onSelected: (value) {
+        if (value == 'playlist') {
+          SongContextMenu.addToPlaylist(context, ref, song);
+        } else if (value == 'delete') {
+          SongContextMenu.deleteSong(context, ref, song);
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'playlist',
+          child: Text(S.of(context).contextMenuAddPlaylist),
+        ),
+        PopupMenuItem(
+          key: const Key('player-delete-song-button'),
+          value: 'delete',
+          child: Text(
+            S.of(context).contextMenuDelete,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SpeedAndVolumeRow extends StatelessWidget {
+  const _SpeedAndVolumeRow({
+    required this.playerService,
+    required this.foreground,
+  });
+
+  final AudioPlayerService playerService;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        StreamBuilder<double>(
+          stream: playerService.player.speedStream,
+          builder: (context, snap) {
+            final speed = snap.data ?? 1.0;
+            return PopupMenuButton<double>(
+              tooltip: S.of(context).playerSpeed,
+              onSelected: playerService.setSpeed,
+              itemBuilder: (_) => [
+                for (final value in [0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
+                  PopupMenuItem(
+                    value: value,
+                    child: Text(S.of(context).playerSpeedValue(value)),
+                  ),
+              ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  S.of(context).playerSpeedValue(speed),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.playerTimestamp.copyWith(color: foreground),
+                ),
+              ),
+            );
+          },
+        ),
+        Expanded(
+          child: StreamBuilder<double>(
+            stream: playerService.player.volumeStream,
+            builder: (context, snapshot) {
+              final volume = snapshot.data ?? playerService.player.volume;
+              return SliderTheme(
+                data: AppTextStyles.miniSliderTheme(context),
+                child: Slider(
+                  value: volume.clamp(0.0, 1.0),
+                  onChanged: playerService.setVolume,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

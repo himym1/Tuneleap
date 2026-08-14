@@ -6,8 +6,8 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
-import 'package:navidrome_player/ui/widgets/library_section_tabs.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
+import 'package:navidrome_player/utils/reorder.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 class PlaylistsScreen extends ConsumerWidget {
@@ -67,11 +67,6 @@ class PlaylistsScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-            ),
-            const Padding(
-              key: Key('playlist-section-tabs'),
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: LibrarySectionTabs(),
             ),
             const SizedBox(height: 8),
             Expanded(
@@ -150,11 +145,7 @@ class PlaylistsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: h),
-            child: const LibrarySectionTabs(),
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
           // 列表网格
           Expanded(
             child: asyncPlaylists.when(
@@ -332,7 +323,7 @@ class PlaylistsScreen extends ConsumerWidget {
     final client = ref.read(subsonicClientProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
+        final isMobile = AppBreakpoints.isMobile(constraints.maxWidth);
         if (isMobile) {
           return ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -549,10 +540,13 @@ class PlaylistsScreen extends ConsumerWidget {
                         : ReorderableListView.builder(
                             shrinkWrap: true,
                             itemCount: songs.length,
-                            onReorderItem: (oldIndex, newIndex) async {
+                            onReorder: (oldIndex, newIndex) async {
                               final previous = List<Song>.from(songs);
                               final song = songs.removeAt(oldIndex);
-                              songs.insert(newIndex, song);
+                              songs.insert(
+                                adjustedReorderIndex(oldIndex, newIndex),
+                                song,
+                              );
                               setDialogState(() {});
                               try {
                                 await service.updatePlaylist(

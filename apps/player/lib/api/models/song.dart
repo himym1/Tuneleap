@@ -22,6 +22,7 @@ class Song {
   final String? onlineProvider;
   final String? urlId;
   final String? lyricId;
+  final String? streamUrl;
 
   const Song({
     required this.id,
@@ -43,9 +44,12 @@ class Song {
     this.onlineProvider,
     this.urlId,
     this.lyricId,
+    this.streamUrl,
   });
 
   bool get isOnline => backend == SongBackend.solara;
+
+  bool get isRadio => id.startsWith('radio:');
 
   /// 音源显示标签
   String? get sourceLabel => switch (onlineSource) {
@@ -93,6 +97,7 @@ class Song {
       onlineProvider: json['onlineProvider'] as String?,
       urlId: json['urlId'] as String?,
       lyricId: json['lyricId'] as String?,
+      streamUrl: json['streamUrl'] as String?,
     );
   }
 
@@ -183,5 +188,6 @@ class Song {
     if (onlineProvider != null) 'onlineProvider': onlineProvider,
     if (urlId != null) 'urlId': urlId,
     if (lyricId != null) 'lyricId': lyricId,
+    if (streamUrl != null) 'streamUrl': streamUrl,
   };
 }

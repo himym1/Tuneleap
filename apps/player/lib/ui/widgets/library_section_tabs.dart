@@ -10,7 +10,6 @@ class LibrarySectionTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
     final sections = [
-      (path: '/library/playlists', label: S.of(context).navPlaylists),
       (path: '/library/songs', label: S.of(context).navSongs),
       (path: '/library/albums', label: S.of(context).navAlbums),
       (path: '/library/artists', label: S.of(context).navArtists),

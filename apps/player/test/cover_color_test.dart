@@ -77,6 +77,11 @@ void main() {
     expect(hsl.saturation, greaterThan(0.40));
   });
 
+  test('foregroundOn picks white on dark and dark on light', () {
+    expect(foregroundOn(const Color(0xFF111111)), const Color(0xFFFFFFFF));
+    expect(foregroundOn(const Color(0xFFF5F0E6)), const Color(0xDE000000));
+  });
+
   test('empty or invalid buffers use the fallback', () {
     expect(
       extractCoverSeedColor(

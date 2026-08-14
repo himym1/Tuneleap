@@ -99,6 +99,35 @@ void main() {
       expect(roundTripped.onlineProvider, original.onlineProvider);
     });
 
+    test('radio stream url round-trips and marks isRadio', () {
+      const radio = Song(
+        id: 'radio:1',
+        title: 'Station',
+        album: '',
+        albumId: '',
+        artist: '',
+        artistId: '',
+        streamUrl: 'https://radio.test/stream',
+      );
+
+      expect(radio.isRadio, isTrue);
+      expect(Song.fromJson(radio.toJson()).streamUrl, radio.streamUrl);
+    });
+
+    test('direct stream url alone does not mark a library song as radio', () {
+      const song = Song(
+        id: '42',
+        title: 'Track',
+        album: 'Album',
+        albumId: 'a1',
+        artist: 'Artist',
+        artistId: 'ar1',
+        streamUrl: 'https://media.test/stream',
+      );
+
+      expect(song.isRadio, isFalse);
+    });
+
     test('fromSolaraJson maps online song fields correctly', () {
       final song = Song.fromSolaraJson({
         'id': '5257138',

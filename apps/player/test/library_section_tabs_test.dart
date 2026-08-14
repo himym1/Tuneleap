@@ -10,7 +10,7 @@ Widget _page() => const Scaffold(
 
 void main() {
   testWidgets(
-    'library sections expose four primary views and secondary browse',
+    'library sections expose three primary views and secondary browse',
     (tester) async {
       tester.view.physicalSize = const Size(320, 320);
       tester.view.devicePixelRatio = 1;
@@ -44,15 +44,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Playlists'), findsOneWidget);
+      expect(find.text('Playlists'), findsNothing);
       expect(find.text('Songs'), findsOneWidget);
       expect(find.text('Albums'), findsOneWidget);
       expect(find.text('Artists'), findsOneWidget);
 
       expect(tester.takeException(), isNull);
-      await tester.tap(find.text('Playlists'));
+      await tester.tap(find.text('Albums'));
       await tester.pumpAndSettle();
-      expect(router.state.uri.path, '/library/playlists');
+      expect(router.state.uri.path, '/library/albums');
 
       await tester.tap(find.byTooltip('Browse library'));
       await tester.pumpAndSettle();

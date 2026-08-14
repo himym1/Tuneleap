@@ -184,19 +184,15 @@ void main() {
 
   setUpAll(initializeAppColors);
 
-  testWidgets('mobile playlist header stays above library tabs', (
+  testWidgets('mobile playlist header stays above the list', (
     tester,
   ) async {
     await _pumpPlaylists(tester);
 
     final header = find.byKey(const Key('playlist-header-title'));
-    final tabs = find.byKey(const Key('playlist-section-tabs'));
     expect(header, findsOneWidget);
     expect(find.byKey(const Key('playlist-create-button')), findsOneWidget);
-    expect(
-      tester.getBottomLeft(header).dy,
-      lessThan(tester.getTopLeft(tabs).dy),
-    );
+    expect(find.byKey(const Key('playlist-section-tabs')), findsNothing);
     expect(find.text('2 playlists'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

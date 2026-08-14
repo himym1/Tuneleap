@@ -15,6 +15,10 @@ abstract final class AppDimensions {
   static const double albumRowHeight = 180;
   static const double dailyGridAspectRatio = 4.0;
   static const double albumGridMaxExtent = 220;
+  static const double albumGridColumnWidth = 180;
+  static const double homeGridTwoPane = 760;
+  static const double mobileNavHeight = 56;
+  static const double macosTrafficLightClearance = 12;
   static const double playlistCardWidth = 260;
 
   // ── Layout regions ──

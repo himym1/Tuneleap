@@ -268,11 +268,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         data: (newest) => RefreshIndicator(
           key: const Key('home-refresh-indicator'),
           onRefresh: _refresh,
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(
-              context,
-            ).copyWith(scrollbars: false),
-            child: ListView(
+          child: ListView(
               key: const Key('home-scroll-view'),
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(h, h, h, h),
@@ -378,7 +374,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _buildAlbumRow(newest),
               ],
             ),
-          ),
         ),
       ),
     );
@@ -539,7 +534,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (rows.isEmpty) return const SizedBox.shrink();
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth >= 760 ? 2 : 1;
+        final crossAxisCount =
+            constraints.maxWidth >= AppDimensions.homeGridTwoPane ? 2 : 1;
         final rowExtent = MediaQuery.textScalerOf(context).scale(32) + 36;
         return GridView.builder(
           shrinkWrap: true,
