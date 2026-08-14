@@ -151,6 +151,30 @@ class SZh extends S {
   String get playerQueue => '队列';
 
   @override
+  String get playerMoreActions => '更多';
+
+  @override
+  String get playerClearQueue => '清空队列';
+
+  @override
+  String get playerClose => '关闭播放页';
+
+  @override
+  String get shortcutsTitle => '键盘快捷键';
+
+  @override
+  String get shortcutsPlayPause => '播放 / 暂停';
+
+  @override
+  String get shortcutsPrevious => '上一首';
+
+  @override
+  String get shortcutsNext => '下一首';
+
+  @override
+  String get shortcutsClosePlayer => '关闭正在播放';
+
+  @override
   String get playerNext => '下一首';
 
   @override
@@ -296,6 +320,12 @@ class SZh extends S {
 
   @override
   String get settingsAbout => '关于';
+
+  @override
+  String get settingsServerUnconfigured => '未配置';
+
+  @override
+  String get settingsTools => '工具';
 
   @override
   String get settingsVersion => '版本';

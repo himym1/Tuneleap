@@ -9,10 +9,13 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/services/update_checker.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/keyboard_shortcuts_dialog.dart';
 import 'package:navidrome_player/ui/widgets/mini_player.dart';
 import 'package:navidrome_player/ui/widgets/update_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/utils/platform_utils.dart';
 import 'package:navidrome_player/utils/request_generation.dart';
+import 'package:window_manager/window_manager.dart';
 
 class PlaybackSpaceActivator implements ShortcutActivator {
   const PlaybackSpaceActivator();
@@ -61,7 +64,10 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Future<void> _updateAccentColor(Song? song) async {
     final request = _accentRequests.begin();
-    if (song == null) return;
+    if (song == null) {
+      if (mounted) ref.read(globalAccentColorProvider.notifier).clear();
+      return;
+    }
     try {
       final resolver = ref.read(songMediaResolverProvider);
       final coverUrl = await resolver.coverArtUrl(song, size: 300);
@@ -110,7 +116,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     super.dispose();
   }
 
-  // 移动端底部导航（3 个 Tab）
+  // 移动端底部导航：首页 / 曲库 / 搜索 / 播放列表 / 设置
   static const _mobileNavItems = [
     _NavItem(
       icon: Icons.home_outlined,
@@ -129,6 +135,12 @@ class _AppShellState extends ConsumerState<AppShell> {
       activeIcon: Icons.search,
       labelKey: 'search',
       path: '/search',
+    ),
+    _NavItem(
+      icon: Icons.queue_music_outlined,
+      activeIcon: Icons.queue_music,
+      labelKey: 'playlists',
+      path: '/library/playlists',
     ),
     _NavItem(
       icon: Icons.settings_outlined,
@@ -158,10 +170,22 @@ class _AppShellState extends ConsumerState<AppShell> {
       labelKey: 'search',
       path: '/search',
     ),
+    _NavItem(
+      icon: Icons.queue_music_outlined,
+      activeIcon: Icons.queue_music,
+      labelKey: 'playlists',
+      path: '/library/playlists',
+    ),
   ];
 
   // PC 端更多功能
   static const _moreNavItems = [
+    _NavItem(
+      icon: Icons.favorite_outline,
+      activeIcon: Icons.favorite,
+      labelKey: 'favorites',
+      path: '/favorites',
+    ),
     _NavItem(
       icon: Icons.download_outlined,
       activeIcon: Icons.download,
@@ -173,6 +197,12 @@ class _AppShellState extends ConsumerState<AppShell> {
       activeIcon: Icons.dns,
       labelKey: 'servers',
       path: '/servers',
+    ),
+    _NavItem(
+      icon: Icons.high_quality_outlined,
+      activeIcon: Icons.high_quality,
+      labelKey: 'audioQuality',
+      path: '/audio-quality',
     ),
     _NavItem(
       icon: Icons.history,
@@ -188,8 +218,39 @@ class _AppShellState extends ConsumerState<AppShell> {
   String _currentPath(BuildContext context) =>
       GoRouterState.of(context).uri.toString();
 
-  bool _isPathSelected(String itemPath, String currentPath) =>
-      currentPath.startsWith(itemPath);
+  bool _isPlaylistsPath(String path) =>
+      path == '/playlists' || path.startsWith('/library/playlists');
+
+  bool _isLibraryPath(String path) =>
+      ((path.startsWith('/library') && !_isPlaylistsPath(path)) ||
+      path.startsWith('/album/') ||
+      path.startsWith('/artist/'));
+
+  bool _isPathSelected(String itemPath, String currentPath) {
+    if (itemPath == '/library' || itemPath == '/library/songs') {
+      return _isLibraryPath(currentPath);
+    }
+    if (itemPath == '/library/playlists' || itemPath == '/playlists') {
+      return _isPlaylistsPath(currentPath);
+    }
+    return currentPath == itemPath || currentPath.startsWith('$itemPath/');
+  }
+
+  int _mobileSelectedIndex(String path) {
+    if (_isPlaylistsPath(path)) return 3;
+    if (_isLibraryPath(path)) return 1;
+    if (path == '/search' || path.startsWith('/search/')) return 2;
+    if (path == '/settings' ||
+        path.startsWith('/settings/') ||
+        path == '/downloads' ||
+        path == '/servers' ||
+        path == '/scrobble' ||
+        path == '/favorites' ||
+        path == '/audio-quality') {
+      return 4;
+    }
+    return 0;
+  }
 
   int? _branchIndexForPath(String path) {
     final uri = path.split('?').first;
@@ -208,7 +269,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (uri == '/settings' ||
         uri == '/downloads' ||
         uri == '/servers' ||
-        uri == '/scrobble') {
+        uri == '/scrobble' ||
+        uri == '/favorites' ||
+        uri == '/audio-quality') {
       return 3;
     }
     return null;
@@ -239,10 +302,16 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   // ─── 移动端布局 ───────────────────────────────────────────────
 
+  Color? _coverTintColor() {
+    if (ref.watch(themePresetProvider) != ThemePreset.dynamic) return null;
+    return ref.watch(globalAccentColorProvider);
+  }
+
   Widget _buildMobileLayout() {
     final playerService = ref.watch(audioPlayerServiceProvider);
     final shell = widget.navigationShell;
-    final mobileIndex = shell.currentIndex.clamp(0, _mobileNavItems.length - 1);
+    final mobileIndex = _mobileSelectedIndex(_currentPath(context));
+    final coverTint = _coverTintColor();
 
     return Scaffold(
       body: AnimatedContainer(
@@ -254,9 +323,9 @@ class _AppShellState extends ConsumerState<AppShell> {
             colors: [
               ref.watch(themePresetProvider) == ThemePreset.amoled
                   ? context.colors.background
-                  : ref
-                        .watch(globalAccentColorProvider)
-                        .withValues(alpha: 0.15),
+                  : (coverTint ?? context.colors.background).withValues(
+                      alpha: coverTint == null ? 1 : 0.15,
+                    ),
               context.colors.background,
             ],
           ),
@@ -293,8 +362,9 @@ class _AppShellState extends ConsumerState<AppShell> {
                 decoration: BoxDecoration(
                   color: Color.lerp(
                     Theme.of(context).colorScheme.surfaceContainerHigh,
-                    ref.watch(globalAccentColorProvider),
-                    0.06,
+                    coverTint ??
+                        Theme.of(context).colorScheme.surfaceContainerHigh,
+                    coverTint == null ? 0 : 0.06,
                   )!.withValues(alpha: 0.95),
                   border: Border(
                     top: BorderSide(
@@ -308,17 +378,14 @@ class _AppShellState extends ConsumerState<AppShell> {
                 child: SafeArea(
                   top: false,
                   child: SizedBox(
-                    height: 50,
+                    height: AppDimensions.mobileNavHeight,
                     child: Row(
                       children: List.generate(_mobileNavItems.length, (i) {
                         final item = _mobileNavItems[i];
                         final selected = mobileIndex == i;
                         return Expanded(
                           child: _buildMobileTabItem(item, selected, () {
-                            shell.goBranch(
-                              i,
-                              initialLocation: i == shell.currentIndex,
-                            );
+                            _openDesktopPath(context, item.path);
                           }),
                         );
                       }),
@@ -359,7 +426,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 Text(
                   item.labelOf(context),
                   style: Theme.of(context).textTheme.chipLabel.copyWith(
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                     color: selected
                         ? context.colors.primary
@@ -377,6 +444,8 @@ class _AppShellState extends ConsumerState<AppShell> {
   // ─── 桌面端布局 ───────────────────────────────────────────────
 
   Widget _buildDesktopLayout() {
+    final useMeta = isMacOS;
+    final coverTint = _coverTintColor();
     return CallbackShortcuts(
       bindings: {
         const PlaybackSpaceActivator(): () {
@@ -391,6 +460,56 @@ class _AppShellState extends ConsumerState<AppShell> {
         const SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): () {
           ref.read(audioPlayerServiceProvider).previous();
         },
+        SingleActivator(
+          LogicalKeyboardKey.digit1,
+          meta: useMeta,
+          control: !useMeta,
+        ): () =>
+            _openDesktopPath(context, '/home'),
+        SingleActivator(
+          LogicalKeyboardKey.digit2,
+          meta: useMeta,
+          control: !useMeta,
+        ): () =>
+            _openDesktopPath(context, '/library'),
+        SingleActivator(
+          LogicalKeyboardKey.digit3,
+          meta: useMeta,
+          control: !useMeta,
+        ): () =>
+            _openDesktopPath(context, '/search'),
+        SingleActivator(
+          LogicalKeyboardKey.digit4,
+          meta: useMeta,
+          control: !useMeta,
+        ): () =>
+            _openDesktopPath(context, '/library/playlists'),
+        SingleActivator(
+          LogicalKeyboardKey.digit5,
+          meta: useMeta,
+          control: !useMeta,
+        ): () =>
+            _openDesktopPath(context, '/settings'),
+        SingleActivator(
+          LogicalKeyboardKey.keyF,
+          meta: useMeta,
+          control: !useMeta,
+        ): () =>
+            _openDesktopPath(context, '/search'),
+        SingleActivator(
+          LogicalKeyboardKey.keyP,
+          meta: useMeta,
+          control: !useMeta,
+        ): () =>
+            context.push('/player'),
+        SingleActivator(
+          LogicalKeyboardKey.slash,
+          meta: useMeta,
+          control: !useMeta,
+        ): () =>
+            KeyboardShortcutsDialog.show(context),
+        const SingleActivator(LogicalKeyboardKey.slash, shift: true): () =>
+            KeyboardShortcutsDialog.show(context),
       },
       child: Focus(
         autofocus: true,
@@ -404,9 +523,9 @@ class _AppShellState extends ConsumerState<AppShell> {
                 colors: [
                   ref.watch(themePresetProvider) == ThemePreset.amoled
                       ? context.colors.background
-                      : ref
-                            .watch(globalAccentColorProvider)
-                            .withValues(alpha: 0.15),
+                      : (coverTint ?? context.colors.background).withValues(
+                          alpha: coverTint == null ? 1 : 0.15,
+                        ),
                   context.colors.background,
                 ],
               ),
@@ -436,13 +555,12 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Widget _buildSidebar(BuildContext context) {
     final location = _currentPath(context);
-    final accentColor = ref.watch(globalAccentColorProvider);
+    final coverTint = _coverTintColor();
     final baseColor = context.colors.surfaceContainer;
-    // 将 accent color 以 8% 的比例混入侧边栏背景
     final sidebarColor = Color.lerp(
       baseColor,
-      accentColor,
-      0.08,
+      coverTint ?? baseColor,
+      coverTint == null ? 0 : 0.08,
     )!.withValues(alpha: 0.92);
 
     return ClipRect(
@@ -466,78 +584,51 @@ class _AppShellState extends ConsumerState<AppShell> {
             children: [
               // 可滚动的导航区域
               Expanded(
-                child: ScrollConfiguration(
-                  behavior: ScrollConfiguration.of(
-                    context,
-                  ).copyWith(scrollbars: false),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Logo + Refresh（顶部留出 macOS 标题栏空间）
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            20,
-                            MediaQuery.of(context).padding.top + 24,
-                            12,
-                            24,
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: context.colors.primarySoft,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.music_note,
-                                  color: context.colors.primary,
-                                  size: 18,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                S.of(context).appShortName,
-                                style: Theme.of(context).textTheme.sectionTitle
-                                    .copyWith(
-                                      fontSize: 16,
-                                      color: context.colors.onSurface,
-                                      letterSpacing: -0.5,
-                                    ),
-                              ),
-                              const Spacer(),
-                              _RefreshButton(),
-                            ],
-                          ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Logo + Refresh（顶部留出 macOS 标题栏 / 红绿灯空间）
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          MediaQuery.of(context).padding.top +
+                              (isMacOS
+                                  ? AppDimensions.macosTrafficLightClearance
+                                  : 0) +
+                              24,
+                          12,
+                          24,
                         ),
+                        child: isDesktop
+                            ? DragToMoveArea(child: _sidebarBrand(context))
+                            : _sidebarBrand(context),
+                      ),
 
-                        // ── NAV section ──
-                        _buildSectionHeader(S.of(context).sidebarNav),
-                        ..._navItems.map(
-                          (item) => _buildDesktopNavItem(
-                            item,
-                            _isPathSelected(item.path, location),
-                            () => _openDesktopPath(context, item.path),
-                          ),
+                      // ── NAV section ──
+                      _buildSectionHeader(S.of(context).sidebarNav),
+                      ..._navItems.map(
+                        (item) => _buildDesktopNavItem(
+                          item,
+                          _isPathSelected(item.path, location),
+                          () => _openDesktopPath(context, item.path),
                         ),
+                      ),
 
-                        const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                        // ── MORE section ──
-                        _buildSectionHeader(S.of(context).sidebarMore),
-                        ..._moreNavItems.map(
-                          (item) => _buildDesktopNavItem(
-                            item,
-                            _isPathSelected(item.path, location),
-                            () => _openDesktopPath(context, item.path),
-                          ),
+                      // ── MORE section ──
+                      _buildSectionHeader(S.of(context).sidebarMore),
+                      ..._moreNavItems.map(
+                        (item) => _buildDesktopNavItem(
+                          item,
+                          _isPathSelected(item.path, location),
+                          () => _openDesktopPath(context, item.path),
                         ),
+                      ),
 
-                        const SizedBox(height: 24),
-                      ],
-                    ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
               ),
@@ -557,6 +648,37 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _sidebarBrand(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: context.colors.primarySoft,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            Icons.music_note,
+            color: context.colors.primary,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          S.of(context).appShortName,
+          style: Theme.of(context).textTheme.sectionTitle.copyWith(
+            fontSize: 16,
+            color: context.colors.onSurface,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const Spacer(),
+        _RefreshButton(),
+      ],
     );
   }
 

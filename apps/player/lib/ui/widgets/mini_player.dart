@@ -6,8 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/api/models/song.dart';
-import 'package:navidrome_player/api/subsonic_client.dart'
-    show LyricsLine, LyricsList;
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
@@ -18,19 +16,6 @@ class MiniPlayer extends ConsumerWidget {
   const MiniPlayer({super.key, this.alwaysVisible = false});
 
   final bool alwaysVisible;
-
-  static String _getCurrentLyricLine(
-    List<LyricsLine> lines,
-    Duration position,
-  ) {
-    final posMs = position.inMilliseconds;
-    for (int i = lines.length - 1; i >= 0; i--) {
-      if (lines[i].startMs != null && lines[i].startMs! <= posMs) {
-        return lines[i].text;
-      }
-    }
-    return lines.isNotEmpty ? lines.first.text : '';
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,7 +34,7 @@ class MiniPlayer extends ConsumerWidget {
           ref,
           LayoutBuilder(
             builder: (context, constraints) {
-              final isDesktop = constraints.maxWidth > 600;
+              final isDesktop = AppBreakpoints.isDesktop(constraints.maxWidth);
               if (currentSong == null) {
                 return isDesktop
                     ? _buildDesktopIdleLayout(context)
@@ -87,10 +72,14 @@ class MiniPlayer extends ConsumerWidget {
   }
 
   Widget _buildChrome(BuildContext context, WidgetRef ref, Widget child) {
+    final useCoverTint = ref.watch(themePresetProvider) == ThemePreset.dynamic;
     final accentColor = ref.watch(globalAccentColorProvider);
     final baseColor = context.colors.surfaceContainer;
-    // 将 accent color 以 6% 的比例混入播放条背景
-    final chromeColor = Color.lerp(baseColor, accentColor, 0.06)!.withValues(alpha: 0.88);
+    final chromeColor = Color.lerp(
+      baseColor,
+      useCoverTint ? accentColor : baseColor,
+      useCoverTint ? 0.06 : 0,
+    )!.withValues(alpha: 0.88);
 
     return ClipRect(
       child: BackdropFilter(
@@ -101,12 +90,14 @@ class MiniPlayer extends ConsumerWidget {
             color: chromeColor,
             border: Border(
               top: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.2),
                 width: 0.5,
               ),
             ),
           ),
-          child: SafeArea(top: false, bottom: false, child: child),
+          child: SafeArea(top: false, bottom: !alwaysVisible, child: child),
         ),
       ),
     );
@@ -137,17 +128,12 @@ class MiniPlayer extends ConsumerWidget {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: _buildSongInfo(
-                      context,
-                      ref,
-                      currentSong,
-                      playerService,
-                    ),
+                    child: _buildSongInfo(context, currentSong),
                   ),
                 ),
                 _buildPlayPauseButton(playerService),
                 IconButton(
-                icon: const Icon(Icons.skip_next_rounded, size: 24),
+                  icon: const Icon(Icons.skip_next_rounded, size: 24),
                   onPressed: () => playerService.next(),
                   tooltip: S.of(context).playerNext,
                 ),
@@ -180,7 +166,7 @@ class MiniPlayer extends ConsumerWidget {
             hint: S.of(context).playerNowPlaying,
             child: InkWell(
               onTap: () => context.push('/player'),
-              child: _buildCover(coverUrl),
+              child: _buildCover(coverUrl, useHero: true),
             ),
           ),
           // ── Left: song info ──
@@ -227,33 +213,76 @@ class MiniPlayer extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Transport controls
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.skip_previous_rounded, size: 24),
-                      onPressed: () => playerService.previous(),
-                      tooltip: S.of(context).playerPrevious,
-                      iconSize: 24,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 36,
-                        minHeight: 36,
+                StatefulBuilder(
+                  builder: (context, setLocalState) => Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.shuffle,
+                          size: 18,
+                          color: playerService.shuffle
+                              ? context.colors.primary
+                              : context.colors.onSurfaceVariant,
+                        ),
+                        onPressed: () {
+                          playerService.toggleShuffle();
+                          setLocalState(() {});
+                        },
+                        tooltip: S.of(context).playerShuffle,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                       ),
-                    ),
-                    _buildPlayPauseButton(playerService),
-                    IconButton(
-                      icon: const Icon(Icons.skip_next_rounded, size: 24),
-                      onPressed: () => playerService.next(),
-                      tooltip: S.of(context).playerNext,
-                      iconSize: 24,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 36,
-                        minHeight: 36,
+                      IconButton(
+                        icon: const Icon(Icons.skip_previous_rounded, size: 24),
+                        onPressed: () => playerService.previous(),
+                        tooltip: S.of(context).playerPrevious,
+                        iconSize: 24,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
                       ),
-                    ),
-                  ],
+                      _buildPlayPauseButton(playerService),
+                      IconButton(
+                        icon: const Icon(Icons.skip_next_rounded, size: 24),
+                        onPressed: () => playerService.next(),
+                        tooltip: S.of(context).playerNext,
+                        iconSize: 24,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          playerService.repeatMode == PlaybackRepeatMode.one
+                              ? Icons.repeat_one
+                              : Icons.repeat,
+                          size: 18,
+                          color:
+                              playerService.repeatMode != PlaybackRepeatMode.off
+                              ? context.colors.primary
+                              : context.colors.onSurfaceVariant,
+                        ),
+                        onPressed: () {
+                          playerService.cycleRepeatMode();
+                          setLocalState(() {});
+                        },
+                        tooltip: S.of(context).playerRepeat,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 // Progress bar
                 _buildProgressBar(context, playerService),
@@ -268,6 +297,11 @@ class MiniPlayer extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 _buildVolumeControl(context, playerService),
+                IconButton(
+                  icon: const Icon(Icons.queue_music_rounded, size: 22),
+                  tooltip: S.of(context).playerQueue,
+                  onPressed: () => context.push('/player'),
+                ),
                 const SizedBox(width: 8),
               ],
             ),
@@ -334,13 +368,7 @@ class MiniPlayer extends ConsumerWidget {
     );
   }
 
-  Widget _buildSongInfo(
-    BuildContext context,
-    WidgetRef ref,
-    Song currentSong,
-    AudioPlayerService playerService,
-  ) {
-    final resolver = ref.read(songMediaResolverProvider);
+  Widget _buildSongInfo(BuildContext context, Song currentSong) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,36 +384,6 @@ class MiniPlayer extends ConsumerWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodySmall,
-        ),
-        FutureBuilder<LyricsList?>(
-          future: resolver.lyrics(currentSong),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData || snapshot.data == null) {
-              return const SizedBox.shrink();
-            }
-            final lyrics = snapshot.data!;
-            if (lyrics.lines.isEmpty) {
-              return const SizedBox.shrink();
-            }
-            return StreamBuilder<Duration>(
-              stream: playerService.positionStream,
-              builder: (context, posSnapshot) {
-                final position = posSnapshot.data ?? Duration.zero;
-                final currentLine = lyrics.synced
-                    ? _getCurrentLyricLine(lyrics.lines, position)
-                    : lyrics.lines.first.text;
-                return Text(
-                  currentLine,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: context.colors.primary,
-                    fontStyle: FontStyle.italic,
-                  ),
-                );
-              },
-            );
-          },
         ),
       ],
     );

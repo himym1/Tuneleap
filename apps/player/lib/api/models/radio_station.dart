@@ -1,3 +1,5 @@
+import 'song.dart';
+
 class RadioStation {
   final String id;
   final String name;
@@ -19,4 +21,14 @@ class RadioStation {
       homePageUrl: json['homePageUrl'] as String?,
     );
   }
+
+  Song toSong() => Song(
+    id: 'radio:$id',
+    title: name,
+    album: '',
+    albumId: '',
+    artist: homePageUrl ?? '',
+    artistId: '',
+    streamUrl: streamUrl,
+  );
 }

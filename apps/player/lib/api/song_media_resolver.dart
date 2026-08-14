@@ -21,6 +21,8 @@ class SongMediaResolver {
   }
 
   Future<String> playbackUrl(Song song, {int? maxBitRate}) async {
+    final direct = song.streamUrl;
+    if (direct != null && direct.isNotEmpty) return direct;
     if (song.isOnline) {
       return backendClient.getPlaybackUrl(song, maxBitRate: maxBitRate);
     }
@@ -85,7 +87,7 @@ class SongMediaResolver {
     await subsonicClient.scrobble(song.id);
   }
 
-  bool supportsLibraryMutations(Song song) => !song.isOnline;
+  bool supportsLibraryMutations(Song song) => !song.isOnline && !song.isRadio;
 
   /// 读取音频文件同目录的 .lrc 歌词文件
   static Future<LyricsList?> _loadLocalLrc(String? audioPath) async {
@@ -99,9 +101,7 @@ class SongMediaResolver {
       if (content.trim().isEmpty) return null;
       return parseLrc(content);
     } catch (e) {
-      debugPrint(
-        '[Resolver] Failed to read local lrc: ${e.runtimeType}',
-      );
+      debugPrint('[Resolver] Failed to read local lrc: ${e.runtimeType}');
       return null;
     }
   }

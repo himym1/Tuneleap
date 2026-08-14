@@ -47,4 +47,6 @@ class GlobalAccentColorNotifier extends Notifier<Color> {
   Color build() => AppColors.primary;
 
   void setColor(Color color) => state = color;
+
+  void clear() => state = AppColors.primary;
 }

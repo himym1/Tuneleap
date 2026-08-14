@@ -34,16 +34,17 @@ class AppFilterChip extends StatelessWidget {
               border: selected
                   ? null
                   : Border.all(
-                      color: Theme.of(context).colorScheme.outlineVariant),
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
             ),
             child: Text(
               label,
               style: Theme.of(context).textTheme.chipLabel.copyWith(
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                    color: selected
-                        ? context.colors.onEmphasis
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: selected
+                    ? context.colors.onEmphasis
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),

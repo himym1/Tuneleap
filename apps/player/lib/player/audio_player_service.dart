@@ -117,6 +117,9 @@ class AudioPlayerService {
   /// 从队列中移除
   Future<void> removeFromQueue(int index) => _handler.removeFromQueue(index);
 
+  /// 清空播放队列并停止
+  Future<void> clearQueue() => _handler.setQueue(const []);
+
   /// 移动队列中的歌曲（拖拽排序）
   void reorderQueue(int oldIndex, int newIndex) {
     _handler.reorderQueue(oldIndex, newIndex);

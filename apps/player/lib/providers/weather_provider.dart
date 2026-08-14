@@ -48,12 +48,15 @@ final weatherProvider = FutureProvider.autoDispose<WeatherInfo?>((ref) async {
       },
       options: Options(responseType: ResponseType.plain),
     );
-    final weather = jsonDecode(weatherResp.data as String) as Map<String, dynamic>;
+    final weather =
+        jsonDecode(weatherResp.data as String) as Map<String, dynamic>;
     final current = weather['current'] as Map<String, dynamic>;
 
     final temp = (current['temperature_2m'] as num).round();
     final code = (current['weather_code'] as num).toInt();
-    debugPrint('[Weather] 天气结果: $temp°C, code=$code (${_wmoDesc(code)}), $city');
+    debugPrint(
+      '[Weather] 天气结果: $temp°C, code=$code (${_wmoDesc(code)}), $city',
+    );
 
     return WeatherInfo(
       temp: '$temp°C',

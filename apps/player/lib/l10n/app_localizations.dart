@@ -373,6 +373,54 @@ abstract class S {
   /// **'队列'**
   String get playerQueue;
 
+  /// No description provided for @playerMoreActions.
+  ///
+  /// In zh, this message translates to:
+  /// **'更多'**
+  String get playerMoreActions;
+
+  /// No description provided for @playerClearQueue.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空队列'**
+  String get playerClearQueue;
+
+  /// No description provided for @playerClose.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭播放页'**
+  String get playerClose;
+
+  /// No description provided for @shortcutsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'键盘快捷键'**
+  String get shortcutsTitle;
+
+  /// No description provided for @shortcutsPlayPause.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放 / 暂停'**
+  String get shortcutsPlayPause;
+
+  /// No description provided for @shortcutsPrevious.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一首'**
+  String get shortcutsPrevious;
+
+  /// No description provided for @shortcutsNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一首'**
+  String get shortcutsNext;
+
+  /// No description provided for @shortcutsClosePlayer.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭正在播放'**
+  String get shortcutsClosePlayer;
+
   /// No description provided for @playerNext.
   ///
   /// In zh, this message translates to:
@@ -654,6 +702,18 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'关于'**
   String get settingsAbout;
+
+  /// No description provided for @settingsServerUnconfigured.
+  ///
+  /// In zh, this message translates to:
+  /// **'未配置'**
+  String get settingsServerUnconfigured;
+
+  /// No description provided for @settingsTools.
+  ///
+  /// In zh, this message translates to:
+  /// **'工具'**
+  String get settingsTools;
 
   /// No description provided for @settingsVersion.
   ///

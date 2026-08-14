@@ -37,8 +37,9 @@ class StatCard extends StatelessWidget {
               height: AppDimensions.iconBoxSize,
               decoration: BoxDecoration(
                 color: colors.primarySoftAlt,
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.iconBoxRadius),
+                borderRadius: BorderRadius.circular(
+                  AppDimensions.iconBoxRadius,
+                ),
               ),
               child: Icon(icon, color: colors.primary, size: 20),
             ),
@@ -49,15 +50,17 @@ class StatCard extends StatelessWidget {
                 children: [
                   Text(
                     value,
-                    style: theme.textTheme.statValue
-                        .copyWith(color: theme.colorScheme.onSurface),
+                    style: theme.textTheme.statValue.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                   Text(
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.songSubtitle
-                        .copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.songSubtitle.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),

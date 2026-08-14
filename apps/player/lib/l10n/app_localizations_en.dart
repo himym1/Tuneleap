@@ -152,6 +152,30 @@ class SEn extends S {
   String get playerQueue => 'Queue';
 
   @override
+  String get playerMoreActions => 'More';
+
+  @override
+  String get playerClearQueue => 'Clear queue';
+
+  @override
+  String get playerClose => 'Close player';
+
+  @override
+  String get shortcutsTitle => 'Keyboard shortcuts';
+
+  @override
+  String get shortcutsPlayPause => 'Play / Pause';
+
+  @override
+  String get shortcutsPrevious => 'Previous track';
+
+  @override
+  String get shortcutsNext => 'Next track';
+
+  @override
+  String get shortcutsClosePlayer => 'Close Now Playing';
+
+  @override
   String get playerNext => 'Next';
 
   @override
@@ -298,6 +322,12 @@ class SEn extends S {
 
   @override
   String get settingsAbout => 'About';
+
+  @override
+  String get settingsServerUnconfigured => 'Not configured';
+
+  @override
+  String get settingsTools => 'Tools';
 
   @override
   String get settingsVersion => 'Version';

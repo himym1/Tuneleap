@@ -3,11 +3,7 @@ class Genre {
   final int songCount;
   final int albumCount;
 
-  const Genre({
-    required this.name,
-    this.songCount = 0,
-    this.albumCount = 0,
-  });
+  const Genre({required this.name, this.songCount = 0, this.albumCount = 0});
 
   factory Genre.fromJson(Map<String, dynamic> json) {
     return Genre(

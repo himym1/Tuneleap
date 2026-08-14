@@ -17,7 +17,8 @@ class Artist {
     return Artist(
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
-      coverArt: json['coverArt'] as String? ?? json['artistImageUrl'] as String?,
+      coverArt:
+          json['coverArt'] as String? ?? json['artistImageUrl'] as String?,
       albumCount: json['albumCount'] as int?,
     );
   }

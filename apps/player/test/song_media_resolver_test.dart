@@ -50,6 +50,26 @@ void main() {
     expect(backend.requestedSong?.lyricId, '123.part');
   });
 
+  test('direct radio stream url is used as-is', () async {
+    final resolver = SongMediaResolver(
+      subsonicClient: _NoLyricsSubsonicClient(),
+      backendClient: _CapturingBackendClient(),
+    );
+    const radio = Song(
+      id: 'radio:1',
+      title: 'Station',
+      album: '',
+      albumId: '',
+      artist: '',
+      artistId: '',
+      streamUrl: 'https://radio.test/stream',
+    );
+
+    expect(radio.isRadio, isTrue);
+    expect(resolver.supportsLibraryMutations(radio), isFalse);
+    expect(await resolver.playbackUrl(radio), 'https://radio.test/stream');
+  });
+
   test('legacy imported filename remains supported', () async {
     final backend = _CapturingBackendClient();
     final resolver = SongMediaResolver(

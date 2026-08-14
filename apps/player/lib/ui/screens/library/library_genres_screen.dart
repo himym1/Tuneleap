@@ -23,7 +23,9 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
-    final h = isMobile ? AppDimensions.paddingMobile : AppDimensions.paddingDesktop;
+    final h = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
@@ -74,8 +76,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
     final genresAsync = ref.watch(genresProvider);
 
     return genresAsync.when(
-      loading: () =>
-          Center(child: const CircularProgressIndicator()),
+      loading: () => Center(child: const CircularProgressIndicator()),
       error: (_, _) => Center(
         child: Text(
           S.of(context).libraryNoGenres,
@@ -152,8 +153,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
     final client = ref.read(subsonicClientProvider);
 
     return songsAsync.when(
-      loading: () =>
-          Center(child: const CircularProgressIndicator()),
+      loading: () => Center(child: const CircularProgressIndicator()),
       error: (_, _) => Center(
         child: Text(
           S.of(context).libraryNoSongs,
