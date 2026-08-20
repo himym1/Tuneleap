@@ -94,6 +94,40 @@ async def test_chksz_ignores_unsupported_sources():
         adapter = ChkszAdapter(client, "https://api.chksz.test", "chksz_test")
         assert await adapter.search("q", source="migu", count=10, page=1) == []
         assert await adapter.search("q", source="joox", count=10, page=1) == []
+        assert adapter.supports_pagination("netease")
+        assert not adapter.supports_pagination("tencent")
+        assert not adapter.supports_pagination("kugou")
+        assert adapter.search_window("netease").max_count == 50
+        assert adapter.search_window("tencent").max_count == 30
+        assert adapter.search_window("kugou").max_count == 20
+
+
+@pytest.mark.asyncio
+async def test_chksz_kugou_search_sends_num():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/kugou_music"
+        assert request.url.params.get("num") == "20"
+        return httpx.Response(
+            200,
+            json={
+                "code": 200,
+                "msg": "success",
+                "list": [
+                    {
+                        "name": "晴天",
+                        "singer": "周杰伦",
+                        "id": "hash-1",
+                    }
+                ],
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(client, "https://api.chksz.test", "chksz_test")
+        songs = await adapter.search("晴天", source="kugou", count=50, page=1)
+
+    assert [song["id"] for song in songs] == ["hash-1"]
 
 
 @pytest.mark.asyncio
@@ -385,3 +419,50 @@ async def test_chksz_reuses_detail_for_url_cover_and_lyric():
     assert cover["url"].endswith("cover.jpg")
     assert lyric["lyric"] == "[00:01.00]First line"
     assert repeated["url"].endswith("song.mp3")
+
+
+@pytest.mark.asyncio
+async def test_chksz_netease_lyric_does_not_reuse_empty_playback_cache():
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if request.url.path == "/api/163_music":
+            return httpx.Response(
+                200,
+                json={
+                    "code": 200,
+                    "data": {
+                        "url": "https://m701.music.126.net/a.flac",
+                        "br": 999000,
+                    },
+                },
+            )
+        if request.url.path == "/api/163_lyric":
+            return httpx.Response(
+                200,
+                json={
+                    "code": 200,
+                    "data": {
+                        "lyric": "",
+                        "lrc": {"lyric": "[00:01.00]蝴蝶"},
+                    },
+                },
+            )
+        raise AssertionError(request.url.path)
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+        )
+        playback = await adapter.get_url("93188", source="netease", br=999)
+        lyric = await adapter.get_lyric("93188", source="netease")
+
+    assert playback["url"].endswith("a.flac")
+    assert "lyric" not in playback
+    assert calls == ["/api/163_music", "/api/163_lyric"]
+    assert lyric["lyric"] == "[00:01.00]蝴蝶"

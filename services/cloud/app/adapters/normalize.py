@@ -106,13 +106,15 @@ def extract_url_payload(payload: Any) -> str | None:
 
 def extract_lyric_payload(payload: Any) -> str:
     if isinstance(payload, str):
-        return payload
+        return payload if payload.strip() else ""
     if not isinstance(payload, dict):
         return ""
     for key in ("lyric", "lrc", "lyrics", "data"):
         value = payload.get(key)
         if isinstance(value, str):
-            return value
+            if value.strip():
+                return value
+            continue
         if isinstance(value, dict):
             nested = extract_lyric_payload(value)
             if nested:

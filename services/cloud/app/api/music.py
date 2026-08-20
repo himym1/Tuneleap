@@ -60,7 +60,7 @@ async def search(
         None,
         description="Pinned adapter id; omit for configured adapter failover",
     ),
-    count: int = Query(20, ge=1, le=50),
+    count: int = Query(30, ge=1, le=50),
     page: int = Query(1, ge=1),
 ):
     """One user query -> one result list from the first successful upstream."""

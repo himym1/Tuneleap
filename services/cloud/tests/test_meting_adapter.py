@@ -77,6 +77,7 @@ async def test_meting_returns_terminal_page_without_repeating_search():
         adapter = MetingAdapter(client, ("https://meting.test/api",))
         assert await adapter.search("q", source="netease", count=20, page=2) == []
         assert await adapter.search("q", source="migu", count=20, page=1) == []
+        assert not adapter.supports_pagination("netease")
 
     assert calls == 0
 

@@ -31,6 +31,14 @@ class SearchResponse(BaseModel):
     source: Optional[str] = None
     items: list[SongDTO]
     strategy: str = "first-success"
+    page: int = 1
+    has_more: bool = False
+
+
+class SourceSearchWindow(BaseModel):
+    max_count: int
+    paginates: bool
+
 
 class MusicAdapterCapability(BaseModel):
     id: str
@@ -39,6 +47,7 @@ class MusicAdapterCapability(BaseModel):
 
 class MusicCapabilitiesResponse(BaseModel):
     default_provider: Optional[str] = None
+    sources: dict[str, SourceSearchWindow] = Field(default_factory=dict)
     adapters: list[MusicAdapterCapability]
 
 

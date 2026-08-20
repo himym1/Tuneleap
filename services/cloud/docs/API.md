@@ -26,12 +26,19 @@ Returns currently available configured adapters in failover order and the platfo
 ```json
 {
   "default_provider": "meting",
+  "sources": {
+    "netease": { "max_count": 50, "paginates": true },
+    "tencent": { "max_count": 30, "paginates": false },
+    "kugou": { "max_count": 30, "paginates": false }
+  },
   "adapters": [
     { "id": "meting", "sources": ["netease", "tencent", "kugou"] },
     { "id": "gdstudio", "sources": ["netease", "kugou", "migu", "joox"] }
   ]
 }
 ```
+
+`sources` is the product window: `max_count` is the largest first page Cloud will ask for; `paginates` is true when any configured adapter can return a later window. Adapter `sources` lists stay as ids so older clients keep working.
 
 
 ### `GET /v1/music/search`
@@ -40,11 +47,11 @@ Returns currently available configured adapters in failover order and the platfo
 |---|---|---|
 | `q` | yes | User search string |
 | `source` | no | Platform id: `netease`, `tencent` (`qq` accepted), `kugou`, `migu`, `joox`, `kuwo`. When set, search stays on that platform. When omitted, Cloud walks `MUSIC_SEARCH_SOURCES`. |
-| `provider` | no | Adapter id from `/v1/music/capabilities`. When set, search stays on that configured adapter and rejects unsupported platform combinations. |
-| `count` | no | default 20, max 50 |
+| `provider` | no | Adapter id from `/v1/music/capabilities`. When set, page 1 stays on that adapter. Page 2+ skips adapters that cannot paginate that platform and may fail over to one that can. Unsupported platform combinations are still rejected. |
+| `count` | no | Page-size hint, default 30, max 50. `count >= 30` uses that platform’s product window (网易 50). Smaller values stay exact for tests and tools. A short page is not “no more results”. Unpinned page 1 prefers an adapter that can paginate and return the larger window. |
 | `page` | no | default 1 |
 
-An explicit `source` is pinned. Do not send a source if you want first-success across configured platforms. For `page > 1` without `source`, Cloud stays on the first configured search source.
+An explicit `source` is pinned. Do not send a source if you want first-success across configured platforms. For `page > 1` without `source`, Cloud stays on the first configured search source. `has_more` is true when a later window exists for that platform. QQ and Kugou currently have one stable window.
 
 Success:
 
@@ -54,6 +61,8 @@ Success:
   "provider": "gdstudio",
   "source": "netease",
   "strategy": "first-success",
+  "page": 1,
+  "has_more": true,
   "items": [
     {
       "id": "…",

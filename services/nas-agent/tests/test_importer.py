@@ -47,6 +47,9 @@ def test_import_downloads_tags_cover_lyrics_and_is_idempotent(settings, media_se
     assert str(tags["TRCK"]) == "3"
     assert str(tags["TDRC"]) == "2026"
     assert tags.getall("APIC")[0].mime == "image/png"
+    uslt = tags.getall("USLT")
+    assert uslt
+    assert uslt[0].text == body["lyric"]
     assert sum(urlsplit.startswith("/redirect.mp3") for urlsplit in server.requests) == 1
     assert sum(urlsplit.startswith("/audio.mp3") for urlsplit in server.requests) == 1
     assert sum(urlsplit.startswith("/cover.png") for urlsplit in server.requests) == 1
@@ -163,3 +166,29 @@ def test_import_rejects_duplicate_identity_unless_forced(settings, media_server)
     assert rejected.status_code == 409
     assert forced.status_code == 200, forced.text
     assert sum(path.startswith("/audio.mp3") for path in server.requests) == 1
+
+
+def test_import_backfills_lyrics_on_existing_file(settings, media_server):
+    base_url, _ = media_server
+    body = {
+        "url": f"{base_url}/audio.mp3",
+        "filename": "solara_netease_via-chksz_93188.mp3",
+        "song": {"title": "蝴蝶", "artist": "胡彦斌", "source": "netease"},
+    }
+    with TestClient(create_app(settings)) as client:
+        first = client.post("/v1/nas/import", json=body, headers=_headers(settings))
+        second = client.post(
+            "/v1/nas/import",
+            json={**body, "lyric": "[00:01.00]蝴蝶\n"},
+            headers=_headers(settings),
+        )
+
+    assert first.status_code == 200, first.text
+    assert second.status_code == 200, second.text
+    assert second.json()["message"] == "already imported"
+
+    target = Path(settings.download_dir) / body["filename"]
+    assert target.with_suffix(".lrc").read_text() == "[00:01.00]蝴蝶\n"
+    uslt = ID3(target).getall("USLT")
+    assert uslt
+    assert uslt[0].text == "[00:01.00]蝴蝶\n"

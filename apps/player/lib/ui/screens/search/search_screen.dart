@@ -309,7 +309,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         icon: const Icon(Icons.refresh),
                         label: Text(S.of(context).searchLoadMore),
                       )
-                    : const SizedBox.shrink(),
+                    : TextButton(
+                        onPressed: _loadMore,
+                        child: Text(S.of(context).searchLoadMore),
+                      ),
               ),
             );
           }

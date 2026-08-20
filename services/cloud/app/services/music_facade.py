@@ -20,13 +20,22 @@ from app.models.schemas import (
     SongDTO,
     UrlResponse,
 )
+from app.services.search_policy import (
+    adapter_available,
+    capabilities_payload,
+    effective_search_count,
+    has_more_pages,
+    paginating_adapters,
+    rank_search_adapters,
+)
+from app.services.search_rank import looks_like_artist_query, rank_search_hits
 
 
 class MusicSearchSelectionError(ValueError):
     """Requested adapter/platform selection cannot be served."""
 
 def _is_available(adapter: MusicAdapter) -> bool:
-    return bool(getattr(adapter, "available", True))
+    return adapter_available(adapter)
 
 
 class MusicFacade:
@@ -70,17 +79,7 @@ class MusicFacade:
         return list(self._adapters)
 
     def capabilities(self) -> dict[str, Any]:
-        adapters = [adapter for adapter in self._adapters if _is_available(adapter)]
-        return {
-            "default_provider": adapters[0].name if adapters else None,
-            "adapters": [
-                {
-                    "id": adapter.name,
-                    "sources": sorted(adapter.supported_sources),
-                }
-                for adapter in adapters
-            ],
-        }
+        return capabilities_payload(self._adapters)
 
 
     def _adapter_by_name(self, provider: str | None) -> MusicAdapter | None:
@@ -96,6 +95,66 @@ class MusicFacade:
         if pinned:
             return (pinned,)
         return self._settings.music_search_source_list or (None,)
+
+    def _paginating_adapters(self, source: str | None) -> list[MusicAdapter]:
+        return paginating_adapters(self._adapters, source)
+
+    def _with_has_more(
+        self,
+        response: SearchResponse,
+        *,
+        source: str | None,
+        count: int,
+        page: int,
+    ) -> SearchResponse:
+        winner = self._adapter_by_name(response.provider)
+        return response.model_copy(
+            update={
+                "page": page,
+                "has_more": has_more_pages(
+                    adapters=self._adapters,
+                    source=response.source or source,
+                    item_count=len(response.items),
+                    requested_count=count,
+                    winner=winner,
+                ),
+            }
+        )
+
+    def _search_adapters(
+        self,
+        *,
+        source: str | None,
+        pinned_adapter: MusicAdapter | None,
+        page: int,
+    ) -> list[MusicAdapter]:
+        if page > 1:
+            paginating = self._paginating_adapters(source)
+            if (
+                pinned_adapter is not None
+                and pinned_adapter.supports_pagination(source)
+            ):
+                return [
+                    pinned_adapter,
+                    *[adapter for adapter in paginating if adapter is not pinned_adapter],
+                ]
+            return paginating
+        if pinned_adapter is not None:
+            return [pinned_adapter]
+        return rank_search_adapters(self._adapters, source)
+
+    def _empty_search(
+        self, query: str, *, provider: str, source: str | None, page: int
+    ) -> SearchResponse:
+        return SearchResponse(
+            query=query,
+            provider=provider,
+            source=source,
+            items=[],
+            strategy="first-success-empty",
+            page=page,
+            has_more=False,
+        )
 
     async def search_first_success(
         self,
@@ -119,18 +178,33 @@ class MusicFacade:
         if page > 1:
             candidates = candidates[:1]
         for candidate in candidates:
-            adapters = (
-                [pinned_adapter]
-                if pinned_adapter is not None
-                else [
-                    adapter
-                    for adapter in self._adapters
-                    if _is_available(adapter) and adapter.supports(candidate)
-                ]
+            if pinned_adapter is not None and not pinned_adapter.supports(candidate):
+                raise MusicSearchSelectionError(
+                    f"music adapter {provider} does not support source {candidate}"
+                )
+            page_count = effective_search_count(
+                adapters=self._adapters,
+                source=candidate,
+                requested=count,
             )
-            if not adapters or any(
-                not adapter.supports(candidate) for adapter in adapters
-            ):
+            adapters = self._search_adapters(
+                source=candidate,
+                pinned_adapter=pinned_adapter,
+                page=page,
+            )
+            if not adapters:
+                if page > 1:
+                    empty_response = self._empty_search(
+                        query,
+                        provider=(
+                            pinned_adapter.name
+                            if pinned_adapter is not None
+                            else self._adapters[0].name
+                        ),
+                        source=candidate,
+                        page=page,
+                    )
+                    continue
                 if provider:
                     raise MusicSearchSelectionError(
                         f"music adapter {provider} does not support source {candidate}"
@@ -147,14 +221,23 @@ class MusicFacade:
                     query,
                     adapters=adapters,
                     source=candidate,
-                    count=count,
+                    count=page_count,
                     page=page,
                 )
             except Exception as exc:  # noqa: BLE001 - fail over across sources
                 last_error = exc
                 continue
             if response.items:
-                return response
+                refined = await self._refine_search(
+                    response,
+                    query=query,
+                    source=candidate,
+                    count=page_count,
+                    page=page,
+                )
+                return self._with_has_more(
+                    refined, source=candidate, count=page_count, page=page
+                )
             empty_response = response
 
         if empty_response is not None:
@@ -164,6 +247,46 @@ class MusicFacade:
         raise MusicSearchSelectionError(
             "no music adapter supports the requested source"
         )
+
+    async def _refine_search(
+        self,
+        response: SearchResponse,
+        *,
+        query: str,
+        source: str | None,
+        count: int,
+        page: int,
+    ) -> SearchResponse:
+        winner = self._adapter_by_name(response.provider)
+        items = list(response.items)
+        if (
+            page == 1
+            and winner is not None
+            and winner.search_window(source).paginates
+            and looks_like_artist_query(query, items)
+        ):
+            seen = {item.id for item in items}
+            extra_count = winner.search_window(source).request_count(count)
+            for extra_page in (2, 3):
+                try:
+                    extra = await winner.search(
+                        query,
+                        source=source,
+                        count=extra_count,
+                        page=extra_page,
+                    )
+                except Exception:  # noqa: BLE001 - keep the first window
+                    break
+                if not extra:
+                    break
+                for raw in extra:
+                    song = SongDTO.model_validate(raw)
+                    if song.id in seen:
+                        continue
+                    seen.add(song.id)
+                    items.append(song)
+        ranked = rank_search_hits(query, items)[:count]
+        return response.model_copy(update={"items": ranked})
 
     async def _search_ordered(
         self,
@@ -179,7 +302,10 @@ class MusicFacade:
         for adapter in adapters:
             try:
                 items = await adapter.search(
-                    query, source=source, count=count, page=page
+                    query,
+                    source=source,
+                    count=adapter.search_window(source).request_count(count),
+                    page=page,
                 )
             except Exception as exc:  # noqa: BLE001 - failover across adapters
                 last_error = exc
@@ -192,6 +318,7 @@ class MusicFacade:
                     source=source or (songs[0].source if songs else None),
                     items=songs,
                     strategy="first-success",
+                    page=page,
                 )
             empty_adapter = adapter
         if empty_adapter is not None:
@@ -201,6 +328,7 @@ class MusicFacade:
                 source=source,
                 items=[],
                 strategy="first-success-empty",
+                page=page,
             )
         if last_error is not None:
             raise last_error
@@ -218,7 +346,12 @@ class MusicFacade:
         async def run(
             adapter: MusicAdapter,
         ) -> tuple[MusicAdapter, list[dict[str, Any]]]:
-            items = await adapter.search(query, source=source, count=count, page=page)
+            items = await adapter.search(
+                query,
+                source=source,
+                count=adapter.search_window(source).request_count(count),
+                page=page,
+            )
             return adapter, items
 
         tasks = [asyncio.create_task(run(adapter)) for adapter in adapters]
@@ -246,6 +379,7 @@ class MusicFacade:
                     source=source or (songs[0].source if songs else None),
                     items=songs,
                     strategy="first-success-race",
+                    page=page,
                 )
         finally:
             for task in tasks:
@@ -260,6 +394,7 @@ class MusicFacade:
                 source=source,
                 items=[],
                 strategy="first-success-race-empty",
+                page=page,
             )
         if last_error is not None:
             raise last_error
@@ -289,11 +424,40 @@ class MusicFacade:
         self, id: str, *, source: str, provider: str | None = None
     ) -> LyricResponse:
         resolved = canonicalize_music_source(source) or source
-        data = await self._with_adapters(
-            provider,
-            lambda adapter: adapter.get_lyric(id, source=resolved),
-        )
-        return LyricResponse.model_validate(data)
+        preferred = self._adapter_by_name(provider)
+        if provider and preferred is None:
+            raise MusicSearchSelectionError(f"music adapter unavailable: {provider}")
+
+        order: list[MusicAdapter] = []
+        if preferred is not None:
+            order.append(preferred)
+        for adapter in self._adapters:
+            if not _is_available(adapter) or adapter in order:
+                continue
+            if not adapter.supports(resolved):
+                continue
+            order.append(adapter)
+        if not order:
+            raise httpx.HTTPError("no music adapters configured")
+
+        last_error: Exception | None = None
+        empty: dict[str, Any] | None = None
+        for adapter in order:
+            try:
+                data = await adapter.get_lyric(id, source=resolved)
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+                continue
+            lyric = data.get("lyric") if isinstance(data, dict) else None
+            if isinstance(lyric, str) and lyric.strip():
+                return LyricResponse.model_validate(data)
+            if isinstance(data, dict):
+                empty = data
+        if empty is not None:
+            return LyricResponse.model_validate(empty)
+        if last_error is not None:
+            raise last_error
+        raise httpx.HTTPError("lyric empty")
 
     async def _with_adapters(self, provider: str | None, op) -> dict[str, Any]:
         preferred = self._adapter_by_name(provider)

@@ -1,3 +1,23 @@
+const kDefaultSearchPageSize = 30;
+const kMaxSearchPageSize = 50;
+
+class SourceSearchWindow {
+  const SourceSearchWindow({required this.maxCount, required this.paginates});
+
+  final int maxCount;
+  final bool paginates;
+
+  factory SourceSearchWindow.fromJson(Map<String, dynamic> json) {
+    final rawCount =
+        json['max_count'] ?? json['maxCount'] ?? kDefaultSearchPageSize;
+    final parsed = rawCount is num ? rawCount.toInt() : kDefaultSearchPageSize;
+    return SourceSearchWindow(
+      maxCount: parsed.clamp(1, kMaxSearchPageSize),
+      paginates: json['paginates'] == true,
+    );
+  }
+}
+
 class MusicAdapterCapability {
   const MusicAdapterCapability({required this.id, required this.sources});
 
@@ -17,10 +37,15 @@ class MusicAdapterCapability {
 }
 
 class MusicCapabilities {
-  const MusicCapabilities({required this.adapters, this.defaultProvider});
+  const MusicCapabilities({
+    required this.adapters,
+    this.defaultProvider,
+    this.sources = const {},
+  });
 
   final String? defaultProvider;
   final List<MusicAdapterCapability> adapters;
+  final Map<String, SourceSearchWindow> sources;
 
   factory MusicCapabilities.fromJson(Map<String, dynamic> json) {
     final rawAdapters = json['adapters'];
@@ -42,6 +67,7 @@ class MusicCapabilities {
           ? null
           : defaultProvider,
       adapters: adapters,
+      sources: _parseSourceWindows(json['sources']),
     );
   }
 
@@ -63,4 +89,27 @@ class MusicCapabilities {
     }
     return adapter(provider)?.sources ?? const [];
   }
+
+  int pageSizeFor(String source) {
+    return sources[source]?.maxCount ?? kDefaultSearchPageSize;
+  }
+
+  bool paginates(String source) {
+    return sources[source]?.paginates ?? false;
+  }
+}
+
+Map<String, SourceSearchWindow> _parseSourceWindows(Object? raw) {
+  if (raw is! Map) return const {};
+  final windows = <String, SourceSearchWindow>{};
+  for (final entry in raw.entries) {
+    final value = entry.value;
+    if (value is! Map) continue;
+    final key = entry.key.toString();
+    if (key.isEmpty) continue;
+    windows[key] = SourceSearchWindow.fromJson(
+      Map<String, dynamic>.from(value),
+    );
+  }
+  return windows;
 }

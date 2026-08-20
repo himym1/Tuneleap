@@ -13,6 +13,11 @@ from app.adapters.normalize import (
     normalize_songs,
 )
 from app.adapters.pool import BasePool
+from app.adapters.search_window import (
+    CLOUD_SEARCH_COUNT_MAX,
+    DEFAULT_SEARCH_COUNT,
+    SearchWindow,
+)
 
 DEFAULT_SOURCE = "netease"
 
@@ -39,6 +44,14 @@ class GdstudioAdapter(MusicAdapter):
         )
         self._client = client
         self._timeout = timeout
+
+    def search_window(self, source: str | None) -> SearchWindow:
+        resolved = source or DEFAULT_SOURCE
+        if resolved == "netease":
+            return SearchWindow(max_count=CLOUD_SEARCH_COUNT_MAX, paginates=True)
+        if resolved == "kuwo":
+            return SearchWindow(max_count=CLOUD_SEARCH_COUNT_MAX, paginates=False)
+        return SearchWindow(max_count=DEFAULT_SEARCH_COUNT, paginates=False)
 
     async def search(
         self, query: str, *, source: str | None, count: int, page: int

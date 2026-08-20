@@ -11,10 +11,11 @@ import httpx
 
 from app.adapters.base import MusicAdapter
 from app.adapters.normalize import extract_lyric_payload, normalize_songs
+from app.adapters.search_window import CLOUD_SEARCH_COUNT_MAX, SearchWindow
 from app.core.sources import canonicalize_music_source
 
 SUPPORTED_SOURCES = frozenset({"netease", "tencent", "kugou"})
-_QQ_PAGE_SIZE_MAX = 50
+_KUGOU_PAGE_SIZE_MAX = 20
 _REQUEST_INTERVAL_SECONDS = 0.35
 _RATE_LIMIT_RETRY_DELAYS = (0.75, 1.5)
 _MAX_RETRY_AFTER_SECONDS = 3.0
@@ -223,19 +224,28 @@ class ChkszAdapter(MusicAdapter):
                 )
             return payload
 
+    def search_window(self, source: str | None) -> SearchWindow:
+        resolved = self._resolve_source(source)
+        if resolved == "netease":
+            return SearchWindow(max_count=CLOUD_SEARCH_COUNT_MAX, paginates=True)
+        if resolved == "kugou":
+            return SearchWindow(max_count=_KUGOU_PAGE_SIZE_MAX, paginates=False)
+        return SearchWindow(max_count=30, paginates=False)
+
     async def search(
         self, query: str, *, source: str | None, count: int, page: int
     ) -> list[dict[str, Any]]:
         resolved = self._resolve_source(source)
         if resolved is None or page < 1:
             return []
+        limit = self.search_window(resolved).request_count(count)
         if resolved == "netease":
             payload = await self._get_json(
                 "/api/163_search",
                 {
                     "keyword": query,
-                    "limit": count,
-                    "offset": (page - 1) * count,
+                    "limit": limit,
+                    "offset": (page - 1) * limit,
                 },
                 not_found_is_empty=True,
             )
@@ -246,7 +256,7 @@ class ChkszAdapter(MusicAdapter):
                 "/api/qq_music",
                 {
                     "msg": query,
-                    "num": min(max(count, 1), _QQ_PAGE_SIZE_MAX),
+                    "num": limit,
                     "type": "json",
                 },
                 not_found_is_empty=True,
@@ -254,13 +264,17 @@ class ChkszAdapter(MusicAdapter):
         else:
             payload = await self._get_json(
                 "/api/kugou_music",
-                {"msg": query, "type": "json"},
+                {
+                    "msg": query,
+                    "num": limit,
+                    "type": "json",
+                },
                 not_found_is_empty=True,
             )
         items = [_prepare_item(item, source=resolved) for item in _search_items(payload)]
         songs = normalize_songs(
             items, provider=self.name, default_source=resolved
-        )[:count]
+        )[:limit]
         for song in songs:
             cover = song.get("cover_id")
             if not isinstance(cover, str) or not _is_http_url(cover):
@@ -330,11 +344,21 @@ class ChkszAdapter(MusicAdapter):
             raise httpx.HTTPError("chksz unsupported source")
         cached = self._detail_cache.get((resolved, id))
         if cached is not None and cached[0] > time.monotonic():
-            return {
-                "lyric": extract_lyric_payload(cached[1]),
-                "provider": self.name,
-                "source": resolved,
-            }
+            lyric = extract_lyric_payload(cached[1])
+            if lyric.strip():
+                return {
+                    "lyric": lyric,
+                    "provider": self.name,
+                    "source": resolved,
+                }
+            # NetEase /api/163_music has play URL/cover but no lyrics.
+            # Fall through to /api/163_lyric instead of returning empty.
+            if resolved != "netease":
+                return {
+                    "lyric": lyric,
+                    "provider": self.name,
+                    "source": resolved,
+                }
         if resolved == "netease":
             payload = await self._get_json("/api/163_lyric", {"id": id})
             data = payload.get("data")

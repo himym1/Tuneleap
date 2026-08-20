@@ -1,12 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:navidrome_player/api/models/music_capabilities.dart';
 import 'package:navidrome_player/api/models/song.dart';
 
 import 'audio_providers.dart';
 import 'server_config_provider.dart';
 import 'online_source_preferences.dart';
-
-const _searchPageSize = 30;
 
 enum SearchFailure { authentication, rateLimited, unavailable, unknown }
 
@@ -119,7 +118,7 @@ class SearchNotifier extends Notifier<SearchState> {
             trimmed,
             source: source,
             provider: _provider,
-            count: _searchPageSize,
+            count: _pageSize(),
             page: 1,
             cancelToken: cancelToken,
           );
@@ -128,9 +127,9 @@ class SearchNotifier extends Notifier<SearchState> {
           generation == _generation) {
         _page = 1;
         state = SearchState(
-          songs: result,
-          source: result.isEmpty ? null : result.first.onlineSource,
-          hasMore: result.isNotEmpty,
+          songs: result.songs,
+          source: result.songs.isEmpty ? null : result.songs.first.onlineSource,
+          hasMore: result.hasMore,
         );
       }
     } catch (error) {
@@ -161,19 +160,19 @@ class SearchNotifier extends Notifier<SearchState> {
             query,
             source: source,
             provider: _provider,
-            count: _searchPageSize,
+            count: _pageSize(),
             page: nextPage,
           );
       if (generation != _generation || query != _query) return;
       final seen = existing.map((song) => song.storageKey).toSet();
-      final appended = result
+      final appended = result.songs
           .where((song) => seen.add(song.storageKey))
           .toList();
       _page = nextPage;
       state = state.copyWith(
         songs: [...existing, ...appended],
         loadingMore: false,
-        hasMore: result.isNotEmpty && appended.isNotEmpty,
+        hasMore: result.hasMore && appended.isNotEmpty,
         error: null,
       );
     } catch (error) {
@@ -184,5 +183,10 @@ class SearchNotifier extends Notifier<SearchState> {
       );
       rethrow;
     }
+  }
+
+  int _pageSize() {
+    return ref.read(musicCapabilitiesProvider).value?.pageSizeFor(source) ??
+        kDefaultSearchPageSize;
   }
 }

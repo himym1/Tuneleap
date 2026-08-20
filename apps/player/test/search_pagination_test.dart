@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/models/music_capabilities.dart';
+import 'package:navidrome_player/api/models/search_page.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/providers/audio_providers.dart';
 import 'package:navidrome_player/providers/online_source_preferences.dart';
@@ -16,9 +17,10 @@ class _PagedBackendClient extends BackendClient {
   final pages = <int>[];
   final sources = <String?>[];
   final providers = <String?>[];
+  final counts = <int>[];
 
   @override
-  Future<List<Song>> searchSongs(
+  Future<CloudSearchPage> searchSongs(
     String query, {
     String? source,
     String? provider,
@@ -29,13 +31,26 @@ class _PagedBackendClient extends BackendClient {
     pages.add(page);
     sources.add(source);
     providers.add(provider);
+    counts.add(count);
     if (page == 1) {
-      return [_song('0', source: 'migu'), _song('1', source: 'migu')];
+      return CloudSearchPage(
+        songs: [
+          _song('0', source: 'migu'),
+          _song('1', source: 'migu'),
+        ],
+        hasMore: true,
+      );
     }
     if (page == 2) {
-      return [_song('1', source: 'migu'), _song('2', source: 'migu')];
+      return CloudSearchPage(
+        songs: [
+          _song('1', source: 'migu'),
+          _song('2', source: 'migu'),
+        ],
+        hasMore: true,
+      );
     }
-    return [];
+    return const CloudSearchPage(songs: [], hasMore: false);
   }
 }
 
@@ -43,7 +58,7 @@ class _RepeatingBackendClient extends BackendClient {
   final pages = <int>[];
 
   @override
-  Future<List<Song>> searchSongs(
+  Future<CloudSearchPage> searchSongs(
     String query, {
     String? source,
     String? provider,
@@ -52,7 +67,7 @@ class _RepeatingBackendClient extends BackendClient {
     CancelToken? cancelToken,
   }) async {
     pages.add(page);
-    return [_song('same')];
+    return CloudSearchPage(songs: [_song('same')], hasMore: true);
   }
 }
 
@@ -60,7 +75,7 @@ class _DelayedBackendClient extends BackendClient {
   final secondPage = Completer<List<Song>>();
 
   @override
-  Future<List<Song>> searchSongs(
+  Future<CloudSearchPage> searchSongs(
     String query, {
     String? source,
     String? provider,
@@ -68,11 +83,16 @@ class _DelayedBackendClient extends BackendClient {
     int page = 1,
     CancelToken? cancelToken,
   }) async {
-    if (query == 'new') return [_song('new')];
-    if (page == 1) {
-      return [for (var index = 0; index < 30; index++) _song('$index')];
+    if (query == 'new') {
+      return CloudSearchPage(songs: [_song('new')], hasMore: false);
     }
-    return secondPage.future;
+    if (page == 1) {
+      return CloudSearchPage(
+        songs: [for (var index = 0; index < 30; index++) _song('$index')],
+        hasMore: true,
+      );
+    }
+    return CloudSearchPage(songs: await secondPage.future, hasMore: true);
   }
 }
 
@@ -228,4 +248,88 @@ void main() {
     expect(backend.sources, ['netease', 'tencent']);
     expect(sources, ['netease', 'tencent']);
   });
+
+  test('server hasMore false stops after the first page', () async {
+    SharedPreferences.setMockInitialValues({
+      'active_server_id': 'server-a',
+      'server_url': 'http://music.local',
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final backend = _TerminalFirstPageClient();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        backendClientProvider.overrideWithValue(backend),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(searchProvider('tencent'), (_, _) {});
+    addTearDown(subscription.close);
+
+    final notifier = container.read(searchProvider('tencent').notifier);
+    await notifier.search('query');
+    await notifier.loadMore();
+
+    final state = container.read(searchProvider('tencent'));
+    expect(backend.pages, [1]);
+    expect(state.songs, hasLength(2));
+    expect(state.hasMore, isFalse);
+  });
+
+  test('search asks for the capability page size', () async {
+    SharedPreferences.setMockInitialValues({
+      'active_server_id': 'server-a',
+      'server_url': 'http://music.local',
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final backend = _PagedBackendClient();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        backendClientProvider.overrideWithValue(backend),
+        musicCapabilitiesProvider.overrideWith(
+          (ref) async => const MusicCapabilities(
+            adapters: [
+              MusicAdapterCapability(id: 'gdstudio', sources: ['netease']),
+            ],
+            sources: {
+              'netease': SourceSearchWindow(maxCount: 50, paginates: true),
+            },
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(searchProvider('netease'), (_, _) {});
+    addTearDown(subscription.close);
+    await container.read(musicCapabilitiesProvider.future);
+
+    await container.read(searchProvider('netease').notifier).search('query');
+
+    expect(backend.counts, [50]);
+    expect(backend.pages, [1]);
+  });
+}
+
+class _TerminalFirstPageClient extends BackendClient {
+  final pages = <int>[];
+
+  @override
+  Future<CloudSearchPage> searchSongs(
+    String query, {
+    String? source,
+    String? provider,
+    int count = 20,
+    int page = 1,
+    CancelToken? cancelToken,
+  }) async {
+    pages.add(page);
+    return CloudSearchPage(
+      songs: [
+        _song('0', source: 'tencent'),
+        _song('1', source: 'tencent'),
+      ],
+      hasMore: false,
+    );
+  }
 }

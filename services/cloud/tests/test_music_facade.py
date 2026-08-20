@@ -239,22 +239,34 @@ async def test_capabilities_and_provider_pin_follow_adapter_support():
             page=1,
         )
 
-        assert capabilities == {
-            "default_provider": "meting",
-            "adapters": [
-                {
-                    "id": "meting",
-                    "sources": ["baidu", "kugou", "kuwo", "netease", "tencent"],
-                },
-                {
-                    "id": "gdstudio",
-                    "sources": ["joox", "kugou", "kuwo", "migu", "netease"],
-                },
-                {
-                    "id": "chksz",
-                    "sources": ["kugou", "netease", "tencent"],
-                },
-            ],
+        assert capabilities["default_provider"] == "meting"
+        assert [adapter["id"] for adapter in capabilities["adapters"]] == [
+            "meting",
+            "gdstudio",
+            "chksz",
+        ]
+        assert capabilities["adapters"][0]["sources"] == [
+            "baidu",
+            "kugou",
+            "kuwo",
+            "netease",
+            "tencent",
+        ]
+        assert capabilities["sources"]["netease"] == {
+            "max_count": 50,
+            "paginates": True,
+        }
+        assert capabilities["sources"]["tencent"] == {
+            "max_count": 30,
+            "paginates": False,
+        }
+        assert capabilities["sources"]["kugou"] == {
+            "max_count": 30,
+            "paginates": False,
+        }
+        assert capabilities["sources"]["kuwo"] == {
+            "max_count": 50,
+            "paginates": False,
         }
         assert result.provider == "gdstudio"
         assert calls == [("gds.test", "migu")]
@@ -318,6 +330,7 @@ def test_search_api_happy_path():
             body = resp.json()
             assert body["provider"] == "gdstudio"
             assert body["strategy"] == "first-success"
+            assert body["has_more"] is False
             assert len(body["items"]) == 1
             assert body["items"][0]["title"] == "Song 7"
     finally:
@@ -350,7 +363,307 @@ async def test_empty_search_page_is_a_successful_terminal_page():
 
     assert result.items == []
     assert result.strategy == "first-success-empty"
+    assert result.has_more is False
     assert calls == ["netease"]
+
+
+@pytest.mark.asyncio
+async def test_netease_page_two_skips_meting_and_uses_gdstudio():
+    hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hosts.append(request.url.host)
+        if request.url.host == "meting.test":
+            return httpx.Response(
+                200, json=[_song(index, provider="meting") for index in range(1, 6)]
+            )
+        pages = request.url.params.get("pages") or "1"
+        start = 1 if pages == "1" else 11
+        return httpx.Response(
+            200,
+            json=[
+                _song(index, provider="gdstudio") for index in range(start, start + 5)
+            ],
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                api_key="k",
+                gdstudio_api_base_urls="https://gds.test/api.php",
+                meting_api_base_urls="https://meting.test/api",
+                chksz_api_key="",
+                music_adapter_order="meting,gdstudio",
+                upstream_strategy="ordered",
+            ),
+        )
+        first = await facade.search_first_success(
+            "q", source="netease", count=5, page=1
+        )
+        hosts.clear()
+        second = await facade.search_first_success(
+            "q", source="netease", count=5, page=2
+        )
+
+    assert first.provider == "gdstudio"
+    assert first.has_more is True
+    assert first.page == 1
+    assert second.provider == "gdstudio"
+    assert second.page == 2
+    assert [item.id for item in second.items] == ["11", "12", "13", "14", "15"]
+    assert second.has_more is True
+    assert hosts == ["gds.test"]
+
+
+@pytest.mark.asyncio
+async def test_meting_short_window_still_allows_later_pages():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "meting.test":
+            return httpx.Response(
+                200, json=[_song(index, provider="meting") for index in range(1, 31)]
+            )
+        return httpx.Response(200, json=[])
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                api_key="k",
+                gdstudio_api_base_urls="https://gds.test/api.php",
+                meting_api_base_urls="https://meting.test/api",
+                chksz_api_key="",
+                music_adapter_order="meting,gdstudio",
+                upstream_strategy="ordered",
+            ),
+        )
+        result = await facade.search_first_success(
+            "q",
+            source="netease",
+            provider="meting",
+            count=50,
+            page=1,
+        )
+
+    assert result.provider == "meting"
+    assert len(result.items) == 30
+    assert result.has_more is True
+
+
+@pytest.mark.asyncio
+async def test_default_search_count_fills_netease_window():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "meting.test":
+            return httpx.Response(
+                200, json=[_song(index, provider="meting") for index in range(1, 31)]
+            )
+        count = int(request.url.params.get("count") or "0")
+        return httpx.Response(
+            200,
+            json=[_song(index, provider="gdstudio") for index in range(1, count + 1)],
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                api_key="k",
+                gdstudio_api_base_urls="https://gds.test/api.php",
+                meting_api_base_urls="https://meting.test/api",
+                chksz_api_key="",
+                music_adapter_order="meting,gdstudio",
+                upstream_strategy="ordered",
+            ),
+        )
+        result = await facade.search_first_success(
+            "q", source="netease", count=30, page=1
+        )
+
+    assert result.provider == "gdstudio"
+    assert len(result.items) == 50
+    assert result.has_more is True
+
+
+@pytest.mark.asyncio
+async def test_artist_search_promotes_catalog_from_later_pages():
+    def handler(request: httpx.Request) -> httpx.Response:
+        pages = request.url.params.get("pages") or "1"
+        if request.url.host == "meting.test":
+            return httpx.Response(200, json=[])
+        if pages == "1":
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        **_song(1, provider="gdstudio"),
+                        "name": "布拉格广场",
+                        "artist": ["蔡依林", "周杰伦"],
+                    },
+                    {
+                        **_song(2, provider="gdstudio"),
+                        "name": "想你就写信 (Live)",
+                        "artist": ["周杰伦", "李硕"],
+                    },
+                ],
+            )
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    **_song(3, provider="gdstudio"),
+                    "name": "晴天",
+                    "artist": ["周杰伦"],
+                }
+            ],
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                api_key="k",
+                gdstudio_api_base_urls="https://gds.test/api.php",
+                meting_api_base_urls="https://meting.test/api",
+                chksz_api_key="",
+                music_adapter_order="meting,gdstudio",
+                upstream_strategy="ordered",
+            ),
+        )
+        result = await facade.search_first_success(
+            "周杰伦", source="netease", count=5, page=1
+        )
+
+    assert [item.title for item in result.items] == [
+        "晴天",
+        "想你就写信 (Live)",
+        "布拉格广场",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_page_two_failsover_when_pinned_adapter_cannot_paginate():
+    hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hosts.append(request.url.host)
+        return httpx.Response(
+            200, json=[_song(index, provider="gdstudio") for index in range(21, 24)]
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                api_key="k",
+                gdstudio_api_base_urls="https://gds.test/api.php",
+                meting_api_base_urls="https://meting.test/api",
+                chksz_api_key="",
+                music_adapter_order="meting,gdstudio",
+                upstream_strategy="ordered",
+            ),
+        )
+        result = await facade.search_first_success(
+            "q",
+            source="netease",
+            provider="meting",
+            count=3,
+            page=2,
+        )
+
+    assert result.provider == "gdstudio"
+    assert [item.id for item in result.items] == ["21", "22", "23"]
+    assert result.has_more is True
+    assert hosts == ["gds.test"]
+
+
+@pytest.mark.asyncio
+async def test_tencent_full_page_cannot_paginate():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 200,
+                "msg": "success",
+                "list": [
+                    {
+                        "name": f"Song {index}",
+                        "singer": "Artist",
+                        "album": "Album",
+                        "mid": f"mid-{index}",
+                    }
+                    for index in range(3)
+                ],
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                api_key="k",
+                gdstudio_api_base_urls="",
+                meting_api_base_urls="",
+                chksz_api_base_url="https://chksz.test",
+                chksz_api_key="test-key",
+                music_adapter_order="chksz",
+                upstream_strategy="ordered",
+            ),
+        )
+        result = await facade.search_first_success(
+            "q", source="tencent", count=3, page=1
+        )
+        later = await facade.search_first_success(
+            "q", source="tencent", count=3, page=2
+        )
+
+    assert result.provider == "chksz"
+    assert len(result.items) == 3
+    assert result.has_more is False
+    assert later.items == []
+    assert later.has_more is False
+
+
+@pytest.mark.asyncio
+async def test_page_two_without_paginating_adapter_does_not_call_upstream():
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.host)
+        return httpx.Response(200, json=[_song(1, provider="meting")])
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                api_key="k",
+                gdstudio_api_base_urls="",
+                meting_api_base_urls="https://meting.test/api",
+                chksz_api_key="",
+                music_adapter_order="meting",
+                upstream_strategy="ordered",
+            ),
+        )
+        result = await facade.search_first_success(
+            "q", source="netease", count=20, page=2
+        )
+
+    assert result.items == []
+    assert result.has_more is False
+    assert calls == []
 
 
 def test_recommendation_item_keeps_winning_provider():
@@ -439,6 +752,29 @@ class _MediaAdapter:
         return self.result
 
 
+class _LyricAdapter:
+    def __init__(
+        self,
+        name: str,
+        result: dict | Exception,
+        calls: list[str],
+        sources: frozenset[str] | None = None,
+    ):
+        self.name = name
+        self.result = result
+        self.calls = calls
+        self.supported_sources = sources or frozenset({"netease"})
+
+    def supports(self, source: str | None) -> bool:
+        return source is None or source in self.supported_sources
+
+    async def get_lyric(self, id: str, *, source: str) -> dict:
+        self.calls.append(self.name)
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.result
+
+
 @pytest.mark.asyncio
 async def test_media_request_pins_explicit_provider_without_fallback():
     calls: list[str] = []
@@ -473,6 +809,64 @@ async def test_media_request_pins_explicit_provider_without_fallback():
         )
 
     assert calls == ["chksz"]
+
+
+@pytest.mark.asyncio
+async def test_get_lyric_falls_back_when_preferred_returns_empty():
+    calls: list[str] = []
+    async with httpx.AsyncClient() as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                gdstudio_api_base_urls="",
+                meting_api_base_urls="",
+            ),
+        )
+        facade._adapters = [  # type: ignore[assignment]
+            _LyricAdapter(
+                "chksz",
+                {"lyric": "", "provider": "chksz", "source": "netease"},
+                calls,
+            ),
+            _LyricAdapter(
+                "meting",
+                {"lyric": "[00:01.00]蝴蝶", "provider": "meting", "source": "netease"},
+                calls,
+            ),
+        ]
+        lyric = await facade.get_lyric("93188", source="netease", provider="chksz")
+
+    assert lyric.lyric == "[00:01.00]蝴蝶"
+    assert lyric.provider == "meting"
+    assert calls == ["chksz", "meting"]
+
+
+@pytest.mark.asyncio
+async def test_get_lyric_falls_back_when_preferred_errors():
+    calls: list[str] = []
+    async with httpx.AsyncClient() as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                gdstudio_api_base_urls="",
+                meting_api_base_urls="",
+            ),
+        )
+        facade._adapters = [  # type: ignore[assignment]
+            _LyricAdapter("chksz", httpx.HTTPError("down"), calls),
+            _LyricAdapter(
+                "gdstudio",
+                {"lyric": "[00:01.00]蝴蝶", "provider": "gdstudio", "source": "netease"},
+                calls,
+            ),
+        ]
+        lyric = await facade.get_lyric("93188", source="netease", provider="chksz")
+
+    assert lyric.lyric == "[00:01.00]蝴蝶"
+    assert lyric.provider == "gdstudio"
+    assert calls == ["chksz", "gdstudio"]
 
 
 @pytest.mark.asyncio

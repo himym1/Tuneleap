@@ -122,6 +122,7 @@ void main() {
               'provider': 'gdstudio',
               'source': 'netease',
               'strategy': 'first-success',
+              'has_more': false,
               'items': [
                 {
                   'id': '5257138',
@@ -140,7 +141,7 @@ void main() {
         final client = BackendClient(dio: dio)
           ..configure(baseUrl: 'http://nas:10086');
 
-        final songs = await client.searchSongs(
+        final page = await client.searchSongs(
           '屋顶',
           source: 'netease',
           provider: 'chksz',
@@ -148,11 +149,12 @@ void main() {
           page: 1,
         );
 
-        expect(songs, hasLength(1));
-        expect(songs.first.isOnline, isTrue);
-        expect(songs.first.onlineSource, 'netease');
-        expect(songs.first.onlineProvider, 'gdstudio');
-        expect(songs.first.storageKey, 'solara:netease:5257138');
+        expect(page.songs, hasLength(1));
+        expect(page.hasMore, isFalse);
+        expect(page.songs.first.isOnline, isTrue);
+        expect(page.songs.first.onlineSource, 'netease');
+        expect(page.songs.first.onlineProvider, 'gdstudio');
+        expect(page.songs.first.storageKey, 'solara:netease:5257138');
       },
     );
 
@@ -162,6 +164,10 @@ void main() {
           expect(options.path, 'http://cloud/v1/music/capabilities');
           return _jsonBody({
             'default_provider': 'meting',
+            'sources': {
+              'netease': {'max_count': 50, 'paginates': true},
+              'tencent': {'max_count': 30, 'paginates': false},
+            },
             'adapters': [
               {
                 'id': 'meting',
@@ -190,6 +196,11 @@ void main() {
         'migu',
         'joox',
       ]);
+      expect(capabilities.pageSizeFor('netease'), 50);
+      expect(capabilities.paginates('netease'), isTrue);
+      expect(capabilities.pageSizeFor('tencent'), 30);
+      expect(capabilities.paginates('tencent'), isFalse);
+      expect(capabilities.pageSizeFor('kugou'), 30);
     });
 
     test('getPlaybackUrl maps bitrate to Solara quality parameter', () async {

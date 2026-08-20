@@ -205,7 +205,7 @@ class BackendClient {
     return MusicCapabilities.fromJson(Map<String, dynamic>.from(data));
   }
 
-  Future<List<Song>> searchSongs(
+  Future<CloudSearchPage> searchSongs(
     String query, {
     String? source,
     String? provider,
@@ -236,22 +236,33 @@ class BackendClient {
             'Cloud search response items must be a list',
           );
         }
-        return items
+        final songs = items
             .whereType<Map>()
             .map((item) => Song.fromCloudJson(Map<String, dynamic>.from(item)))
             .toList();
+        return CloudSearchPage(
+          songs: songs,
+          hasMore: _parseSearchHasMore(data, songs.length, count),
+        );
       }
       if (data is List) {
         // Legacy monorepo /proxy shape fallback.
-        return data
+        final songs = data
             .map((item) => Song.fromSolaraJson(item as Map<String, dynamic>))
             .toList();
+        return CloudSearchPage(songs: songs, hasMore: songs.length >= count);
       }
       throw const FormatException('Cloud search response must be an object');
     } catch (e) {
       debugPrint('[Backend] searchSongs ERROR: ${e.runtimeType}');
       rethrow;
     }
+  }
+
+  static bool _parseSearchHasMore(Map data, int itemCount, int count) {
+    final raw = data['has_more'] ?? data['hasMore'];
+    if (raw is bool) return raw;
+    return itemCount >= count;
   }
 
   Future<String> getPlaybackUrl(Song song, {int? maxBitRate}) async {

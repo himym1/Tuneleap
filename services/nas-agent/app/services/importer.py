@@ -13,7 +13,7 @@ from urllib.parse import urljoin, urlsplit
 
 import httpx
 from mutagen.flac import FLAC, Picture
-from mutagen.id3 import APIC, ID3, TALB, TDRC, TIT2, TPE1, TRCK, TXXX, ID3NoHeaderError
+from mutagen.id3 import APIC, ID3, TALB, TDRC, TIT2, TPE1, TRCK, TXXX, USLT, ID3NoHeaderError
 from mutagen.mp4 import MP4, MP4Cover
 
 from app.core.audit import audit_event
@@ -71,8 +71,13 @@ class ImporterService:
             if target.exists():
                 if target.is_symlink() or not target.is_file():
                     raise ValueError("target path is not a regular file")
-                if lyric is not None and not sidecar.exists():
-                    self._write_text_atomic(sidecar, lyric)
+                if lyric is not None:
+                    if not sidecar.exists():
+                        self._write_text_atomic(sidecar, lyric)
+                    try:
+                        self._embed_metadata(target, None, None, None, lyric)
+                    except Exception as exc:
+                        _logger.warning("lyric embed skipped: %s", type(exc).__name__)
                 audit_event("import_idempotent", filename=target.name)
                 return ImportResult(ok=True, path=str(target), message="already imported")
 
@@ -94,7 +99,7 @@ class ImporterService:
                 await self._download_to_file(url, media_tmp, download_root)
                 cover_data = await self._download_cover(pic_url) if pic_url else None
                 cover_mime = self._cover_mime(cover_data) if cover_data else None
-                self._embed_metadata(media_tmp, song, cover_data, cover_mime)
+                self._embed_metadata(media_tmp, song, cover_data, cover_mime, lyric)
 
                 if lyric is not None:
                     lyric_tmp = self._new_temp_path(download_root, target.stem, ".lrc")
@@ -344,16 +349,17 @@ class ImporterService:
         song: SongMeta | None,
         cover: bytes | None,
         cover_mime: str | None,
+        lyric: str | None = None,
     ) -> None:
-        if song is None and cover is None:
+        if song is None and cover is None and not lyric:
             return
         extension = path.suffix.lower()
         if extension == ".mp3":
-            self._embed_mp3(path, song, cover, cover_mime)
+            self._embed_mp3(path, song, cover, cover_mime, lyric)
         elif extension == ".flac":
-            self._embed_flac(path, song, cover, cover_mime)
+            self._embed_flac(path, song, cover, cover_mime, lyric)
         elif extension in {".m4a", ".mp4"}:
-            self._embed_mp4(path, song, cover, cover_mime)
+            self._embed_mp4(path, song, cover, cover_mime, lyric)
 
     @staticmethod
     def _embed_mp3(
@@ -361,6 +367,7 @@ class ImporterService:
         song: SongMeta | None,
         cover: bytes | None,
         cover_mime: str | None,
+        lyric: str | None = None,
     ) -> None:
         try:
             audio = ID3(path)
@@ -382,6 +389,9 @@ class ImporterService:
         if cover and cover_mime:
             audio.delall("APIC")
             audio.add(APIC(encoding=3, mime=cover_mime, type=3, desc="Cover", data=cover))
+        if lyric:
+            audio.delall("USLT")
+            audio.add(USLT(encoding=3, lang="xxx", desc="", text=lyric))
         audio.save(path)
 
     @staticmethod
@@ -390,6 +400,7 @@ class ImporterService:
         song: SongMeta | None,
         cover: bytes | None,
         cover_mime: str | None,
+        lyric: str | None = None,
     ) -> None:
         audio = FLAC(path)
         if song:
@@ -412,6 +423,8 @@ class ImporterService:
             picture.data = cover
             audio.clear_pictures()
             audio.add_picture(picture)
+        if lyric:
+            audio["LYRICS"] = lyric
         audio.save()
 
     @staticmethod
@@ -420,6 +433,7 @@ class ImporterService:
         song: SongMeta | None,
         cover: bytes | None,
         cover_mime: str | None,
+        lyric: str | None = None,
     ) -> None:
         audio = MP4(path)
         if song:
@@ -440,6 +454,8 @@ class ImporterService:
                 MP4Cover.FORMAT_PNG if cover_mime == "image/png" else MP4Cover.FORMAT_JPEG
             )
             audio["covr"] = [MP4Cover(cover, imageformat=image_format)]
+        if lyric:
+            audio["\xa9lyr"] = [lyric]
         audio.save()
 
     @staticmethod
