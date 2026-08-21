@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
-import 'package:navidrome_player/providers/server_scope.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -13,11 +12,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _urlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _cloudUsernameController = TextEditingController();
-  final _cloudCredentialController = TextEditingController();
   bool _loading = false;
   String? _error;
 
@@ -25,22 +21,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     final config = ref.read(serverConfigProvider);
-    final prefs = ref.read(sharedPreferencesProvider);
-    final serverId = normalizeServerId(config.serverId);
-    _urlController.text = config.url;
     _usernameController.text = config.username;
     _passwordController.text = config.password;
-    _cloudUsernameController.text =
-        prefs.getString('cloud_username_$serverId') ?? '';
   }
 
   @override
   void dispose() {
-    _urlController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
-    _cloudUsernameController.dispose();
-    _cloudCredentialController.dispose();
     super.dispose();
   }
 
@@ -52,21 +40,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      final url = _urlController.text.trim();
       final username = _usernameController.text.trim();
       final password = _passwordController.text;
-      final cloudUsername = _cloudUsernameController.text.trim();
-      final cloudCredential = _cloudCredentialController.text;
 
-      if (url.isEmpty || username.isEmpty || password.isEmpty) {
+      if (username.isEmpty || password.isEmpty) {
         setState(() => _error = s.loginFieldsRequired);
         return;
       }
 
+      final config = ref.read(serverConfigProvider);
+      final navidromeUrl = resolveNavidromeOrigin(config.url);
+
       final ok = await ref
           .read(authProvider.notifier)
           .signIn(
-            url: url,
+            url: navidromeUrl,
             username: username,
             password: password,
             backendUrl: '',
@@ -79,16 +67,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         return;
       }
 
-      // Optional Cloud login on the same page so users don't hit a second dialog.
-      if (cloudUsername.isNotEmpty && cloudCredential.isNotEmpty) {
-        final cloudOk = await ref
-            .read(cloudAuthProvider.notifier)
-            .login(username: cloudUsername, credential: cloudCredential);
-        if (!mounted) return;
-        if (!cloudOk) {
-          setState(() => _error = s.cloudAuthFailed);
-          return;
-        }
+      // Same credentials for Cloud (origin is already fixed in-app).
+      final cloudOk = await ref
+          .read(cloudAuthProvider.notifier)
+          .login(username: username, credential: password);
+      if (!mounted) return;
+      if (!cloudOk) {
+        setState(() => _error = s.cloudAuthFailed);
+        return;
       }
     } catch (e) {
       if (mounted) setState(() => _error = s.loginError(e.toString()));
@@ -135,23 +121,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.pageTitle,
                     ),
-                    const SizedBox(height: 32),
-                    TextField(
-                      controller: _urlController,
-                      decoration: InputDecoration(
-                        labelText: s.multiServerUrl,
-                        hintText: s.serverUrlExample,
-                        prefixIcon: const Icon(Icons.dns_rounded),
+                    const SizedBox(height: 8),
+                    Text(
+                      s.loginSubtitle,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      keyboardType: TextInputType.url,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 32),
                     TextField(
                       controller: _usernameController,
                       decoration: InputDecoration(
                         labelText: s.multiServerUsername,
                         prefixIcon: const Icon(Icons.person_rounded),
                       ),
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.username],
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -161,23 +147,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         prefixIcon: const Icon(Icons.lock_rounded),
                       ),
                       obscureText: true,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _cloudUsernameController,
-                      decoration: InputDecoration(
-                        labelText: s.cloudUsername,
-                        prefixIcon: const Icon(Icons.person_outline_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _cloudCredentialController,
-                      decoration: InputDecoration(
-                        labelText: s.cloudCredential,
-                        prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      ),
-                      obscureText: true,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.password],
+                      onSubmitted: (_) {
+                        if (!_loading) _connect();
+                      },
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 16),

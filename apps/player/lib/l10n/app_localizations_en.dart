@@ -51,17 +51,17 @@ class SEn extends S {
   String get appShortName => 'Tuneleap';
 
   @override
-  String get loginSubtitle => 'Connect to your private music server';
+  String get loginSubtitle =>
+      'Sign in with your account. Library and Cloud hosts are built in.';
 
   @override
   String get loginConnect => 'Connect';
 
   @override
-  String get loginFieldsRequired => 'Please fill in all fields';
+  String get loginFieldsRequired => 'Please enter username and password';
 
   @override
-  String get loginFailed =>
-      'Connection failed, please check server URL and credentials';
+  String get loginFailed => 'Sign-in failed. Check your username and password.';
 
   @override
   String loginError(String error) {

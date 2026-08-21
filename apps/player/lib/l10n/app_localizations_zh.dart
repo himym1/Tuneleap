@@ -51,16 +51,16 @@ class SZh extends S {
   String get appShortName => '音跃';
 
   @override
-  String get loginSubtitle => '连接你的私人音乐服务器';
+  String get loginSubtitle => '输入账号密码即可，曲库与 Cloud 地址已内置';
 
   @override
   String get loginConnect => '连接';
 
   @override
-  String get loginFieldsRequired => '请填写所有字段';
+  String get loginFieldsRequired => '请填写用户名和密码';
 
   @override
-  String get loginFailed => '连接失败，请检查服务器地址和凭据';
+  String get loginFailed => '登录失败，请检查用户名和密码';
 
   @override
   String loginError(String error) {

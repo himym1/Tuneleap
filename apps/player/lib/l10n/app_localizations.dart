@@ -184,7 +184,7 @@ abstract class S {
   /// No description provided for @loginSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'连接你的私人音乐服务器'**
+  /// **'输入账号密码即可，曲库与 Cloud 地址已内置'**
   String get loginSubtitle;
 
   /// No description provided for @loginConnect.
@@ -196,13 +196,13 @@ abstract class S {
   /// No description provided for @loginFieldsRequired.
   ///
   /// In zh, this message translates to:
-  /// **'请填写所有字段'**
+  /// **'请填写用户名和密码'**
   String get loginFieldsRequired;
 
   /// No description provided for @loginFailed.
   ///
   /// In zh, this message translates to:
-  /// **'连接失败，请检查服务器地址和凭据'**
+  /// **'登录失败，请检查用户名和密码'**
   String get loginFailed;
 
   /// No description provided for @loginError.

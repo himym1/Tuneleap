@@ -191,10 +191,11 @@ class ArtistDetailScreen extends ConsumerWidget {
                                       onPressed: () async {
                                         HapticFeedback.lightImpact();
                                         try {
-                                          final allSongs = albums
-                                              .expand((a) => a.songs)
-                                              .toList()
-                                            ..shuffle();
+                                          final allSongs =
+                                              albums
+                                                  .expand((a) => a.songs)
+                                                  .toList()
+                                                ..shuffle();
                                           if (allSongs.isNotEmpty) {
                                             await ref
                                                 .read(
@@ -360,10 +361,11 @@ class ArtistDetailScreen extends ConsumerWidget {
                                             onPressed: () async {
                                               HapticFeedback.lightImpact();
                                               try {
-                                                final allSongs = albums
-                                                    .expand((a) => a.songs)
-                                                    .toList()
-                                                  ..shuffle();
+                                                final allSongs =
+                                                    albums
+                                                        .expand((a) => a.songs)
+                                                        .toList()
+                                                      ..shuffle();
                                                 if (allSongs.isNotEmpty) {
                                                   await ref
                                                       .read(

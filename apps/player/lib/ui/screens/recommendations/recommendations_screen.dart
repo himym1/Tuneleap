@@ -169,9 +169,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
     }
 
     if (state.initialLoading && visible.isEmpty) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (state.error != null && visible.isEmpty) {
@@ -207,9 +205,9 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
               title: Text(
                 l10n.recommendationsTitle,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 17,
-                    ),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                ),
               ),
               actions: [
                 if (state.refreshing)
@@ -298,8 +296,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
@@ -320,9 +317,9 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                                           .textTheme
                                           .bodySmall
                                           ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
                                             fontSize: 11.5,
                                           ),
                                     ),
@@ -457,8 +454,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
 
                       final item = filtered[index];
                       final origin = _originFor(item, state.sessionId);
-                      final isSimilar =
-                          item.type == RecommendationType.similar;
+                      final isSimilar = item.type == RecommendationType.similar;
                       final subtitleText = _filterIndex == 0
                           ? '${isSimilar ? l10n.recommendationsSimilar : l10n.recommendationsExplore} · ${item.song.artist}'
                           : item.song.artist;
@@ -492,9 +488,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                               item.song.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 15,
@@ -505,13 +499,11 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                               subtitleText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontSize: 12.5,
                                   ),
                             ),
@@ -547,8 +539,9 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                                     icon: Icon(
                                       Icons.add_circle_outline_rounded,
                                       size: 22,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                                     onPressed: () {
                                       HapticFeedback.lightImpact();
@@ -584,7 +577,8 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                         ),
                       );
                     },
-                    childCount: filtered.length +
+                    childCount:
+                        filtered.length +
                         (state.loadingMore || state.loadMoreError != null
                             ? 1
                             : 0),

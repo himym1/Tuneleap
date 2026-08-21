@@ -511,9 +511,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label: Text(
               '换一批',
               style: Theme.of(context).textTheme.chipLabel.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 13,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
             ),
           ),
           const SizedBox(width: 4),

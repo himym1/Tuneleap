@@ -2,7 +2,7 @@ name: navidrome_player
 description: "A Flutter-based Navidrome music player client supporting Subsonic API."
 publish_to: 'none'
 
-version: 1.0.38+35
+version: 1.0.39+36
 
 environment:
   sdk: ^3.10.7

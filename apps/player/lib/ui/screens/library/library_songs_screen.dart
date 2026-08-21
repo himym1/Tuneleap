@@ -418,10 +418,10 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
                                   .playingStream,
                               builder: (context, playingSnap) =>
                                   AudioVisualizerBars(
-                                isPlaying: playingSnap.data ?? false,
-                                size: 13,
-                                color: context.colors.primary,
-                              ),
+                                    isPlaying: playingSnap.data ?? false,
+                                    size: 13,
+                                    color: context.colors.primary,
+                                  ),
                             ),
                             const SizedBox(width: 8),
                           ],

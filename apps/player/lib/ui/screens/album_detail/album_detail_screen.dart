@@ -220,11 +220,16 @@ class AlbumDetailScreen extends ConsumerWidget {
                                 onPressed: () {
                                   if (album.songs.isNotEmpty) {
                                     HapticFeedback.lightImpact();
-                                    final shuffled = List<Song>.from(album.songs)..shuffle();
+                                    final shuffled = List<Song>.from(
+                                      album.songs,
+                                    )..shuffle();
                                     playerService.playAll(shuffled);
                                   }
                                 },
-                                icon: const Icon(Icons.shuffle_rounded, size: 17),
+                                icon: const Icon(
+                                  Icons.shuffle_rounded,
+                                  size: 17,
+                                ),
                                 label: const Text('随机播放'),
                                 style: OutlinedButton.styleFrom(
                                   minimumSize: const Size(0, 40),
@@ -358,10 +363,11 @@ class AlbumDetailScreen extends ConsumerWidget {
                                         stream: playerService.playingStream,
                                         builder: (context, playingSnap) =>
                                             AudioVisualizerBars(
-                                          isPlaying: playingSnap.data ?? false,
-                                          size: 14,
-                                          color: context.colors.primary,
-                                        ),
+                                              isPlaying:
+                                                  playingSnap.data ?? false,
+                                              size: 14,
+                                              color: context.colors.primary,
+                                            ),
                                       )
                                     : Text(
                                         '${index + 1}',
@@ -369,9 +375,9 @@ class AlbumDetailScreen extends ConsumerWidget {
                                             .textTheme
                                             .chipLabel
                                             .copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
                                             ),
                                       ),
                               ),
@@ -535,9 +541,7 @@ class AlbumDetailScreen extends ConsumerWidget {
               },
               icon: const Icon(Icons.shuffle_rounded, size: 17),
               label: const Text('随机播放'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 40),
-              ),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
             ),
             const SizedBox(width: 8),
             IconButton(

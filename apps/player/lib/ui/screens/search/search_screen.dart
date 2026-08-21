@@ -359,7 +359,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         const SizedBox(width: 6),
                         Text(
                           '搜索历史',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13.5,
                               ),
@@ -394,8 +395,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             _searchController.text = tag;
                             _searchController.selection =
                                 TextSelection.fromPosition(
-                              TextPosition(offset: tag.length),
-                            );
+                                  TextPosition(offset: tag.length),
+                                );
                             _doSearch();
                           },
                           borderRadius: BorderRadius.circular(16),

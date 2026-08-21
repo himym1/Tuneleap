@@ -485,9 +485,9 @@ class MiniPlayer extends ConsumerWidget {
                     currentSong.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.songTitle.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.songTitle.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -505,8 +505,8 @@ class MiniPlayer extends ConsumerWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         );

@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'server_config_provider.dart';
 import 'server_scope.dart';
 
+/// Personal-deploy defaults. Empty prefs fall back here so login stays simple.
 const defaultCloudOrigin = 'https://player.himym.us.ci';
+const defaultNavidromeOrigin = 'http://192.168.1.10:54533';
 
 String resolveCloudOrigin(String configured) {
   final value = configured.trim();
@@ -16,6 +18,12 @@ String resolveCloudOrigin(String configured) {
   if (uri == null || uri.host.isEmpty || uri.port == 8503) {
     return defaultCloudOrigin;
   }
+  return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
+}
+
+String resolveNavidromeOrigin(String configured) {
+  final value = configured.trim();
+  if (value.isEmpty) return defaultNavidromeOrigin;
   return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
 }
 
