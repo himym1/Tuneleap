@@ -74,7 +74,7 @@ data = {
     },
     "changelog": (
         "在线导入改为本机队列：点「+」立即入队，下载管理可看准备中/下载到 NAS/完成/失败并重试；"
-        "登录 Cloud 后由服务器代发导入，无需填写 NAS 地址。"
+        "去掉长时间「正在提交到 NAS」吐司；登录 Cloud 后由服务器代发导入。"
     )
 }
 Path("version.json").write_text(
