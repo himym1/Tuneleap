@@ -120,31 +120,31 @@ class _AppShellState extends ConsumerState<AppShell> {
   static const _mobileNavItems = [
     _NavItem(
       icon: Icons.home_outlined,
-      activeIcon: Icons.home,
+      activeIcon: Icons.home_rounded,
       labelKey: 'home',
       path: '/home',
     ),
     _NavItem(
       icon: Icons.library_music_outlined,
-      activeIcon: Icons.library_music,
+      activeIcon: Icons.library_music_rounded,
       labelKey: 'library',
       path: '/library/songs',
     ),
     _NavItem(
-      icon: Icons.search_outlined,
-      activeIcon: Icons.search,
+      icon: Icons.search_rounded,
+      activeIcon: Icons.search_rounded,
       labelKey: 'search',
       path: '/search',
     ),
     _NavItem(
       icon: Icons.queue_music_outlined,
-      activeIcon: Icons.queue_music,
+      activeIcon: Icons.queue_music_rounded,
       labelKey: 'playlists',
       path: '/library/playlists',
     ),
     _NavItem(
       icon: Icons.settings_outlined,
-      activeIcon: Icons.settings,
+      activeIcon: Icons.settings_rounded,
       labelKey: 'settings',
       path: '/settings',
     ),
@@ -154,25 +154,25 @@ class _AppShellState extends ConsumerState<AppShell> {
   static const _navItems = [
     _NavItem(
       icon: Icons.home_outlined,
-      activeIcon: Icons.home,
+      activeIcon: Icons.home_rounded,
       labelKey: 'home',
       path: '/home',
     ),
     _NavItem(
       icon: Icons.library_music_outlined,
-      activeIcon: Icons.library_music,
+      activeIcon: Icons.library_music_rounded,
       labelKey: 'library',
       path: '/library',
     ),
     _NavItem(
-      icon: Icons.search_outlined,
-      activeIcon: Icons.search,
+      icon: Icons.search_rounded,
+      activeIcon: Icons.search_rounded,
       labelKey: 'search',
       path: '/search',
     ),
     _NavItem(
       icon: Icons.queue_music_outlined,
-      activeIcon: Icons.queue_music,
+      activeIcon: Icons.queue_music_rounded,
       labelKey: 'playlists',
       path: '/library/playlists',
     ),
@@ -181,32 +181,32 @@ class _AppShellState extends ConsumerState<AppShell> {
   // PC 端更多功能
   static const _moreNavItems = [
     _NavItem(
-      icon: Icons.favorite_outline,
-      activeIcon: Icons.favorite,
+      icon: Icons.favorite_outline_rounded,
+      activeIcon: Icons.favorite_rounded,
       labelKey: 'favorites',
       path: '/favorites',
     ),
     _NavItem(
       icon: Icons.download_outlined,
-      activeIcon: Icons.download,
+      activeIcon: Icons.download_rounded,
       labelKey: 'downloads',
       path: '/downloads',
     ),
     _NavItem(
       icon: Icons.dns_outlined,
-      activeIcon: Icons.dns,
+      activeIcon: Icons.dns_rounded,
       labelKey: 'servers',
       path: '/servers',
     ),
     _NavItem(
       icon: Icons.high_quality_outlined,
-      activeIcon: Icons.high_quality,
+      activeIcon: Icons.high_quality_rounded,
       labelKey: 'audioQuality',
       path: '/audio-quality',
     ),
     _NavItem(
-      icon: Icons.history,
-      activeIcon: Icons.history,
+      icon: Icons.history_rounded,
+      activeIcon: Icons.history_rounded,
       labelKey: 'scrobble',
       path: '/scrobble',
     ),
@@ -556,16 +556,17 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _buildSidebar(BuildContext context) {
     final location = _currentPath(context);
     final coverTint = _coverTintColor();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final baseColor = context.colors.surfaceContainer;
     final sidebarColor = Color.lerp(
       baseColor,
       coverTint ?? baseColor,
       coverTint == null ? 0 : 0.08,
-    )!.withValues(alpha: 0.92);
+    )!.withValues(alpha: isDark ? 0.82 : 0.90);
 
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 800),
           width: AppDimensions.sidebarWidth,
@@ -573,10 +574,10 @@ class _AppShellState extends ConsumerState<AppShell> {
             color: sidebarColor,
             border: Border(
               right: BorderSide(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outlineVariant.withValues(alpha: 0.3),
-                width: 0.5,
+                color: (isDark ? Colors.white : Colors.black).withValues(
+                  alpha: isDark ? 0.10 : 0.06,
+                ),
+                width: 0.8,
               ),
             ),
           ),
@@ -615,7 +616,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                         ),
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
                       // ── MORE section ──
                       _buildSectionHeader(S.of(context).sidebarMore),
@@ -636,7 +637,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               _buildDesktopNavItem(
                 const _NavItem(
                   icon: Icons.settings_outlined,
-                  activeIcon: Icons.settings,
+                  activeIcon: Icons.settings_rounded,
                   labelKey: 'settings',
                   path: '/settings',
                 ),
@@ -655,23 +656,38 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Row(
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
-            color: context.colors.primarySoft,
-            borderRadius: BorderRadius.circular(8),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                context.colors.primary,
+                context.colors.primary.withValues(alpha: 0.8),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: context.colors.primary.withValues(alpha: 0.35),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Icon(
-            Icons.music_note,
-            color: context.colors.primary,
-            size: 18,
+            Icons.music_note_rounded,
+            color: context.colors.onEmphasis,
+            size: 19,
           ),
         ),
         const SizedBox(width: 10),
         Text(
           S.of(context).appShortName,
           style: Theme.of(context).textTheme.sectionTitle.copyWith(
-            fontSize: 16,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
             color: context.colors.onSurface,
             letterSpacing: -0.5,
           ),
@@ -684,14 +700,14 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Widget _buildSectionHeader(String label) {
     return Padding(
-      padding: const EdgeInsets.only(left: 24, bottom: 6, top: 4),
+      padding: const EdgeInsets.only(left: 24, bottom: 8, top: 4),
       child: Text(
         label.toUpperCase(),
         style: Theme.of(context).textTheme.sectionSubheader.copyWith(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: context.colors.onSurfaceVariant,
-          letterSpacing: 0.8,
+          color: context.colors.onSurfaceVariant.withValues(alpha: 0.7),
+          letterSpacing: 1.0,
         ),
       ),
     );
@@ -703,32 +719,35 @@ class _AppShellState extends ConsumerState<AppShell> {
     VoidCallback onTap,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: Tooltip(
         message: item.labelOf(context),
         waitDuration: const Duration(milliseconds: 500),
         child: Material(
-          color: selected ? context.colors.primarySoftAlt : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          color: selected
+              ? context.colors.primary.withValues(alpha: 0.14)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
               child: Row(
                 children: [
                   Icon(
                     selected ? item.activeIcon : item.icon,
-                    size: 18,
+                    size: 19,
                     color: selected
                         ? context.colors.primary
                         : context.colors.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Text(
                     item.labelOf(context),
                     style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      fontSize: 13,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                       color: selected
                           ? context.colors.primary
                           : context.colors.onSurfaceVariant,
@@ -875,7 +894,7 @@ class _RefreshButtonState extends ConsumerState<_RefreshButton>
           child: RotationTransition(
             turns: _controller,
             child: Icon(
-              Icons.refresh,
+              Icons.refresh_rounded,
               size: 18,
               color: _refreshing
                   ? context.colors.primary

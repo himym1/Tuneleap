@@ -5,6 +5,8 @@ import 'package:navidrome_player/api/backend_client.dart';
 
 import 'audio_providers.dart';
 
+enum NasImportStage { pending, resolving, uploading, completed, failed }
+
 class NavidromeImportResult {
   final String filename;
   final String? message;
@@ -26,6 +28,7 @@ class NavidromeImportService {
   Future<NavidromeImportResult> importOnlineSong(
     Song song, {
     bool force = false,
+    void Function(NasImportStage stage)? onStage,
   }) async {
     if (!song.isOnline) {
       throw ArgumentError('Only online songs can be imported');
@@ -34,12 +37,13 @@ class NavidromeImportService {
       throw StateError('Backend client is not configured');
     }
     if (!backendClient.canMutateNas) {
-      throw StateError('NAS agent URL and key are not configured');
+      throw StateError('Cloud is not configured');
     }
 
     debugPrint('[Import] started: source=${song.onlineSource ?? 'unknown'}');
 
     try {
+      onStage?.call(NasImportStage.resolving);
       final playbackUrl = await backendClient.getPlaybackUrl(song);
       debugPrint('[Import] playback URL resolved');
 
@@ -62,6 +66,7 @@ class NavidromeImportService {
         '[Import] metadata ready: lyrics=${lrcText != null}, cover=${picUrl.isNotEmpty}',
       );
 
+      onStage?.call(NasImportStage.uploading);
       final message = await backendClient.queueNasDownload(
         url: playbackUrl,
         filename: filename,

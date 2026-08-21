@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/ui/widgets/segmented_control.dart';
 
 /// Shared primary navigation for every library section.
 class LibrarySectionTabs extends StatelessWidget {
@@ -9,100 +10,65 @@ class LibrarySectionTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final sections = [
-      (path: '/library/songs', label: S.of(context).navSongs),
-      (path: '/library/albums', label: S.of(context).navAlbums),
-      (path: '/library/artists', label: S.of(context).navArtists),
+      AppSegmentItem(value: '/library/songs', label: S.of(context).navSongs),
+      AppSegmentItem(value: '/library/albums', label: S.of(context).navAlbums),
+      AppSegmentItem(
+        value: '/library/artists',
+        label: S.of(context).navArtists,
+      ),
     ];
 
     return Row(
       children: [
         Expanded(
-          child: Container(
-            height: 42,
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                for (final section in sections)
-                  Expanded(
-                    child: _SectionTab(
-                      label: section.label,
-                      selected: path == section.path,
-                      onTap: () => context.go(section.path),
-                    ),
-                  ),
-              ],
-            ),
+          child: AppSegmentedControl<String>(
+            items: sections,
+            selected: path,
+            onSelected: (target) => context.go(target),
           ),
         ),
-        const SizedBox(width: 6),
-        PopupMenuButton<String>(
-          tooltip: S.of(context).libraryBrowse,
-          icon: const Icon(Icons.tune, size: 21),
-          onSelected: context.push,
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: '/library/genres',
-              child: Text(S.of(context).navGenres),
+        const SizedBox(width: 8),
+        Container(
+          height: 42,
+          width: 42,
+          decoration: BoxDecoration(
+            color: (isDark ? Colors.white : Colors.black).withValues(
+              alpha: isDark ? 0.08 : 0.05,
             ),
-            PopupMenuItem(
-              value: '/library/album-artists',
-              child: Text(S.of(context).navAlbumArtists),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: (isDark ? Colors.white : Colors.black).withValues(
+                alpha: isDark ? 0.10 : 0.07,
+              ),
+              width: 0.8,
             ),
-            PopupMenuItem(
-              value: '/library/radio',
-              child: Text(S.of(context).navRadio),
+          ),
+          child: PopupMenuButton<String>(
+            tooltip: S.of(context).libraryBrowse,
+            icon: const Icon(Icons.tune_rounded, size: 20),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
             ),
-          ],
+            onSelected: context.push,
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: '/library/genres',
+                child: Text(S.of(context).navGenres),
+              ),
+              PopupMenuItem(
+                value: '/library/album-artists',
+                child: Text(S.of(context).navAlbumArtists),
+              ),
+              PopupMenuItem(
+                value: '/library/radio',
+                child: Text(S.of(context).navRadio),
+              ),
+            ],
+          ),
         ),
       ],
-    );
-  }
-}
-
-class _SectionTab extends StatelessWidget {
-  const _SectionTab({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: Material(
-        color: selected
-            ? Theme.of(context).colorScheme.surface
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(7),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(7),
-          child: Center(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: selected
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

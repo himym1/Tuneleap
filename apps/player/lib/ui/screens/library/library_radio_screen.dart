@@ -65,7 +65,10 @@ class LibraryRadioScreen extends ConsumerWidget {
                             AppDimensions.cardRadiusSmall,
                           ),
                         ),
-                        child: Icon(Icons.radio, color: context.colors.primary),
+                        child: Icon(
+                          Icons.radio_rounded,
+                          color: context.colors.primary,
+                        ),
                       ),
                       title: Text(
                         station.name,

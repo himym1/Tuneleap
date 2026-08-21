@@ -62,7 +62,7 @@ class PlaylistsScreen extends ConsumerWidget {
                     key: const Key('playlist-create-button'),
                     tooltip: S.of(context).playlistCreate,
                     onPressed: () => _createPlaylist(context, ref),
-                    icon: const Icon(Icons.add),
+                    icon: const Icon(Icons.add_rounded),
                   ),
                 ],
               ),
@@ -132,7 +132,7 @@ class PlaylistsScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     FilledButton.tonalIcon(
                       onPressed: () => _createPlaylist(context, ref),
-                      icon: const Icon(Icons.add, size: 18),
+                      icon: const Icon(Icons.add_rounded, size: 18),
                       label: Text(S.of(context).commonNew),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(0, 34),
@@ -289,7 +289,7 @@ class PlaylistsScreen extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.queue_music,
+            Icons.queue_music_rounded,
             size: 64,
             color: Theme.of(
               context,
@@ -441,7 +441,7 @@ class PlaylistsScreen extends ConsumerWidget {
                                       child: Padding(
                                         padding: const EdgeInsets.all(12),
                                         child: Icon(
-                                          Icons.edit,
+                                          Icons.edit_rounded,
                                           size: 16,
                                           color: Theme.of(
                                             context,
@@ -477,7 +477,7 @@ class PlaylistsScreen extends ConsumerWidget {
                             songs: songs,
                             setDialogState: setDialogState,
                           ),
-                          icon: const Icon(Icons.playlist_add),
+                          icon: const Icon(Icons.playlist_add_rounded),
                         ),
                         IconButton.filled(
                           tooltip: S.of(context).playlistPlay,
@@ -489,7 +489,7 @@ class PlaylistsScreen extends ConsumerWidget {
                                       .playAll(songs);
                                   Navigator.pop(ctx);
                                 },
-                          icon: const Icon(Icons.play_arrow),
+                          icon: const Icon(Icons.play_arrow_rounded),
                         ),
                       ],
                     ),
@@ -529,7 +529,9 @@ class PlaylistsScreen extends ConsumerWidget {
                                       songs: songs,
                                       setDialogState: setDialogState,
                                     ),
-                                    icon: const Icon(Icons.playlist_add),
+                                    icon: const Icon(
+                                      Icons.playlist_add_rounded,
+                                    ),
                                     label: Text(S.of(context).playlistAddSongs),
                                   ),
                                 ],
@@ -655,7 +657,7 @@ class PlaylistsScreen extends ConsumerWidget {
                                         child: Padding(
                                           padding: const EdgeInsets.all(12),
                                           child: Icon(
-                                            Icons.remove_circle_outline,
+                                            Icons.remove_circle_outline_rounded,
                                             size: 16,
                                             color: Theme.of(
                                               context,
@@ -834,13 +836,16 @@ class _PlaylistListTile extends StatelessWidget {
         playlist: playlist,
         coverUrl: coverUrl,
         size: 52,
-        borderRadius: 8,
+        borderRadius: 10,
       ),
       title: Text(
         playlist.name,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.songTitle.copyWith(fontSize: 15),
+        style: Theme.of(context).textTheme.songTitle.copyWith(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       subtitle: Text(
         S.of(context).playlistSongCountLabel(playlist.songCount ?? 0),
@@ -876,11 +881,27 @@ class _PlaylistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: Theme.of(context).colorScheme.surfaceContainerHigh,
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(16),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.6),
+        border: Border.all(
+          color: (isDark ? Colors.white : Colors.black).withValues(
+            alpha: isDark ? 0.10 : 0.06,
+          ),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -901,13 +922,13 @@ class _PlaylistCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+            padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
             child: Row(
               children: [
                 Expanded(
                   child: InkWell(
                     onTap: onTap,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -915,7 +936,9 @@ class _PlaylistCard extends StatelessWidget {
                           playlist.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.songTitle,
+                          style: Theme.of(context).textTheme.songTitle.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -924,6 +947,7 @@ class _PlaylistCard extends StatelessWidget {
                               .playlistSongCountLabel(playlist.songCount ?? 0),
                           style: Theme.of(context).textTheme.songSubtitle
                               .copyWith(
+                                fontSize: 12,
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onSurfaceVariant,
@@ -977,7 +1001,7 @@ class _PlaylistArtwork extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: Icon(
-        Icons.queue_music,
+        Icons.queue_music_rounded,
         size: size == null ? 48 : size! * 0.46,
         color: colors.onSecondaryContainer,
       ),
@@ -1002,26 +1026,26 @@ class _PlaylistMenu extends StatelessWidget {
     return PopupMenuButton<String>(
       tooltip: S.of(context).tooltipMore,
       icon: Icon(
-        Icons.more_vert,
+        Icons.more_vert_rounded,
         size: 20,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       itemBuilder: (context) => [
         PopupMenuItem(
           value: 'open',
-          child: _menuItem(Icons.edit_note, S.of(context).playlistEdit),
+          child: _menuItem(Icons.edit_note_rounded, S.of(context).playlistEdit),
         ),
         PopupMenuItem(
           value: 'rename',
           child: _menuItem(
-            Icons.drive_file_rename_outline,
+            Icons.drive_file_rename_outline_rounded,
             S.of(context).playlistRename,
           ),
         ),
         PopupMenuItem(
           value: 'delete',
           child: _menuItem(
-            Icons.delete_outline,
+            Icons.delete_outline_rounded,
             S.of(context).commonDelete,
             color: Theme.of(context).colorScheme.error,
           ),
@@ -1138,7 +1162,7 @@ class _PlaylistSongPickerDialogState extends State<_PlaylistSongPickerDialog> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
@@ -1150,7 +1174,7 @@ class _PlaylistSongPickerDialogState extends State<_PlaylistSongPickerDialog> {
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: S.of(context).playlistSearchSongsHint,
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search_rounded),
                   isDense: true,
                 ),
                 textInputAction: TextInputAction.search,

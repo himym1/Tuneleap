@@ -37,7 +37,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
               children: [
                 if (_selectedGenre != null) ...[
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, size: 20),
+                    icon: const Icon(Icons.arrow_back_rounded, size: 20),
                     tooltip: S.of(context).tooltipBack,
                     onPressed: () => setState(() => _selectedGenre = null),
                   ),
@@ -58,7 +58,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
               onChanged: (value) => setState(() => _searchQuery = value),
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
             ),
           ),
@@ -122,7 +122,10 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
                   color: context.colors.primarySoft,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.music_note, color: context.colors.primary),
+                child: Icon(
+                  Icons.music_note_rounded,
+                  color: context.colors.primary,
+                ),
               ),
               title: Text(
                 genre.name,
@@ -134,7 +137,7 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-              trailing: const Icon(Icons.chevron_right, size: 20),
+              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),

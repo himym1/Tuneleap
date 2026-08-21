@@ -13,19 +13,40 @@ class SongTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+      leading: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(8),
+        ),
         child: Text(
           song.track?.toString() ?? '#',
-          style: Theme.of(context).textTheme.bodySmall,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ),
-      title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: Text(
+        song.title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
       subtitle: Text(
         '${song.artist} · ${song.album}',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.bodySmall,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -33,14 +54,19 @@ class SongTile extends StatelessWidget {
           if (song.duration != null)
             Text(
               song.formattedDuration,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
-          if (onMore != null)
+          if (onMore != null) ...[
+            const SizedBox(width: 4),
             IconButton(
-              icon: const Icon(Icons.more_vert, size: 20),
+              icon: const Icon(Icons.more_vert_rounded, size: 20),
               tooltip: S.of(context).tooltipMore,
               onPressed: onMore,
             ),
+          ],
         ],
       ),
       onTap: onTap,

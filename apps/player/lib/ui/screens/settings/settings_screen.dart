@@ -53,7 +53,7 @@ class SettingsScreen extends ConsumerWidget {
                   _SettingsCard(
                     children: [
                       _SettingsTile(
-                        icon: Icons.dns_outlined,
+                        icon: Icons.dns_rounded,
                         title: config.url.isNotEmpty
                             ? config.url
                             : S.of(context).settingsServerUnconfigured,
@@ -103,9 +103,9 @@ class SettingsScreen extends ConsumerWidget {
                   _SettingsCard(
                     children: [
                       _SettingsTile(
-                        icon: Icons.tune,
+                        icon: Icons.tune_rounded,
                         title: S.of(context).settingsResetRecommendations,
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () async {
                           final l10n = S.of(context);
                           final ok = await showDialog<bool>(
@@ -278,44 +278,44 @@ class SettingsScreen extends ConsumerWidget {
                   _SettingsCard(
                     children: [
                       _SettingsTile(
-                        icon: Icons.favorite_outline,
+                        icon: Icons.favorite_outline_rounded,
                         title: S.of(context).navFavorites,
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => context.go('/favorites'),
                       ),
                       const Divider(height: 1, indent: 54),
                       _SettingsTile(
-                        icon: Icons.high_quality_outlined,
+                        icon: Icons.high_quality_rounded,
                         title: S.of(context).settingsAudioQuality,
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => context.go('/audio-quality'),
                       ),
                       const Divider(height: 1, indent: 54),
                       _SettingsTile(
-                        icon: Icons.download_outlined,
+                        icon: Icons.download_rounded,
                         title: S.of(context).navDownloads,
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => context.go('/downloads'),
                       ),
                       const Divider(height: 1, indent: 54),
                       _SettingsTile(
-                        icon: Icons.dns_outlined,
+                        icon: Icons.dns_rounded,
                         title: S.of(context).navServers,
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => context.go('/servers'),
                       ),
                       const Divider(height: 1, indent: 54),
                       _SettingsTile(
-                        icon: Icons.history,
+                        icon: Icons.history_rounded,
                         title: S.of(context).navScrobble,
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => context.go('/scrobble'),
                       ),
                       const Divider(height: 1, indent: 54),
                       _SettingsTile(
-                        icon: Icons.keyboard_outlined,
+                        icon: Icons.keyboard_rounded,
                         title: S.of(context).shortcutsTitle,
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => KeyboardShortcutsDialog.show(context),
                       ),
                     ],
@@ -334,7 +334,7 @@ class SettingsScreen extends ConsumerWidget {
                   _SettingsCard(
                     children: [
                       _SettingsTile(
-                        icon: Icons.info_outline,
+                        icon: Icons.info_outline_rounded,
                         title: '${S.of(context).appName} v$appVersion',
                         subtitle: S
                             .of(context)
@@ -359,7 +359,7 @@ class SettingsScreen extends ConsumerWidget {
                     child: TextButton.icon(
                       onPressed: () => _confirmLogout(context, ref),
                       icon: Icon(
-                        Icons.logout,
+                        Icons.logout_rounded,
                         size: 18,
                         color: context.colors.error,
                       ),
@@ -578,11 +578,28 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
-      borderRadius: BorderRadius.circular(8),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: (isDark ? Colors.white : Colors.black).withValues(
+          alpha: isDark ? 0.08 : 0.04,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: (isDark ? Colors.white : Colors.black).withValues(
+            alpha: isDark ? 0.10 : 0.06,
+          ),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
     );
@@ -608,13 +625,30 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ListTile(
-      leading: Icon(
-        icon,
-        size: 22,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      leading: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: (isDark ? Colors.white : Colors.black).withValues(
+            alpha: isDark ? 0.10 : 0.06,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
-      title: Text(title, style: Theme.of(context).textTheme.bodyMedium),
+      title: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
       subtitle: subtitle != null
           ? Text(
               subtitle!,
@@ -728,7 +762,7 @@ class _CacheTileState extends State<_CacheTile> {
     return _SettingsCard(
       children: [
         _SettingsTile(
-          icon: Icons.folder_outlined,
+          icon: Icons.folder_rounded,
           title: _cacheSize,
           subtitle: S.of(context).settingsCacheUsed,
           trailing: _clearing
@@ -827,7 +861,7 @@ class _UpdateTileState extends ConsumerState<_UpdateTile> {
               ),
             )
           : IconButton(
-              icon: const Icon(Icons.refresh, size: 20),
+              icon: const Icon(Icons.refresh_rounded, size: 20),
               onPressed: _check,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),

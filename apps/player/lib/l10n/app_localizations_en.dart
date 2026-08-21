@@ -482,7 +482,7 @@ class SEn extends S {
 
   @override
   String get nasAgentConfigRequired =>
-      'Configure the LAN NAS agent URL and key before importing or deleting';
+      'Sign in to Cloud before importing or deleting';
 
   @override
   String get commonContinue => 'Continue';
@@ -630,6 +630,31 @@ class SEn extends S {
 
   @override
   String get downloadsFailed => 'Failed';
+
+  @override
+  String get downloadsOfflineTab => 'On this device';
+
+  @override
+  String get downloadsNasImportTab => 'Library import';
+
+  @override
+  String get downloadsNasImportHint =>
+      'Tap \"+\" on an online song to queue a NAS import';
+
+  @override
+  String get downloadsNasImportEmpty => 'No library import tasks';
+
+  @override
+  String get nasImportAlreadyQueued => 'Already in the import queue';
+
+  @override
+  String get nasImportStageResolving => 'Preparing';
+
+  @override
+  String get nasImportStageUploading => 'Downloading to NAS';
+
+  @override
+  String get nasImportClearFinished => 'Clear finished';
 
   @override
   String get multiServerManage => 'Server Management';
@@ -1188,6 +1213,15 @@ class SEn extends S {
 
   @override
   String get contextMenuDeleteFailed => 'Delete failed, please try again';
+
+  @override
+  String get contextMenuDeleteNotFound =>
+      'This song is not in the library. Pull to refresh and try again.';
+
+  @override
+  String contextMenuDeleteFailedReason(String reason) {
+    return 'Delete failed: $reason';
+  }
 
   @override
   String get recommendationsTitle => 'Recommendations';

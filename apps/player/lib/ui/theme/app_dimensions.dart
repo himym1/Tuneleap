@@ -1,38 +1,38 @@
 /// Centralized dimension constants — replace magic numbers across the codebase.
 abstract final class AppDimensions {
   // ── Cover art sizes ──
-  static const double coverSmall = 40;
-  static const double coverMedium = 52;
-  static const double coverList = 44;
-  static const double coverAlbumRow = 130;
-  static const double coverAlbumDetail = 200;
-  static const double coverAlbumDetailDesktop = 240;
-  static const double coverPlayerMobile = 300;
-  static const double coverPlayerDesktop = 360;
-  static const double coverArtist = 128; // CircleAvatar diameter
+  static const double coverSmall = 42;
+  static const double coverMedium = 54;
+  static const double coverList = 48;
+  static const double coverAlbumRow = 144;
+  static const double coverAlbumDetail = 220;
+  static const double coverAlbumDetailDesktop = 260;
+  static const double coverPlayerMobile = 320;
+  static const double coverPlayerDesktop = 380;
+  static const double coverArtist = 132; // CircleAvatar diameter
 
   // ── Grid / list ──
-  static const double albumRowHeight = 180;
+  static const double albumRowHeight = 196;
   static const double dailyGridAspectRatio = 4.0;
   static const double albumGridMaxExtent = 220;
   static const double albumGridColumnWidth = 180;
   static const double homeGridTwoPane = 760;
-  static const double mobileNavHeight = 56;
+  static const double mobileNavHeight = 60;
   static const double macosTrafficLightClearance = 12;
   static const double playlistCardWidth = 260;
 
   // ── Layout regions ──
-  static const double sidebarWidth = 200;
-  static const double queuePanelWidth = 320;
-  static const double miniPlayerHeightMobile = 52;
-  static const double miniPlayerHeightDesktop = 72;
-  static const double lyricsLineHeight = 44;
+  static const double sidebarWidth = 220;
+  static const double queuePanelWidth = 340;
+  static const double miniPlayerHeightMobile = 56;
+  static const double miniPlayerHeightDesktop = 76;
+  static const double lyricsLineHeight = 50;
 
   // ── Card / container ──
-  static const double cardRadius = 12;
-  static const double cardRadiusSmall = 8;
-  static const double iconBoxSize = 40;
-  static const double iconBoxRadius = 10;
+  static const double cardRadius = 16;
+  static const double cardRadiusSmall = 10;
+  static const double iconBoxSize = 42;
+  static const double iconBoxRadius = 12;
 
   // ── Spacing ──
   static const double paddingMobile = 16;
@@ -41,7 +41,7 @@ abstract final class AppDimensions {
   static const double itemGap = 12;
 
   // ── Volume ──
-  static const double volumeSliderWidth = 100;
+  static const double volumeSliderWidth = 110;
 }
 
 /// Responsive breakpoints — three-tier system.

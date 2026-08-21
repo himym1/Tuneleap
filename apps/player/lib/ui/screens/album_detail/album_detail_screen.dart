@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
@@ -87,7 +89,8 @@ class AlbumDetailScreen extends ConsumerWidget {
                                 size: 600,
                               ),
                               size: coverSize,
-                              borderRadius: 16,
+                              borderRadius: 20,
+                              hasShadow: true,
                             ),
                             const SizedBox(width: 28),
                             Expanded(
@@ -124,7 +127,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.arrow_back,
+                                      Icons.arrow_back_rounded,
                                       size: 16,
                                       color: Theme.of(
                                         context,
@@ -151,7 +154,8 @@ class AlbumDetailScreen extends ConsumerWidget {
                           CoverArt(
                             url: client.coverArtUrl(album.coverArt, size: 600),
                             size: coverSize,
-                            borderRadius: 16,
+                            borderRadius: 20,
+                            hasShadow: true,
                           ),
                           const SizedBox(height: 20),
                           Text(
@@ -198,18 +202,38 @@ class AlbumDetailScreen extends ConsumerWidget {
                               FilledButton.icon(
                                 onPressed: () {
                                   if (album.songs.isNotEmpty) {
+                                    HapticFeedback.lightImpact();
                                     playerService.playAll(album.songs);
                                   }
                                 },
-                                icon: const Icon(Icons.play_arrow, size: 18),
+                                icon: const Icon(
+                                  Icons.play_arrow_rounded,
+                                  size: 18,
+                                ),
                                 label: Text(S.of(context).albumPlayAll),
                                 style: FilledButton.styleFrom(
                                   minimumSize: const Size(0, 40),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 8),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  if (album.songs.isNotEmpty) {
+                                    HapticFeedback.lightImpact();
+                                    final shuffled = List<Song>.from(album.songs)..shuffle();
+                                    playerService.playAll(shuffled);
+                                  }
+                                },
+                                icon: const Icon(Icons.shuffle_rounded, size: 17),
+                                label: const Text('随机播放'),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(0, 40),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
                               IconButton(
                                 onPressed: () {
+                                  HapticFeedback.lightImpact();
                                   for (final song in album.songs) {
                                     playerService.addToQueue(song);
                                   }
@@ -222,7 +246,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                                     ),
                                   );
                                 },
-                                icon: const Icon(Icons.playlist_add),
+                                icon: const Icon(Icons.playlist_add_rounded),
                                 tooltip: S.of(context).albumAddToQueue,
                               ),
                             ],
@@ -329,20 +353,27 @@ class AlbumDetailScreen extends ConsumerWidget {
                             children: [
                               SizedBox(
                                 width: 40,
-                                child: Text(
-                                  '${index + 1}',
-                                  style: Theme.of(context).textTheme.chipLabel
-                                      .copyWith(
-                                        fontWeight: isPlaying
-                                            ? FontWeight.w600
-                                            : null,
-                                        color: isPlaying
-                                            ? context.colors.primary
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
+                                child: isPlaying
+                                    ? StreamBuilder<bool>(
+                                        stream: playerService.playingStream,
+                                        builder: (context, playingSnap) =>
+                                            AudioVisualizerBars(
+                                          isPlaying: playingSnap.data ?? false,
+                                          size: 14,
+                                          color: context.colors.primary,
+                                        ),
+                                      )
+                                    : Text(
+                                        '${index + 1}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .chipLabel
+                                            .copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
                                       ),
-                                ),
                               ),
                               Expanded(
                                 child: Column(
@@ -435,7 +466,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.arrow_back,
+                    Icons.arrow_back_rounded,
                     size: 16,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -485,16 +516,33 @@ class AlbumDetailScreen extends ConsumerWidget {
             FilledButton.icon(
               onPressed: () {
                 if (album.songs.isNotEmpty) {
+                  HapticFeedback.lightImpact();
                   playerService.playAll(album.songs);
                 }
               },
-              icon: const Icon(Icons.play_arrow, size: 18),
+              icon: const Icon(Icons.play_arrow_rounded, size: 18),
               label: Text(S.of(context).albumPlayAll),
               style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             OutlinedButton.icon(
               onPressed: () {
+                if (album.songs.isNotEmpty) {
+                  HapticFeedback.lightImpact();
+                  final shuffled = List<Song>.from(album.songs)..shuffle();
+                  playerService.playAll(shuffled);
+                }
+              },
+              icon: const Icon(Icons.shuffle_rounded, size: 17),
+              label: const Text('随机播放'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 40),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: () {
+                HapticFeedback.lightImpact();
                 for (final song in album.songs) {
                   playerService.addToQueue(song);
                 }
@@ -505,15 +553,8 @@ class AlbumDetailScreen extends ConsumerWidget {
                   ),
                 );
               },
-              icon: const Icon(Icons.playlist_add, size: 18),
-              label: Text(S.of(context).albumAddToQueue),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 40),
-                foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                side: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-              ),
+              icon: const Icon(Icons.playlist_add_rounded, size: 20),
+              tooltip: S.of(context).albumAddToQueue,
             ),
           ],
         ),

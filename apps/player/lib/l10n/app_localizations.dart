@@ -988,7 +988,7 @@ abstract class S {
   /// No description provided for @nasAgentConfigRequired.
   ///
   /// In zh, this message translates to:
-  /// **'请先配置局域网 NAS Agent 地址和 Key，再执行导入或删除'**
+  /// **'请先登录 Cloud 后再导入或删除'**
   String get nasAgentConfigRequired;
 
   /// No description provided for @commonContinue.
@@ -1248,6 +1248,54 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'失败'**
   String get downloadsFailed;
+
+  /// No description provided for @downloadsOfflineTab.
+  ///
+  /// In zh, this message translates to:
+  /// **'本机离线'**
+  String get downloadsOfflineTab;
+
+  /// No description provided for @downloadsNasImportTab.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入曲库'**
+  String get downloadsNasImportTab;
+
+  /// No description provided for @downloadsNasImportHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线歌曲点「+」加入导入队列'**
+  String get downloadsNasImportHint;
+
+  /// No description provided for @downloadsNasImportEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无导入任务'**
+  String get downloadsNasImportEmpty;
+
+  /// No description provided for @nasImportAlreadyQueued.
+  ///
+  /// In zh, this message translates to:
+  /// **'已在导入队列中'**
+  String get nasImportAlreadyQueued;
+
+  /// No description provided for @nasImportStageResolving.
+  ///
+  /// In zh, this message translates to:
+  /// **'准备中'**
+  String get nasImportStageResolving;
+
+  /// No description provided for @nasImportStageUploading.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载到 NAS'**
+  String get nasImportStageUploading;
+
+  /// No description provided for @nasImportClearFinished.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除已结束'**
+  String get nasImportClearFinished;
 
   /// No description provided for @multiServerManage.
   ///
@@ -2256,6 +2304,18 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'删除失败，请稍后重试'**
   String get contextMenuDeleteFailed;
+
+  /// No description provided for @contextMenuDeleteNotFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'曲库里找不到这首歌，请下拉刷新后再试'**
+  String get contextMenuDeleteNotFound;
+
+  /// No description provided for @contextMenuDeleteFailedReason.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除失败：{reason}'**
+  String contextMenuDeleteFailedReason(String reason);
 
   /// No description provided for @recommendationsTitle.
   ///

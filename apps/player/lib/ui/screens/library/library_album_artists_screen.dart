@@ -105,7 +105,7 @@ class _LibraryAlbumArtistsScreenState
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
             ),
           ),

@@ -15,6 +15,17 @@ from app.core.config import Settings
 from app.models.schemas import DeleteResult
 from app.services.recommendation_identity import weak_identity
 
+# Navidrome 0.55+ added artist-link and scrobble tables. Delete these before
+# media_file so FOREIGN KEY failures do not roll the whole song back.
+_RELATED_DELETE_TARGETS = (
+    ("playlist_tracks", "media_file_id"),
+    ("annotation", "item_id"),
+    ("bookmark", "item_id"),
+    ("media_file_artists", "media_file_id"),
+    ("scrobbles", "media_file_id"),
+    ("scrobble_buffer", "media_file_id"),
+)
+
 
 class DatabaseUnavailableError(RuntimeError):
     pass
@@ -89,7 +100,7 @@ class LibraryService:
         try:
             await db.execute("BEGIN IMMEDIATE")
             cursor = await db.execute(
-                "SELECT path FROM media_file WHERE id = ?",
+                "SELECT rowid, path FROM media_file WHERE id = ?",
                 (song_id,),
             )
             row = await cursor.fetchone()
@@ -97,18 +108,10 @@ class LibraryService:
                 await db.rollback()
                 return {"id": song_id, "status": "skipped", "reason": "not found"}
 
-            target = self._resolve_host_path(row[0])
+            rowid, stored_path = row
+            target = self._resolve_host_path(stored_path)
             staged = self._stage_related_files(target)
-
-            if "playlist_tracks" in tables:
-                await db.execute(
-                    "DELETE FROM playlist_tracks WHERE media_file_id = ?",
-                    (song_id,),
-                )
-            if "annotation" in tables:
-                await db.execute("DELETE FROM annotation WHERE item_id = ?", (song_id,))
-            if "bookmark" in tables:
-                await db.execute("DELETE FROM bookmark WHERE item_id = ?", (song_id,))
+            await self._delete_related_rows(db, tables, song_id, rowid)
             await db.execute("DELETE FROM media_file WHERE id = ?", (song_id,))
             await db.commit()
         except Exception as exc:
@@ -156,6 +159,23 @@ class LibraryService:
             "path": str(target),
             "file_existed": bool(staged),
         }
+
+    @staticmethod
+    async def _delete_related_rows(
+        db: aiosqlite.Connection,
+        tables: set[str],
+        song_id: str,
+        rowid: int,
+    ) -> None:
+        for table, column in _RELATED_DELETE_TARGETS:
+            if table not in tables:
+                continue
+            await db.execute(
+                f"DELETE FROM {table} WHERE {column} = ?",
+                (song_id,),
+            )
+        if "media_file_fts" in tables:
+            await db.execute("DELETE FROM media_file_fts WHERE rowid = ?", (rowid,))
 
     def _resolve_host_path(self, navidrome_path: str) -> Path:
         if not navidrome_path or "\x00" in navidrome_path or "\\" in navidrome_path:

@@ -42,7 +42,7 @@ class AudioQualityScreen extends ConsumerWidget {
             children: [
               if (AppBreakpoints.isMobile(MediaQuery.of(context).size.width))
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
                   onPressed: () => context.go('/settings'),
                 ),
               Text(
@@ -82,7 +82,7 @@ class AudioQualityScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Icon(
-                      Icons.high_quality,
+                      Icons.high_quality_rounded,
                       size: 18,
                       color: context.colors.primary,
                     ),

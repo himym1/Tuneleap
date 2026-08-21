@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/models.dart';
@@ -216,19 +217,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildLocalActions() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
       height: 44,
-      child: FilledButton.icon(
-        key: const Key('home-personalized-mix-button'),
-        onPressed: _loadingLocalPlayback ? null : _playPersonalizedMix,
-        icon: _loadingLocalPlayback
-            ? const SizedBox.square(
-                dimension: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.auto_awesome, size: 19),
-        label: Text(S.of(context).homeLocalMix),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [context.colors.primary, context.colors.secondary],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: context.colors.primary.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const Key('home-personalized-mix-button'),
+          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+          onTap: _loadingLocalPlayback ? null : _playPersonalizedMix,
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_loadingLocalPlayback)
+                  SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: context.colors.onEmphasis,
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 20,
+                    color: context.colors.onEmphasis,
+                  ),
+                const SizedBox(width: 8),
+                Text(
+                  S.of(context).homeLocalMix,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: context.colors.onEmphasis,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -298,7 +342,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             key: const Key('home-refresh-button'),
                             tooltip: S.of(context).commonRefresh,
                             onPressed: _refresh,
-                            icon: const Icon(Icons.refresh),
+                            icon: const Icon(Icons.refresh_rounded),
                           ),
                   ),
                   const SizedBox(width: 4),
@@ -327,7 +371,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               _buildSectionHeader(
                 S.of(context).homeDailyRecommend,
-                onMore: () => context.go('/recommendations'),
+                onRefresh: () {
+                  HapticFeedback.lightImpact();
+                  ref.read(recommendationProvider.notifier).refresh();
+                },
+                isRefreshing: recommendations.refreshing,
+                onMore: () => context.push('/home/recommendations'),
               ),
               const SizedBox(height: 8),
               if (recommendations.initialLoading &&
@@ -381,20 +430,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildWeather() {
     final weather = ref.watch(weatherProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return weather.when(
       data: (info) {
         if (info == null) return const SizedBox.shrink();
         return Tooltip(
           message: S.of(context).commonRefresh,
-          child: InkWell(
-            onTap: () => ref.invalidate(weatherProvider),
-            borderRadius: BorderRadius.circular(6),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Text(
-                '${info.icon} ${info.temp}  ${info.location}',
-                style: Theme.of(context).textTheme.chipLabel.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => ref.invalidate(weatherProvider),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: (isDark ? Colors.white : Colors.black).withValues(
+                    alpha: isDark ? 0.08 : 0.05,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: (isDark ? Colors.white : Colors.black).withValues(
+                      alpha: isDark ? 0.12 : 0.08,
+                    ),
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  '${info.icon} ${info.temp}  ${info.location}',
+                  style: Theme.of(context).textTheme.chipLabel.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -410,7 +479,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title, {VoidCallback? onMore}) {
+  Widget _buildSectionHeader(
+    String title, {
+    VoidCallback? onMore,
+    VoidCallback? onRefresh,
+    bool isRefreshing = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -424,6 +498,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
         ),
+        if (onRefresh != null) ...[
+          TextButton.icon(
+            onPressed: isRefreshing ? null : onRefresh,
+            icon: isRefreshing
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded, size: 16),
+            label: Text(
+              '换一批',
+              style: Theme.of(context).textTheme.chipLabel.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 4),
+        ],
         if (onMore != null)
           TextButton(
             onPressed: onMore,
@@ -451,12 +545,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           final album = albums[index];
           return Material(
             color: Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             child: Semantics(
               button: true,
               label: album.name,
               child: InkWell(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 onTap: () => context.push('/home/album/${album.id}'),
                 child: SizedBox(
                   width: 130,
@@ -466,14 +560,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       CoverArt(
                         url: client.coverArtUrl(album.coverArt, size: 300),
                         size: 130,
-                        borderRadius: 10,
+                        borderRadius: 12,
+                        hasShadow: true,
                       ),
                       const SizedBox(height: 6),
                       Text(
                         album.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.songSubtitle,
+                        style: Theme.of(context).textTheme.songTitle.copyWith(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       if (album.artist != null)
                         Text(
@@ -607,6 +705,7 @@ class _HomeSongTileState extends State<_HomeSongTile> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final metadata = [
       widget.song.artist,
       widget.song.album,
@@ -615,79 +714,103 @@ class _HomeSongTileState extends State<_HomeSongTile> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: Material(
-        color: _hovered
-            ? Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.75)
-            : Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.28),
-        borderRadius: BorderRadius.circular(6),
-        child: Semantics(
-          button: true,
-          label: '${widget.song.title}, $metadata',
-          child: InkWell(
-            borderRadius: BorderRadius.circular(6),
-            onTap: widget.onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  ResolvedSongCoverArt(
-                    song: widget.song,
-                    size: 44,
-                    borderRadius: 5,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.song.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.songTitle.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if (metadata.isNotEmpty)
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
+          color: _hovered
+              ? (isDark ? Colors.white : Colors.black).withValues(
+                  alpha: isDark ? 0.10 : 0.06,
+                )
+              : (isDark ? Colors.white : Colors.black).withValues(
+                  alpha: isDark ? 0.04 : 0.02,
+                ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: (isDark ? Colors.white : Colors.black).withValues(
+              alpha: _hovered ? (isDark ? 0.14 : 0.08) : (isDark ? 0.06 : 0.04),
+            ),
+            width: 0.6,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          child: Semantics(
+            button: true,
+            label: '${widget.song.title}, $metadata',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: widget.onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    ResolvedSongCoverArt(
+                      song: widget.song,
+                      size: 44,
+                      borderRadius: 8,
+                      hasShadow: true,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            metadata,
+                            widget.song.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.songSubtitle
-                                .copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                            style: Theme.of(context).textTheme.songTitle
+                                .copyWith(fontWeight: FontWeight.w600),
                           ),
-                      ],
+                          if (metadata.isNotEmpty)
+                            Text(
+                              metadata,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.songSubtitle
+                                  .copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  if (widget.song.duration != null) ...[
+                    if (widget.song.duration != null) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.song.formattedDuration,
+                        style: Theme.of(context).textTheme.songDuration
+                            .copyWith(
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
                     const SizedBox(width: 8),
-                    Text(
-                      widget.song.formattedDuration,
-                      style: Theme.of(context).textTheme.songDuration.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    AnimatedOpacity(
+                      opacity: _hovered ? 1.0 : 0.4,
+                      duration: const Duration(milliseconds: 150),
+                      child: Icon(
+                        Icons.play_circle_filled_rounded,
+                        size: 24,
+                        color: _hovered
+                            ? context.colors.primary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
-                  const SizedBox(width: 8),
-                  AnimatedOpacity(
-                    opacity: _hovered ? 1.0 : 0.6,
-                    duration: const Duration(milliseconds: 150),
-                    child: Icon(
-                      Icons.play_circle_outline,
-                      size: 24,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

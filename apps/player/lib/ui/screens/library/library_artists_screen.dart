@@ -77,7 +77,7 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
             ),
           ),
@@ -140,7 +140,7 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
               ),
             ),
             trailing: IconButton(
-              icon: const Icon(Icons.play_circle_outline, size: 22),
+              icon: const Icon(Icons.play_circle_outline_rounded, size: 22),
               color: Theme.of(context).colorScheme.onSurfaceVariant,
               tooltip: S.of(context).tooltipPlay,
               onPressed: () => _playArtist(artist),

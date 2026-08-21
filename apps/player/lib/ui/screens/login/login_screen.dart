@@ -16,11 +16,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _urlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _backendUrlController = TextEditingController();
   final _cloudUsernameController = TextEditingController();
   final _cloudCredentialController = TextEditingController();
-  final _nasAgentUrlController = TextEditingController();
-  final _nasAgentKeyController = TextEditingController();
   bool _loading = false;
   String? _error;
 
@@ -33,11 +30,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _urlController.text = config.url;
     _usernameController.text = config.username;
     _passwordController.text = config.password;
-    _backendUrlController.text = config.backendUrl;
     _cloudUsernameController.text =
         prefs.getString('cloud_username_$serverId') ?? '';
-    _nasAgentUrlController.text = config.nasAgentUrl;
-    _nasAgentKeyController.text = config.nasAgentKey;
   }
 
   @override
@@ -45,11 +39,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _urlController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
-    _backendUrlController.dispose();
     _cloudUsernameController.dispose();
     _cloudCredentialController.dispose();
-    _nasAgentUrlController.dispose();
-    _nasAgentKeyController.dispose();
     super.dispose();
   }
 
@@ -64,11 +55,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final url = _urlController.text.trim();
       final username = _usernameController.text.trim();
       final password = _passwordController.text;
-      final backendUrl = _backendUrlController.text.trim();
       final cloudUsername = _cloudUsernameController.text.trim();
       final cloudCredential = _cloudCredentialController.text;
-      final nasAgentUrl = _nasAgentUrlController.text.trim();
-      final nasAgentKey = _nasAgentKeyController.text;
 
       if (url.isEmpty || username.isEmpty || password.isEmpty) {
         setState(() => _error = s.loginFieldsRequired);
@@ -81,10 +69,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             url: url,
             username: username,
             password: password,
-            backendUrl: backendUrl,
+            backendUrl: '',
             backendApiKey: '',
-            nasAgentUrl: nasAgentUrl,
-            nasAgentKey: nasAgentKey,
           );
 
       if (!mounted) return;
@@ -155,7 +141,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       decoration: InputDecoration(
                         labelText: s.multiServerUrl,
                         hintText: s.serverUrlExample,
-                        prefixIcon: const Icon(Icons.dns),
+                        prefixIcon: const Icon(Icons.dns_rounded),
                       ),
                       keyboardType: TextInputType.url,
                     ),
@@ -164,7 +150,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _usernameController,
                       decoration: InputDecoration(
                         labelText: s.multiServerUsername,
-                        prefixIcon: const Icon(Icons.person),
+                        prefixIcon: const Icon(Icons.person_rounded),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -172,26 +158,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _passwordController,
                       decoration: InputDecoration(
                         labelText: s.multiServerPassword,
-                        prefixIcon: const Icon(Icons.lock),
+                        prefixIcon: const Icon(Icons.lock_rounded),
                       ),
                       obscureText: true,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _backendUrlController,
-                      decoration: InputDecoration(
-                        labelText: s.backendUrl,
-                        hintText: s.backendUrlHint,
-                        prefixIcon: const Icon(Icons.cloud_outlined),
-                      ),
-                      keyboardType: TextInputType.url,
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _cloudUsernameController,
                       decoration: InputDecoration(
                         labelText: s.cloudUsername,
-                        prefixIcon: const Icon(Icons.person_outline),
+                        prefixIcon: const Icon(Icons.person_outline_rounded),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -199,27 +175,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _cloudCredentialController,
                       decoration: InputDecoration(
                         labelText: s.cloudCredential,
-                        prefixIcon: const Icon(Icons.lock_outline),
-                      ),
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _nasAgentUrlController,
-                      decoration: InputDecoration(
-                        labelText: s.nasAgentUrl,
-                        hintText: s.nasAgentUrlHint,
-                        prefixIcon: const Icon(Icons.storage_outlined),
-                      ),
-                      keyboardType: TextInputType.url,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _nasAgentKeyController,
-                      decoration: InputDecoration(
-                        labelText: s.nasAgentKey,
-                        hintText: s.nasAgentKeyHint,
-                        prefixIcon: const Icon(Icons.vpn_key_outlined),
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
                       ),
                       obscureText: true,
                     ),

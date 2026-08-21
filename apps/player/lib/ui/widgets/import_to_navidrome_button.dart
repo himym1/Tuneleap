@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/utils/song_identity.dart';
 
 Future<bool> importOnlineSongToNavidrome(
@@ -17,9 +17,12 @@ Future<bool> importOnlineSongToNavidrome(
   final messenger = ScaffoldMessenger.of(context);
   final serverId = ref.read(serverConfigProvider).serverId;
   final localClient = ref.read(subsonicClientProvider);
-  final importService = ref.read(navidromeImportServiceProvider);
-  final backend = importService.backendClient;
-  if (!backend.canMutateNas) {
+  final backend = ref.read(navidromeImportServiceProvider).backendClient;
+  if (backend.isConfigured &&
+      ref.read(cloudAuthProvider).value?.isAuthenticated != true) {
+    final signedIn = await CloudAuthDialog.show(context);
+    if (!signedIn || !context.mounted) return false;
+  } else if (!backend.canMutateNas) {
     messenger.showSnackBar(_message(l10n.nasAgentConfigRequired));
     return false;
   }
@@ -51,84 +54,23 @@ Future<bool> importOnlineSongToNavidrome(
     return false;
   }
 
-  _showImporting(messenger, l10n);
-  try {
-    final result = await importService.importOnlineSong(song, force: force);
-    if (ref.read(serverConfigProvider).serverId == serverId) {
-      onImported?.call();
-    }
-    try {
-      await localClient.startScan();
-    } catch (_) {}
-    if (!context.mounted) return true;
-    messenger.clearSnackBars();
-    messenger.showSnackBar(
-      _message(
-        result.message == null || result.message!.isEmpty
-            ? l10n.contextMenuQueuedNavidrome
-            : '${l10n.contextMenuQueuedNavidrome}: ${result.message}',
-      ),
-    );
+  final queue = ref.read(nasImportQueueProvider.notifier);
+  if (queue.isQueuedOrActive(song)) {
+    messenger.showSnackBar(_message(l10n.nasImportAlreadyQueued));
     return true;
-  } on NasDuplicateException catch (error) {
-    messenger.clearSnackBars();
-    if (force || !context.mounted) {
-      if (context.mounted) {
-        messenger.showSnackBar(
-          _message(
-            '${l10n.contextMenuImportNavidromeFailed}: ${_formatError(error)}',
-          ),
-        );
-      }
-      return false;
-    }
-    final proceed = await _confirmDuplicate(context, l10n, song);
-    if (!proceed || !context.mounted) return false;
-    if (ref.read(serverConfigProvider).serverId != serverId) {
-      messenger.showSnackBar(_message(l10n.contextMenuImportNavidromeFailed));
-      return false;
-    }
-    _showImporting(messenger, l10n);
-    try {
-      final result = await importService.importOnlineSong(song, force: true);
-      if (ref.read(serverConfigProvider).serverId == serverId) {
-        onImported?.call();
-      }
-      try {
-        await localClient.startScan();
-      } catch (_) {}
-      if (!context.mounted) return true;
-      messenger.clearSnackBars();
-      messenger.showSnackBar(
-        _message(
-          result.message == null || result.message!.isEmpty
-              ? l10n.contextMenuQueuedNavidrome
-              : '${l10n.contextMenuQueuedNavidrome}: ${result.message}',
-        ),
-      );
-      return true;
-    } catch (error) {
-      if (context.mounted) {
-        messenger.clearSnackBars();
-        messenger.showSnackBar(
-          _message(
-            '${l10n.contextMenuImportNavidromeFailed}: ${_formatError(error)}',
-          ),
-        );
-      }
-      return false;
-    }
-  } catch (error) {
-    if (context.mounted) {
-      messenger.clearSnackBars();
-      messenger.showSnackBar(
-        _message(
-          '${l10n.contextMenuImportNavidromeFailed}: ${_formatError(error)}',
-        ),
-      );
-    }
-    return false;
   }
+
+  final enqueued = queue.enqueue(song, force: force);
+  if (!enqueued) {
+    messenger.showSnackBar(_message(l10n.nasImportAlreadyQueued));
+    return true;
+  }
+
+  onImported?.call();
+  if (!context.mounted) return true;
+  messenger.clearSnackBars();
+  messenger.showSnackBar(_message(l10n.contextMenuQueuedNavidrome));
+  return true;
 }
 
 class ImportToNavidromeButton extends ConsumerStatefulWidget {
@@ -154,9 +96,18 @@ class _ImportToNavidromeButtonState
 
   @override
   Widget build(BuildContext context) {
+    final active = ref.watch(
+      nasImportQueueProvider.select(
+        (tasks) => tasks.any(
+          (task) =>
+              task.isActive &&
+              songWeakIdentity(task.song) == songWeakIdentity(widget.song),
+        ),
+      ),
+    );
     return IconButton(
       tooltip: S.of(context).contextMenuImportNavidrome,
-      onPressed: _loading
+      onPressed: (_loading || active)
           ? null
           : () async {
               setState(() => _loading = true);
@@ -168,12 +119,12 @@ class _ImportToNavidromeButtonState
               );
               if (mounted) setState(() => _loading = false);
             },
-      icon: _loading
+      icon: (_loading || active)
           ? const SizedBox.square(
               dimension: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Icon(Icons.library_add_outlined, color: widget.iconColor),
+          : Icon(Icons.library_add_rounded, color: widget.iconColor),
     );
   }
 }
@@ -199,33 +150,8 @@ Future<bool> _confirmDuplicate(BuildContext context, S l10n, Song song) async {
       false;
 }
 
-void _showImporting(ScaffoldMessengerState messenger, S l10n) {
-  messenger.showSnackBar(
-    SnackBar(
-      content: Row(
-        children: [
-          const SizedBox.square(
-            dimension: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Text(l10n.contextMenuQueueingNavidrome)),
-        ],
-      ),
-      behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 30),
-    ),
-  );
-}
-
 SnackBar _message(String text) => SnackBar(
   content: Text(text),
   behavior: SnackBarBehavior.floating,
   duration: const Duration(seconds: 3),
 );
-
-String _formatError(Object error) {
-  final message = error.toString().trim();
-  if (message.isEmpty) return 'unknown error';
-  return message.length <= 120 ? message : '${message.substring(0, 117)}...';
-}

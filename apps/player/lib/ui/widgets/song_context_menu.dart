@@ -5,6 +5,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/player/playback_origin.dart';
+import 'package:navidrome_player/ui/widgets/delete_from_navidrome.dart';
 import 'package:navidrome_player/ui/widgets/import_to_navidrome_button.dart';
 
 /// 通用歌曲右键/长按上下文菜单
@@ -48,12 +49,15 @@ class SongContextMenu extends ConsumerWidget {
   static Future<void> deleteSong(
     BuildContext context,
     WidgetRef ref,
-    Song song,
-  ) {
-    return SongContextMenu(
-      song: song,
-      child: const SizedBox.shrink(),
-    )._deleteSong(context, ref);
+    Song song, {
+    VoidCallback? onDeleted,
+  }) {
+    return deleteLibrarySongFromNavidrome(
+      context,
+      ref,
+      song,
+      onDeleted: onDeleted,
+    );
   }
 
   final Song song;
@@ -130,13 +134,13 @@ class SongContextMenu extends ConsumerWidget {
         ),
         _menuItem(
           context,
-          Icons.playlist_play,
+          Icons.playlist_play_rounded,
           S.of(context).contextMenuPlayNext,
           'play_next',
         ),
         _menuItem(
           context,
-          Icons.queue_music,
+          Icons.queue_music_rounded,
           S.of(context).contextMenuAddQueue,
           'add_queue',
         ),
@@ -144,27 +148,27 @@ class SongContextMenu extends ConsumerWidget {
         if (supportsLibraryMutations)
           _menuItem(
             context,
-            Icons.playlist_add,
+            Icons.playlist_add_rounded,
             S.of(context).contextMenuAddPlaylist,
             'add_playlist',
           ),
         if (supportsLibraryMutations)
           _menuItem(
             context,
-            Icons.favorite_border,
+            Icons.favorite_border_rounded,
             S.of(context).navFavorites,
             'star',
           ),
         _menuItem(
           context,
-          Icons.download_outlined,
+          Icons.download_rounded,
           S.of(context).contextMenuDownload,
           'download',
         ),
         if (song.isOnline)
           _menuItem(
             context,
-            Icons.library_add,
+            Icons.library_add_rounded,
             S.of(context).contextMenuImportNavidrome,
             'import_navidrome',
           ),
@@ -173,7 +177,7 @@ class SongContextMenu extends ConsumerWidget {
           const PopupMenuDivider(),
           _menuItem(
             context,
-            Icons.delete_outline,
+            Icons.delete_outline_rounded,
             S.of(context).contextMenuDelete,
             'delete',
             isDestructive: true,
@@ -221,59 +225,15 @@ class SongContextMenu extends ConsumerWidget {
         }
         break;
       case 'delete':
-        if (context.mounted) await _deleteSong(context, ref);
+        if (context.mounted) {
+          await deleteLibrarySongFromNavidrome(
+            context,
+            ref,
+            song,
+            onDeleted: onDeleted,
+          );
+        }
         break;
-    }
-  }
-
-  Future<void> _deleteSong(BuildContext context, WidgetRef ref) async {
-    final backend = ref.read(backendClientProvider);
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = S.of(context);
-    if (!backend.canMutateNas) {
-      messenger.showSnackBar(_snackBar(l10n.nasAgentConfigRequired));
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.contextMenuDeleteTitle),
-        content: Text(l10n.contextMenuDeleteConfirm(song.title, song.artist)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: Text(l10n.commonDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      final ok = await backend.deleteSongById(song.id);
-      if (!ok) {
-        messenger.showSnackBar(_snackBar(l10n.contextMenuDeleteFailed));
-        return;
-      }
-      final playerService = ref.read(audioPlayerServiceProvider);
-      final index = playerService.queue.indexWhere(
-        (candidate) => candidate.storageKey == song.storageKey,
-      );
-      if (index >= 0) playerService.removeFromQueue(index);
-      ref.invalidate(newestAlbumsProvider);
-      ref.invalidate(recentAlbumsProvider);
-      await ref.read(libraryProvider.notifier).refresh();
-      onDeleted?.call();
-      messenger.showSnackBar(_snackBar(l10n.contextMenuDeleted));
-    } catch (error) {
-      debugPrint('[Delete] failed: ${error.runtimeType}');
-      messenger.showSnackBar(_snackBar(l10n.contextMenuDeleteFailed));
     }
   }
 
@@ -334,7 +294,10 @@ class SongContextMenu extends ConsumerWidget {
                     itemBuilder: (_, i) {
                       final p = playlists[i];
                       return ListTile(
-                        leading: const Icon(Icons.playlist_play, size: 20),
+                        leading: const Icon(
+                          Icons.playlist_play_rounded,
+                          size: 20,
+                        ),
                         title: Text(p.name),
                         subtitle: Text(
                           S

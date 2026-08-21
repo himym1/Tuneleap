@@ -19,6 +19,9 @@ def _create_library_db(path: str, rows: list[tuple[str, str]]) -> None:
         CREATE TABLE playlist_tracks(playlist_id TEXT, media_file_id TEXT);
         CREATE TABLE annotation(item_id TEXT);
         CREATE TABLE bookmark(item_id TEXT);
+        CREATE TABLE media_file_artists(media_file_id TEXT, artist_id TEXT);
+        CREATE TABLE scrobbles(media_file_id TEXT, user_id TEXT);
+        CREATE TABLE scrobble_buffer(media_file_id TEXT, user_id TEXT);
         INSERT INTO playlist(id, song_count) VALUES ('playlist-1', 0);
         """
     )
@@ -30,6 +33,14 @@ def _create_library_db(path: str, rows: list[tuple[str, str]]) -> None:
         )
         db.execute("INSERT INTO annotation(item_id) VALUES (?)", (song_id,))
         db.execute("INSERT INTO bookmark(item_id) VALUES (?)", (song_id,))
+        db.execute(
+            "INSERT INTO media_file_artists(media_file_id, artist_id) VALUES (?, 'artist-1')",
+            (song_id,),
+        )
+        db.execute(
+            "INSERT INTO scrobbles(media_file_id, user_id) VALUES (?, 'user-1')",
+            (song_id,),
+        )
     db.execute("UPDATE playlist SET song_count = ?", (len(rows),))
     db.commit()
     db.close()
@@ -60,6 +71,8 @@ def test_delete_removes_file_sidecar_and_database_rows(settings):
     assert db.execute("SELECT COUNT(*) FROM playlist_tracks").fetchone()[0] == 0
     assert db.execute("SELECT COUNT(*) FROM annotation").fetchone()[0] == 0
     assert db.execute("SELECT COUNT(*) FROM bookmark").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM media_file_artists").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM scrobbles").fetchone()[0] == 0
     assert db.execute("SELECT song_count FROM playlist").fetchone()[0] == 0
     db.close()
 

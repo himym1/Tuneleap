@@ -451,13 +451,36 @@ void main() {
       );
 
       expect(message, 'queued');
-      expect(captured.path, 'http://nas:10086/v1/nas/import');
-      expect(captured.headers['X-API-Key'], 'nas-key');
+      expect(captured.path, 'http://cloud:8600/v1/library/import');
+      expect(captured.headers['X-API-Key'], isNull);
       expect(captured.data['url'], 'https://cdn.example.com/song.flac');
       expect(captured.data['filename'], 'solara_netease_1.flac');
       expect(captured.data['song'], {'id': '1', 'name': 'Track'});
       expect(captured.data['picUrl'], 'http://cover/1');
       expect(captured.data['force'], isTrue);
+    });
+
+    test('queueNasDownload uses LAN agent when Cloud is absent', () async {
+      late RequestOptions captured;
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          captured = options;
+          return _jsonBody({'success': true, 'message': 'queued'});
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(
+          nasAgentUrl: 'http://192.168.1.10:8504',
+          nasAgentKey: 'nas-key',
+        );
+
+      await client.queueNasDownload(
+        url: 'https://cdn.example.com/song.mp3',
+        filename: 'song.mp3',
+        song: {'title': 'Song'},
+      );
+
+      expect(captured.path, 'http://192.168.1.10:8504/v1/nas/import');
+      expect(captured.headers['X-API-Key'], 'nas-key');
     });
 
     test('queueNasDownload surfaces NAS duplicate conflict', () async {
@@ -484,10 +507,13 @@ void main() {
       );
     });
 
-    test('NAS mutations require a key and a secure endpoint', () async {
+    test('NAS mutations require Cloud or a secure LAN agent', () async {
       final client = BackendClient(dio: Dio())
         ..configure(cloudBaseUrl: 'https://cloud.example.com');
 
+      expect(client.canMutateNas, isTrue);
+
+      client.configure();
       expect(client.canMutateNas, isFalse);
       expect(
         () => client.queueNasDownload(
@@ -521,6 +547,62 @@ void main() {
         nasAgentKey: '',
       );
       expect(client.canMutateNas, isFalse);
+    });
+
+    test('deleteLibrarySongs posts song ids to NAS agent', () async {
+      late RequestOptions captured;
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          captured = options;
+          return _jsonBody({
+            'deleted': 1,
+            'skipped': 0,
+            'errors': 0,
+            'msg': 'deleted 1, skipped 0, errors 0',
+          });
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(
+          cloudBaseUrl: 'http://cloud:8600',
+          nasAgentUrl: 'http://192.168.1.10:8504',
+          nasAgentKey: 'nas-key',
+        );
+
+      final result = await client.deleteLibrarySongs(['song-1']);
+
+      expect(result.ok, isTrue);
+      expect(result.deleted, 1);
+      expect(captured.path, 'http://cloud:8600/v1/library/delete');
+      expect(captured.headers['X-API-Key'], isNull);
+      expect(captured.data['song_ids'], ['song-1']);
+    });
+
+    test('deleteLibrarySongs treats skipped ids as not found', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          return _jsonBody({
+            'deleted': 0,
+            'skipped': 1,
+            'errors': 0,
+            'msg': 'deleted 0, skipped 1, errors 0',
+          });
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(
+          nasAgentUrl: 'http://192.168.1.10:8504',
+          nasAgentKey: 'nas-key',
+        );
+
+      expect(
+        () => client.deleteLibrarySongs(['missing']),
+        throwsA(
+          isA<NasDeleteException>().having(
+            (error) => error.message,
+            'message',
+            contains('not found'),
+          ),
+        ),
+      );
     });
 
     test('getRawLyrics sends fallback song context', () async {

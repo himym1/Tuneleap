@@ -6,38 +6,88 @@ import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/providers/audio_providers.dart';
 import 'package:navidrome_player/api/media_request_headers.dart';
 
-/// 封面图组件，带缓存和 placeholder
+/// 封面图组件，带缓存、细腻边缘高光和可选环境投影
 class CoverArt extends StatelessWidget {
   final String url;
   final double? size;
   final double borderRadius;
   final bool loading;
+  final bool hasShadow;
+  final Color? shadowColor;
 
   const CoverArt({
     super.key,
     required this.url,
     this.size,
-    this.borderRadius = 8,
+    this.borderRadius = 10,
     this.loading = false,
+    this.hasShadow = false,
+    this.shadowColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final outlineColor = (isDark ? Colors.white : Colors.black).withValues(
+      alpha: isDark ? 0.08 : 0.05,
+    );
+
+    Widget imageContent;
     if (url.isEmpty) {
-      return loading
+      imageContent = loading
           ? _loadingPlaceholder(context)
           : _emptyPlaceholder(context);
+    } else {
+      imageContent = ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: CachedNetworkImage(
+          imageUrl: url,
+          httpHeaders: mediaRequestHeaders(url),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => _loadingPlaceholder(context),
+          errorWidget: (context, url, error) => _emptyPlaceholder(context),
+        ),
+      );
     }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: CachedNetworkImage(
-        imageUrl: url,
-        httpHeaders: mediaRequestHeaders(url),
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => _loadingPlaceholder(context),
-        errorWidget: (context, url, error) => _emptyPlaceholder(context),
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        boxShadow: hasShadow
+            ? [
+                BoxShadow(
+                  color: (shadowColor ?? (isDark ? Colors.black : Colors.grey))
+                      .withValues(alpha: isDark ? 0.40 : 0.20),
+                  blurRadius: size != null ? (size! * 0.18).clamp(8, 36) : 20,
+                  offset: Offset(
+                    0,
+                    size != null ? (size! * 0.06).clamp(3, 12) : 6,
+                  ),
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
+      ),
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          imageContent,
+          // Specular subtle rim highlight
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(borderRadius),
+                  border: Border.all(color: outlineColor, width: 0.6),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -82,12 +132,16 @@ class ResolvedSongCoverArt extends ConsumerStatefulWidget {
     super.key,
     required this.song,
     this.size,
-    this.borderRadius = 8,
+    this.borderRadius = 10,
+    this.hasShadow = false,
+    this.shadowColor,
   });
 
   final Song song;
   final double? size;
   final double borderRadius;
+  final bool hasShadow;
+  final Color? shadowColor;
 
   @override
   ConsumerState<ResolvedSongCoverArt> createState() =>
@@ -129,6 +183,8 @@ class _ResolvedSongCoverArtState extends ConsumerState<ResolvedSongCoverArt> {
         url: snapshot.data ?? '',
         size: widget.size,
         borderRadius: widget.borderRadius,
+        hasShadow: widget.hasShadow,
+        shadowColor: widget.shadowColor,
         loading: snapshot.connectionState == ConnectionState.waiting,
       ),
     );

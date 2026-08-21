@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
 import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
@@ -26,6 +29,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Timer? _debounce;
   String? _selectedSource;
   String? _lastProvider;
+  List<String> _history = [];
 
   Future<void> _loadMore() async {
     final source = _currentSource(ref.read(effectiveOnlineSourcesProvider));
@@ -66,6 +70,31 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.initState();
     _resultsScrollController.addListener(_onResultsScrolled);
     _lastProvider = ref.read(effectiveOnlineSearchAdapterProvider);
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('search_history') ?? [];
+    if (mounted) setState(() => _history = list);
+  }
+
+  Future<void> _saveHistory(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('search_history') ?? [];
+    list.remove(trimmed);
+    list.insert(0, trimmed);
+    if (list.length > 15) list.removeLast();
+    await prefs.setStringList('search_history', list);
+    if (mounted) setState(() => _history = list);
+  }
+
+  Future<void> _clearHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('search_history');
+    if (mounted) setState(() => _history = []);
   }
 
   @override
@@ -86,6 +115,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (query.isEmpty) {
       _clearAllResults();
     } else {
+      HapticFeedback.lightImpact();
+      _saveHistory(query);
       _searchAll(query);
     }
   }
@@ -158,39 +189,90 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             child: ValueListenableBuilder<TextEditingValue>(
               valueListenable: _searchController,
               builder: (context, value, _) {
-                return TextField(
-                  controller: _searchController,
-                  focusNode: _searchFocusNode,
-                  autofocus: false,
-                  textInputAction: TextInputAction.search,
-                  onChanged: _onSearchChanged,
-                  onSubmitted: (_) => _doSearch(),
-                  decoration: InputDecoration(
-                    hintText: S.of(context).searchHintInput,
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: (isDark ? Colors.white : Colors.black).withValues(
+                      alpha: isDark ? 0.08 : 0.05,
                     ),
-                    suffixIcon: value.text.isNotEmpty
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                tooltip: S.of(context).tooltipClear,
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _clearAllResults();
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.search, size: 20),
-                                tooltip: S.of(context).navSearch,
-                                onPressed: _doSearch,
-                              ),
-                            ],
-                          )
-                        : null,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: (isDark ? Colors.white : Colors.black).withValues(
+                        alpha: isDark ? 0.10 : 0.07,
+                      ),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    autofocus: false,
+                    textInputAction: TextInputAction.search,
+                    onChanged: _onSearchChanged,
+                    onSubmitted: (_) => _doSearch(),
+                    decoration: InputDecoration(
+                      hintText: S.of(context).searchHintInput,
+                      hintStyle: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+                      ),
+                      fillColor: Colors.transparent,
+                      filled: true,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        size: 20,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                      suffixIcon: value.text.isNotEmpty
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          (isDark ? Colors.white : Colors.black)
+                                              .withValues(alpha: 0.14),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      size: 14,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  tooltip: S.of(context).tooltipClear,
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    _clearAllResults();
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 20,
+                                  ),
+                                  tooltip: S.of(context).navSearch,
+                                  onPressed: _doSearch,
+                                ),
+                              ],
+                            )
+                          : null,
+                    ),
                   ),
                 );
               },
@@ -239,7 +321,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         SearchFailure.unknown => S.of(context).searchFailedTryAgain,
       };
       return EmptyState(
-        icon: isAuth ? Icons.lock_outline : Icons.error_outline,
+        icon: isAuth ? Icons.lock_outline_rounded : Icons.error_outline_rounded,
         message: message,
         actionLabel: isAuth ? S.of(context).cloudSignIn : null,
         onAction: isAuth
@@ -257,12 +339,103 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     if (searchState.songs.isEmpty && !searchState.searching) {
       if (_searchController.text.trim().isEmpty) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        if (_history.isNotEmpty) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.history_rounded,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '搜索历史',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13.5,
+                              ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      tooltip: '清空历史',
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        _clearHistory();
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final tag in _history)
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            _searchController.text = tag;
+                            _searchController.selection =
+                                TextSelection.fromPosition(
+                              TextPosition(offset: tag.length),
+                            );
+                            _doSearch();
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: (isDark ? Colors.white : Colors.black)
+                                  .withValues(alpha: isDark ? 0.08 : 0.05),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: (isDark ? Colors.white : Colors.black)
+                                    .withValues(alpha: isDark ? 0.10 : 0.07),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              tag,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
         return Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.search,
+                Icons.search_rounded,
                 size: 64,
                 color: Theme.of(
                   context,
@@ -281,7 +454,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         );
       }
       return EmptyState(
-        icon: Icons.search_off,
+        icon: Icons.search_off_rounded,
         message: S.of(context).searchNoResult,
       );
     }
@@ -306,7 +479,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     : searchState.error != null
                     ? OutlinedButton.icon(
                         onPressed: _loadMore,
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(Icons.refresh_rounded),
                         label: Text(S.of(context).searchLoadMore),
                       )
                     : TextButton(
@@ -364,18 +537,28 @@ class _SourceTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SizedBox(
       height: 42,
-      child: DecoratedBox(
+      child: Container(
+        padding: const EdgeInsets.all(3.5),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(10),
+          color: (isDark ? Colors.white : Colors.black).withValues(
+            alpha: isDark ? 0.08 : 0.05,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: (isDark ? Colors.white : Colors.black).withValues(
+              alpha: isDark ? 0.10 : 0.07,
+            ),
+            width: 0.8,
+          ),
         ),
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.all(3),
           itemCount: sources.length,
-          separatorBuilder: (_, _) => const SizedBox(width: 2),
+          separatorBuilder: (_, _) => const SizedBox(width: 3),
           itemBuilder: (context, index) {
             final source = sources[index];
             final isSelected = source == selected;
@@ -384,28 +567,68 @@ class _SourceTabs extends StatelessWidget {
               button: true,
               selected: isSelected,
               child: Material(
-                color: isSelected
-                    ? Theme.of(context).colorScheme.surface
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(7),
+                color: Colors.transparent,
                 child: InkWell(
-                  onTap: () => onSelected(source),
-                  borderRadius: BorderRadius.circular(7),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    onSelected(source);
+                  },
+                  borderRadius: BorderRadius.circular(8.5),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? (isDark ? const Color(0xFF2C2C2E) : Colors.white)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8.5),
+                      border: isSelected
+                          ? Border.all(
+                              color: (isDark ? Colors.white : Colors.black)
+                                  .withValues(alpha: isDark ? 0.18 : 0.06),
+                              width: 0.8,
+                            )
+                          : null,
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.40 : 0.10,
+                                ),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.20 : 0.04,
+                                ),
+                                blurRadius: 1.5,
+                                offset: const Offset(0, 0.5),
+                              ),
+                            ]
+                          : null,
+                    ),
                     child: Center(
                       child: Text(
                         onlineSourceLabel(context, source),
                         style: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                              fontSize: 13,
                               fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              letterSpacing: -0.2,
+                              color: isSelected
+                                  ? (isDark
+                                        ? Colors.white
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface)
+                                  : Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant
+                                        .withValues(alpha: 0.85),
                             ),
                       ),
                     ),
@@ -454,8 +677,9 @@ class _SongResultTile extends ConsumerWidget {
                 future: resolver.coverArtUrl(song, size: 100),
                 builder: (context, snapshot) => CoverArt(
                   url: snapshot.data ?? '',
-                  size: 40,
-                  borderRadius: 6,
+                  size: 44,
+                  borderRadius: 8,
+                  hasShadow: true,
                   loading: snapshot.connectionState == ConnectionState.waiting,
                 ),
               ),
@@ -464,7 +688,7 @@ class _SongResultTile extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.songTitle.copyWith(
-                  fontWeight: isPlaying ? FontWeight.w600 : null,
+                  fontWeight: isPlaying ? FontWeight.w700 : FontWeight.w600,
                   color: isPlaying ? context.colors.primary : null,
                 ),
               ),
@@ -481,25 +705,40 @@ class _SongResultTile extends ConsumerWidget {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (isPlaying) ...[
+                    StreamBuilder<bool>(
+                      stream: playerService.playingStream,
+                      builder: (context, playingSnap) => AudioVisualizerBars(
+                        isPlaying: playingSnap.data ?? false,
+                        size: 13,
+                        color: context.colors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   if (song.isOnline &&
                       !hideSourceChip &&
                       song.onlineSource != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
-                        vertical: 4,
+                        vertical: 3,
                       ),
                       margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
+                        color: context.colors.primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: context.colors.primary.withValues(alpha: 0.20),
+                          width: 0.6,
+                        ),
                       ),
                       child: Text(
                         onlineSourceLabel(context, song.onlineSource!),
                         style: Theme.of(context).textTheme.chipLabel.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: context.colors.primary,
                         ),
                       ),
                     ),
@@ -507,6 +746,7 @@ class _SongResultTile extends ConsumerWidget {
                     Text(
                       song.formattedDuration,
                       style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                        fontFeatures: const [FontFeature.tabularFigures()],
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),

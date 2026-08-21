@@ -74,7 +74,7 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
             ),
           ),
@@ -145,7 +145,8 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
                     Expanded(
                       child: CoverArt(
                         url: client.coverArtUrl(album.coverArt, size: 300),
-                        borderRadius: 10,
+                        borderRadius: 14,
+                        hasShadow: true,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -153,7 +154,9 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
                       album.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.songTitle,
+                      style: Theme.of(context).textTheme.songTitle.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     if (album.artist != null)
                       Text(

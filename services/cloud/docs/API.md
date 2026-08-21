@@ -175,9 +175,23 @@ Contract version 1 (ported from legacy backend). Requires API key / bearer.
 
 Cloud runs **without** Navidrome library blocking (`library=None`).
 
-## Out of scope on this host
+## Library
 
-- `POST /v1/nas/import`
-- `POST /v1/songs/delete`
+Cloud forwards these to the NAS Agent using server-side `NAS_AGENT_URL` and `NAS_AGENT_KEY`. The App only needs a Cloud Bearer token.
 
-Those live on **navidrome-nas-agent**.
+### `POST /v1/library/import`
+
+Same JSON body as NAS Agent `POST /v1/nas/import`.
+
+### `POST /v1/library/delete`
+
+Same JSON body as NAS Agent `POST /v1/songs/delete`.
+
+| Code | Meaning |
+|---|---|
+| 401 | Missing/invalid Cloud token |
+| 409 | Song identity already exists |
+| 503 | Cloud has no NAS Agent configuration |
+| 502/504 | NAS Agent unavailable or timed out |
+
+NAS Agent still owns the files and `navidrome.db`. Cloud never mounts music volumes.

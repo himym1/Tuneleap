@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from app.api import auth_routes, health, music, recommendations, updates
+from app.api import auth_routes, health, library, music, recommendations, updates
 from app.core.config import get_settings
 from app.core.limiter import limiter
 from app.core.recommendation_http import (
@@ -65,6 +65,7 @@ async def lifespan(app: FastAPI):
         app.state.auth_service = AuthService(database.pool, settings)
         app.state.http_client = client
         app.state.music_facade = facade
+        app.state.nas_library = library
         app.state.recommendation_store = store
         app.state.recommendation_service = service
         yield
@@ -125,6 +126,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(health.router)
+    app.include_router(library.router)
     app.include_router(music.router)
     app.include_router(updates.router)
     app.include_router(auth_routes.router)

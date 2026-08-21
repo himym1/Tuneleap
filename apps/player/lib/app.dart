@@ -208,16 +208,18 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                         ),
                       ),
                     ),
+                    GoRoute(
+                      path: 'recommendations',
+                      pageBuilder: (context, state) => _detailSlidePage(
+                        key: state.pageKey,
+                        child: const RecommendationsScreen(),
+                      ),
+                    ),
                   ],
                 ),
                 GoRoute(
                   path: '/recommendations',
-                  pageBuilder: (context, state) => CustomTransitionPage(
-                    key: state.pageKey,
-                    child: const RecommendationsScreen(),
-                    transitionsBuilder: _fadeThroughTransition,
-                    transitionDuration: _kFadeDuration,
-                  ),
+                  redirect: (context, state) => '/home/recommendations',
                 ),
                 GoRoute(
                   path: '/playlists',

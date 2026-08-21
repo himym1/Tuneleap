@@ -473,7 +473,7 @@ class SZh extends S {
   String get importDuplicateCheckFailed => '无法核对 NAS 曲库，已停止导入';
 
   @override
-  String get nasAgentConfigRequired => '请先配置局域网 NAS Agent 地址和 Key，再执行导入或删除';
+  String get nasAgentConfigRequired => '请先登录 Cloud 后再导入或删除';
 
   @override
   String get commonContinue => '继续';
@@ -619,6 +619,30 @@ class SZh extends S {
 
   @override
   String get downloadsFailed => '失败';
+
+  @override
+  String get downloadsOfflineTab => '本机离线';
+
+  @override
+  String get downloadsNasImportTab => '导入曲库';
+
+  @override
+  String get downloadsNasImportHint => '在线歌曲点「+」加入导入队列';
+
+  @override
+  String get downloadsNasImportEmpty => '暂无导入任务';
+
+  @override
+  String get nasImportAlreadyQueued => '已在导入队列中';
+
+  @override
+  String get nasImportStageResolving => '准备中';
+
+  @override
+  String get nasImportStageUploading => '下载到 NAS';
+
+  @override
+  String get nasImportClearFinished => '清除已结束';
 
   @override
   String get multiServerManage => '服务器管理';
@@ -1162,6 +1186,14 @@ class SZh extends S {
 
   @override
   String get contextMenuDeleteFailed => '删除失败，请稍后重试';
+
+  @override
+  String get contextMenuDeleteNotFound => '曲库里找不到这首歌，请下拉刷新后再试';
+
+  @override
+  String contextMenuDeleteFailedReason(String reason) {
+    return '删除失败：$reason';
+  }
 
   @override
   String get recommendationsTitle => '推荐';

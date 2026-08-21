@@ -14,6 +14,8 @@ export 'audio_providers.dart';
 export 'theme_provider.dart';
 export 'download_provider.dart';
 export 'navidrome_import_provider.dart';
+export 'nas_import_queue_provider.dart';
+export 'navidrome_delete_provider.dart';
 export 'cover_color_provider.dart';
 export 'library_cache_provider.dart';
 export 'playlist_provider.dart';

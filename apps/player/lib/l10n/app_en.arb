@@ -161,7 +161,7 @@
     },
     "importAnyway": "Import Anyway",
     "importDuplicateCheckFailed": "Could not verify the NAS library. Import was stopped.",
-    "nasAgentConfigRequired": "Configure the LAN NAS agent URL and key before importing or deleting",
+    "nasAgentConfigRequired": "Sign in to Cloud before importing or deleting",
     "commonContinue": "Continue",
     "contextMenuQueueingNavidrome": "Submitting to NAS download queue...",
     "contextMenuQueuedNavidrome": "Submitted to NAS download queue",
@@ -240,6 +240,14 @@
     "downloadsHint": "Select \"Download\" from song menu",
     "downloadsPending": "Pending",
     "downloadsFailed": "Failed",
+    "downloadsOfflineTab": "On this device",
+    "downloadsNasImportTab": "Library import",
+    "downloadsNasImportHint": "Tap \"+\" on an online song to queue a NAS import",
+    "downloadsNasImportEmpty": "No library import tasks",
+    "nasImportAlreadyQueued": "Already in the import queue",
+    "nasImportStageResolving": "Preparing",
+    "nasImportStageUploading": "Downloading to NAS",
+    "nasImportClearFinished": "Clear finished",
     "multiServerManage": "Server Management",
     "multiServerCount": "{count} servers",
     "multiServerDeleteTitle": "Delete Server",
@@ -495,6 +503,13 @@
     },
     "contextMenuDeleted": "Deleted",
     "contextMenuDeleteFailed": "Delete failed, please try again",
+    "contextMenuDeleteNotFound": "This song is not in the library. Pull to refresh and try again.",
+    "contextMenuDeleteFailedReason": "Delete failed: {reason}",
+    "@contextMenuDeleteFailedReason": {
+        "placeholders": {
+            "reason": { "type": "String" }
+        }
+    },
     "recommendationsTitle": "Recommendations",
     "recommendationsEmpty": "No recommendations yet",
     "recommendationsBackendMissing": "Configure the backend to enable recommendations",

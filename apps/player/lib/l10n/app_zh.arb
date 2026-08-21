@@ -217,7 +217,7 @@
     },
     "importAnyway": "仍然导入",
     "importDuplicateCheckFailed": "无法核对 NAS 曲库，已停止导入",
-    "nasAgentConfigRequired": "请先配置局域网 NAS Agent 地址和 Key，再执行导入或删除",
+    "nasAgentConfigRequired": "请先登录 Cloud 后再导入或删除",
     "commonContinue": "继续",
     "contextMenuQueueingNavidrome": "正在提交到 NAS 下载队列…",
     "contextMenuQueuedNavidrome": "已提交到 NAS 下载队列",
@@ -323,6 +323,14 @@
     "downloadsHint": "在歌曲菜单中选择\"下载\"",
     "downloadsPending": "等待中",
     "downloadsFailed": "失败",
+    "downloadsOfflineTab": "本机离线",
+    "downloadsNasImportTab": "导入曲库",
+    "downloadsNasImportHint": "在线歌曲点「+」加入导入队列",
+    "downloadsNasImportEmpty": "暂无导入任务",
+    "nasImportAlreadyQueued": "已在导入队列中",
+    "nasImportStageResolving": "准备中",
+    "nasImportStageUploading": "下载到 NAS",
+    "nasImportClearFinished": "清除已结束",
     "multiServerManage": "服务器管理",
     "multiServerCount": "共 {count} 个服务器",
     "@multiServerCount": {
@@ -634,6 +642,13 @@
     },
     "contextMenuDeleted": "已删除",
     "contextMenuDeleteFailed": "删除失败，请稍后重试",
+    "contextMenuDeleteNotFound": "曲库里找不到这首歌，请下拉刷新后再试",
+    "contextMenuDeleteFailedReason": "删除失败：{reason}",
+    "@contextMenuDeleteFailedReason": {
+        "placeholders": {
+            "reason": { "type": "String" }
+        }
+    },
     "recommendationsTitle": "推荐",
     "recommendationsEmpty": "暂无推荐",
     "recommendationsBackendMissing": "请先配置 Backend 以启用推荐",

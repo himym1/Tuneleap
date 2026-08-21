@@ -15,6 +15,31 @@ class NasDuplicateException implements Exception {
   String toString() => message;
 }
 
+class NasDeleteException implements Exception {
+  const NasDeleteException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+class NasDeleteResult {
+  const NasDeleteResult({
+    required this.deleted,
+    this.skipped = 0,
+    this.errors = 0,
+    this.message = '',
+  });
+
+  final int deleted;
+  final int skipped;
+  final int errors;
+  final String message;
+
+  bool get ok => deleted > 0 && errors == 0;
+}
+
 /// Dual-endpoint companion client (ADR-0004):
 /// - cloud: Bearer-authenticated search, media, recommendations, and updates
 /// - nas agent: API-key-authenticated import/delete only
@@ -44,7 +69,9 @@ class BackendClient {
 
   bool get isConfigured => _cloudBaseUrl.isNotEmpty;
   bool get isNasConfigured => _nasBaseUrl.isNotEmpty;
-  bool get canMutateNas {
+  bool get canMutateNas => isConfigured || _hasDirectNasAgent;
+
+  bool get _hasDirectNasAgent {
     final uri = Uri.tryParse(_nasBaseUrl);
     return _nasAgentKey.isNotEmpty &&
         uri != null &&
@@ -431,14 +458,10 @@ class BackendClient {
     String? lyric,
     bool force = false,
   }) async {
-    final base = _nasBaseUrl;
     if (!canMutateNas) {
-      throw StateError('NAS agent URL and key are not configured');
+      throw StateError('Cloud is not configured');
     }
 
-    // Prefer nas-agent contract; fall back to legacy monorepo path.
-    final primaryPath = '$base/v1/nas/import';
-    final legacyPath = '$base/api/nas-download';
     final payload = {
       'url': url,
       'filename': filename,
@@ -448,12 +471,38 @@ class BackendClient {
       'force': force,
     };
 
-    try {
-      final response = await _dio.post(
-        primaryPath,
-        data: payload,
-        options: _nasOptions(contentType: 'application/json'),
+    // Import waits for NAS to finish downloading; allow long transfers.
+    const importTimeout = Duration(minutes: 5);
+    if (isConfigured) {
+      return _postImport(
+        '$_cloudBaseUrl/v1/library/import',
+        payload,
+        _cloudOptions().copyWith(
+          contentType: 'application/json',
+          sendTimeout: importTimeout,
+          receiveTimeout: importTimeout,
+        ),
       );
+    }
+
+    return _postImport(
+      '$_nasBaseUrl/v1/nas/import',
+      payload,
+      _nasOptions(
+        contentType: 'application/json',
+      ).copyWith(sendTimeout: importTimeout, receiveTimeout: importTimeout),
+      legacyPath: '$_nasBaseUrl/api/nas-download',
+    );
+  }
+
+  Future<String?> _postImport(
+    String path,
+    Map<String, dynamic> payload,
+    Options options, {
+    String? legacyPath,
+  }) async {
+    try {
+      final response = await _dio.post(path, data: payload, options: options);
       return _parseImportResponse(response.data);
     } on DioException catch (error) {
       if (error.response?.statusCode == 409) {
@@ -465,11 +514,11 @@ class BackendClient {
               : detail,
         );
       }
-      if (error.response?.statusCode == 404) {
+      if (legacyPath != null && error.response?.statusCode == 404) {
         final response = await _dio.post(
           legacyPath,
           data: payload,
-          options: _nasOptions(contentType: 'application/json'),
+          options: options,
         );
         return _parseImportResponse(response.data);
       }
@@ -571,52 +620,55 @@ class BackendClient {
     );
   }
 
-  /// 按 Navidrome song ID 删除本地歌曲文件
-  Future<bool> deleteSongById(String navidromeId) async {
-    debugPrint('[Backend] deleting song via nas-agent');
-    final base = _nasBaseUrl;
+  /// Delete local library songs by Navidrome media_file id.
+  Future<NasDeleteResult> deleteLibrarySongs(List<String> navidromeIds) async {
+    debugPrint('[Backend] deleting songs count=${navidromeIds.length}');
     if (!canMutateNas) {
-      throw StateError('NAS agent URL and key are not configured');
+      throw StateError('Cloud is not configured');
     }
-    try {
-      final response = await _dio.post(
-        '$base/v1/songs/delete',
-        data: {
-          'song_ids': [navidromeId],
-        },
-        options: _nasOptions(contentType: 'application/json'),
+    final path = isConfigured
+        ? '$_cloudBaseUrl/v1/library/delete'
+        : '$_nasBaseUrl/v1/songs/delete';
+    final response = await _dio.post(
+      path,
+      data: {'song_ids': navidromeIds},
+      options: isConfigured
+          ? _cloudOptions().copyWith(contentType: 'application/json')
+          : _nasOptions(contentType: 'application/json'),
+    );
+    return _parseDeleteResponse(response.data);
+  }
+
+  NasDeleteResult _parseDeleteResponse(dynamic data) {
+    if (data is! Map) {
+      throw const FormatException('NAS delete response must be an object');
+    }
+    final result = NasDeleteResult(
+      deleted: _asInt(data['deleted']),
+      skipped: _asInt(data['skipped']),
+      errors: _asInt(data['errors']),
+      message: data['msg']?.toString() ?? '',
+    );
+    if (result.errors > 0) {
+      throw NasDeleteException(
+        result.message.isEmpty ? 'NAS delete failed' : result.message,
       );
-      debugPrint('[Backend]   status: ${response.statusCode}');
-      final data = response.data;
-      if (data is Map) {
-        return (data['deleted'] as int? ?? 0) > 0;
-      }
-      return response.statusCode == 200;
-    } on DioException catch (e) {
-      // Legacy monorepo accepted a bare JSON array body.
-      if (e.response?.statusCode == 422 || e.response?.statusCode == 400) {
-        try {
-          final response = await _dio.post(
-            '$base/v1/songs/delete',
-            data: [navidromeId],
-            options: _nasOptions(contentType: 'application/json'),
-          );
-          final data = response.data;
-          if (data is Map) {
-            return (data['deleted'] as int? ?? 0) > 0;
-          }
-          return response.statusCode == 200;
-        } catch (err) {
-          debugPrint('[Backend] delete ERROR: ${err.runtimeType}');
-          return false;
-        }
-      }
-      debugPrint('[Backend] delete ERROR: ${e.runtimeType}');
-      return false;
-    } catch (e) {
-      debugPrint('[Backend] delete ERROR: ${e.runtimeType}');
-      return false;
     }
+    if (result.deleted == 0 && result.skipped > 0) {
+      throw const NasDeleteException('song not found in the Navidrome library');
+    }
+    if (!result.ok) {
+      throw NasDeleteException(
+        result.message.isEmpty ? 'NAS delete failed' : result.message,
+      );
+    }
+    return result;
+  }
+
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   Future<RecommendationPage> createRecommendationSession(

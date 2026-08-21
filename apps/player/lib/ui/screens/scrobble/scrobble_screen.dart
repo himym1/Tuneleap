@@ -48,7 +48,10 @@ class ScrobbleScreen extends ConsumerWidget {
               children: [
                 if (isMobile)
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                    ),
                     onPressed: () => context.go('/settings'),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
@@ -79,7 +82,7 @@ class ScrobbleScreen extends ConsumerWidget {
                   Row(
                     children: [
                       StatCard(
-                        icon: Icons.play_arrow,
+                        icon: Icons.play_arrow_rounded,
                         value: '$todayCount',
                         label: S.of(context).scrobbleSessionPlays,
                       ),
@@ -89,7 +92,7 @@ class ScrobbleScreen extends ConsumerWidget {
                   Row(
                     children: [
                       StatCard(
-                        icon: Icons.music_note,
+                        icon: Icons.music_note_rounded,
                         value: recentSongs
                             .map((s) => s.artist)
                             .toSet()
@@ -103,7 +106,7 @@ class ScrobbleScreen extends ConsumerWidget {
                   Row(
                     children: [
                       StatCard(
-                        icon: Icons.album,
+                        icon: Icons.album_rounded,
                         value: recentSongs
                             .map((s) => s.albumId)
                             .toSet()
@@ -119,13 +122,13 @@ class ScrobbleScreen extends ConsumerWidget {
               Row(
                 children: [
                   StatCard(
-                    icon: Icons.play_arrow,
+                    icon: Icons.play_arrow_rounded,
                     value: '$todayCount',
                     label: S.of(context).scrobbleSessionPlays,
                   ),
                   const SizedBox(width: 16),
                   StatCard(
-                    icon: Icons.music_note,
+                    icon: Icons.music_note_rounded,
                     value: recentSongs
                         .map((s) => s.artist)
                         .toSet()
@@ -135,7 +138,7 @@ class ScrobbleScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 16),
                   StatCard(
-                    icon: Icons.album,
+                    icon: Icons.album_rounded,
                     value: recentSongs
                         .map((s) => s.albumId)
                         .toSet()
@@ -165,7 +168,7 @@ class ScrobbleScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      Icons.radar,
+                      Icons.radar_rounded,
                       size: 18,
                       color: context.colors.primary,
                     ),

@@ -124,7 +124,7 @@ class _CloudAuthDialogState extends ConsumerState<CloudAuthDialog> {
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(
                 labelText: s.cloudUsername,
-                prefixIcon: const Icon(Icons.person_outline),
+                prefixIcon: const Icon(Icons.person_outline_rounded),
               ),
             ),
             const SizedBox(height: 12),
@@ -135,7 +135,7 @@ class _CloudAuthDialogState extends ConsumerState<CloudAuthDialog> {
               onSubmitted: (_) => _submit(),
               decoration: InputDecoration(
                 labelText: s.cloudCredential,
-                prefixIcon: const Icon(Icons.lock_outline),
+                prefixIcon: const Icon(Icons.lock_outline_rounded),
               ),
             ),
             if (_failure != null) ...[

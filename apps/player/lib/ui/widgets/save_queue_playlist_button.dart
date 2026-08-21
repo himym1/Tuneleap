@@ -13,7 +13,7 @@ class SaveQueuePlaylistButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
       tooltip: S.of(context).playlistSaveQueue,
-      icon: const Icon(Icons.playlist_add, size: 21),
+      icon: const Icon(Icons.playlist_add_rounded, size: 21),
       onPressed: queue.isEmpty ? null : () => _save(context, ref),
     );
   }

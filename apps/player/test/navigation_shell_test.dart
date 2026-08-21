@@ -156,4 +156,70 @@ void main() {
     expect(find.text('home-album-42'), findsOneWidget);
     expect(shell.currentIndex, 0);
   });
+
+  testWidgets('recommendations is a pushed home-branch page', (tester) async {
+    late StatefulNavigationShell shell;
+
+    final router = GoRouter(
+      initialLocation: '/home',
+      routes: [
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) {
+            shell = navigationShell;
+            return Scaffold(body: navigationShell);
+          },
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/home',
+                  builder: (context, state) => const Text('home-root'),
+                  routes: [
+                    GoRoute(
+                      path: 'recommendations',
+                      builder: (context, state) =>
+                          const Text('home-recommendations'),
+                    ),
+                  ],
+                ),
+                GoRoute(
+                  path: '/recommendations',
+                  redirect: (context, state) => '/home/recommendations',
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/library',
+                  builder: (context, state) => const Text('library-root'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+
+    router.go('/recommendations');
+    await tester.pumpAndSettle();
+    expect(find.text('home-recommendations'), findsOneWidget);
+    expect(shell.currentIndex, 0);
+
+    router.go('/home');
+    await tester.pumpAndSettle();
+    expect(find.text('home-root'), findsOneWidget);
+
+    router.push('/home/recommendations');
+    await tester.pumpAndSettle();
+    expect(find.text('home-recommendations'), findsOneWidget);
+    expect(router.canPop(), isTrue);
+
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.text('home-root'), findsOneWidget);
+  });
 }

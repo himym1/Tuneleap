@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
@@ -84,7 +85,7 @@ class ArtistDetailScreen extends ConsumerWidget {
                                       : null,
                                   child: artist.coverArt == null
                                       ? Icon(
-                                          Icons.person,
+                                          Icons.person_rounded,
                                           size: 48,
                                           color: Theme.of(
                                             context,
@@ -114,7 +115,7 @@ class ArtistDetailScreen extends ConsumerWidget {
                                             CrossAxisAlignment.center,
                                         children: [
                                           Icon(
-                                            Icons.arrow_back,
+                                            Icons.arrow_back_rounded,
                                             size: 16,
                                             color: Theme.of(
                                               context,
@@ -160,23 +161,61 @@ class ArtistDetailScreen extends ConsumerWidget {
                                       ),
                                 ),
                                 const SizedBox(height: 16),
-                                FilledButton.icon(
-                                  onPressed: () async {
-                                    try {
-                                      await ref
-                                          .read(libraryProvider.notifier)
-                                          .playAllAlbums(albums);
-                                    } catch (e) {
-                                      debugPrint(
-                                        'Failed to play all songs: $e',
-                                      );
-                                    }
-                                  },
-                                  icon: const Icon(Icons.play_arrow, size: 18),
-                                  label: Text(S.of(context).albumPlayAll),
-                                  style: FilledButton.styleFrom(
-                                    minimumSize: const Size(0, 40),
-                                  ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    FilledButton.icon(
+                                      onPressed: () async {
+                                        HapticFeedback.lightImpact();
+                                        try {
+                                          await ref
+                                              .read(libraryProvider.notifier)
+                                              .playAllAlbums(albums);
+                                        } catch (e) {
+                                          debugPrint(
+                                            'Failed to play all songs: $e',
+                                          );
+                                        }
+                                      },
+                                      icon: const Icon(
+                                        Icons.play_arrow_rounded,
+                                        size: 18,
+                                      ),
+                                      label: Text(S.of(context).albumPlayAll),
+                                      style: FilledButton.styleFrom(
+                                        minimumSize: const Size(0, 40),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    OutlinedButton.icon(
+                                      onPressed: () async {
+                                        HapticFeedback.lightImpact();
+                                        try {
+                                          final allSongs = albums
+                                              .expand((a) => a.songs)
+                                              .toList()
+                                            ..shuffle();
+                                          if (allSongs.isNotEmpty) {
+                                            await ref
+                                                .read(
+                                                  audioPlayerServiceProvider,
+                                                )
+                                                .playAll(allSongs);
+                                          }
+                                        } catch (e) {
+                                          debugPrint('Failed to shuffle: $e');
+                                        }
+                                      },
+                                      icon: const Icon(
+                                        Icons.shuffle_rounded,
+                                        size: 17,
+                                      ),
+                                      label: const Text('随机播放'),
+                                      style: OutlinedButton.styleFrom(
+                                        minimumSize: const Size(0, 40),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             )
@@ -200,7 +239,7 @@ class ArtistDetailScreen extends ConsumerWidget {
                                       : null,
                                   child: artist.coverArt == null
                                       ? Icon(
-                                          Icons.person,
+                                          Icons.person_rounded,
                                           size: 48,
                                           color: Theme.of(
                                             context,
@@ -238,7 +277,7 @@ class ArtistDetailScreen extends ConsumerWidget {
                                                   CrossAxisAlignment.center,
                                               children: [
                                                 Icon(
-                                                  Icons.arrow_back,
+                                                  Icons.arrow_back_rounded,
                                                   size: 16,
                                                   color: Theme.of(context)
                                                       .colorScheme
@@ -292,6 +331,7 @@ class ArtistDetailScreen extends ConsumerWidget {
                                         children: [
                                           FilledButton.icon(
                                             onPressed: () async {
+                                              HapticFeedback.lightImpact();
                                               try {
                                                 await ref
                                                     .read(
@@ -305,13 +345,44 @@ class ArtistDetailScreen extends ConsumerWidget {
                                               }
                                             },
                                             icon: const Icon(
-                                              Icons.play_arrow,
+                                              Icons.play_arrow_rounded,
                                               size: 18,
                                             ),
                                             label: Text(
                                               S.of(context).albumPlayAll,
                                             ),
                                             style: FilledButton.styleFrom(
+                                              minimumSize: const Size(0, 40),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          OutlinedButton.icon(
+                                            onPressed: () async {
+                                              HapticFeedback.lightImpact();
+                                              try {
+                                                final allSongs = albums
+                                                    .expand((a) => a.songs)
+                                                    .toList()
+                                                  ..shuffle();
+                                                if (allSongs.isNotEmpty) {
+                                                  await ref
+                                                      .read(
+                                                        audioPlayerServiceProvider,
+                                                      )
+                                                      .playAll(allSongs);
+                                                }
+                                              } catch (e) {
+                                                debugPrint(
+                                                  'Failed to shuffle: $e',
+                                                );
+                                              }
+                                            },
+                                            icon: const Icon(
+                                              Icons.shuffle_rounded,
+                                              size: 17,
+                                            ),
+                                            label: const Text('随机播放'),
+                                            style: OutlinedButton.styleFrom(
                                               minimumSize: const Size(0, 40),
                                             ),
                                           ),
@@ -365,7 +436,8 @@ class ArtistDetailScreen extends ConsumerWidget {
                                       album.coverArt,
                                       size: 400,
                                     ),
-                                    borderRadius: 12,
+                                    borderRadius: 14,
+                                    hasShadow: true,
                                   ),
                                 ),
                                 const SizedBox(height: 8),

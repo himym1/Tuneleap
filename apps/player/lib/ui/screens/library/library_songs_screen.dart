@@ -7,6 +7,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/ui/widgets/library_section_tabs.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
@@ -215,7 +216,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
             ),
           ),
@@ -237,7 +238,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
                             });
                             _loadData();
                           },
-                          icon: const Icon(Icons.refresh),
+                          icon: const Icon(Icons.refresh_rounded),
                           label: Text(S.of(context).commonRetry),
                         ),
                       ],
@@ -407,8 +408,25 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
                                     ).colorScheme.onSurfaceVariant,
                             ),
                       ),
-                      trailing: song.duration != null
-                          ? Text(
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isPlaying) ...[
+                            StreamBuilder<bool>(
+                              stream: ref
+                                  .read(audioPlayerServiceProvider)
+                                  .playingStream,
+                              builder: (context, playingSnap) =>
+                                  AudioVisualizerBars(
+                                isPlaying: playingSnap.data ?? false,
+                                size: 13,
+                                color: context.colors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          if (song.duration != null)
+                            Text(
                               song.formattedDuration,
                               style: Theme.of(context).textTheme.songDuration
                                   .copyWith(
@@ -416,8 +434,9 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
                                       context,
                                     ).colorScheme.onSurfaceVariant,
                                   ),
-                            )
-                          : null,
+                            ),
+                        ],
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -445,7 +464,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
                     backgroundColor: context.colors.primary,
                     shape: const CircleBorder(),
                     child: Icon(
-                      Icons.my_location,
+                      Icons.my_location_rounded,
                       size: 18,
                       color: context.colors.onEmphasis,
                     ),

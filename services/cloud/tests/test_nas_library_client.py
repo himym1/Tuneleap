@@ -99,3 +99,75 @@ async def test_nas_library_client_uses_recent_cache_after_retry_failure():
         assert await library.recommendation_weak_identities() == {"a\x1fb"}
 
     assert calls == 3
+
+
+@pytest.mark.asyncio
+async def test_nas_library_client_imports_song():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/v1/nas/import")
+        assert request.headers.get("X-API-Key") == "nas-key"
+        assert request.method == "POST"
+        return httpx.Response(200, json={"ok": True, "message": "imported"})
+
+    settings = Settings(
+        api_key="cloud",
+        nas_agent_url="https://nas-agent.test",
+        nas_agent_key="nas-key",
+        recommendation_sources="netease",
+        _env_file=None,
+    )
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        result = await NasLibraryClient(client, settings).import_song(
+            {"url": "https://cdn.example/a.mp3", "filename": "a.mp3", "song": {}}
+        )
+    assert result == {"ok": True, "message": "imported"}
+
+
+@pytest.mark.asyncio
+async def test_nas_library_client_maps_duplicate_conflict():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            409,
+            json={"detail": "Song already exists in the Navidrome library"},
+        )
+
+    settings = Settings(
+        api_key="cloud",
+        nas_agent_url="https://nas-agent.test",
+        nas_agent_key="nas-key",
+        recommendation_sources="netease",
+        _env_file=None,
+    )
+    from app.services.nas_library_client import NasAgentError
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        with pytest.raises(NasAgentError) as exc:
+            await NasLibraryClient(client, settings).import_song(
+                {"url": "https://cdn.example/a.mp3", "filename": "a.mp3", "song": {}}
+            )
+    assert exc.value.status_code == 409
+    assert "already exists" in exc.value.detail
+
+
+@pytest.mark.asyncio
+async def test_nas_library_client_deletes_songs():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/v1/songs/delete")
+        return httpx.Response(
+            200,
+            json={"deleted": 1, "skipped": 0, "errors": 0, "msg": "ok"},
+        )
+
+    settings = Settings(
+        api_key="cloud",
+        nas_agent_url="https://nas-agent.test",
+        nas_agent_key="nas-key",
+        recommendation_sources="netease",
+        _env_file=None,
+    )
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        result = await NasLibraryClient(client, settings).delete_songs(["id1"])
+    assert result["deleted"] == 1

@@ -14,6 +14,13 @@ from app.core.config import Settings
 _logger = logging.getLogger(__name__)
 
 
+class NasAgentError(Exception):
+    def __init__(self, status_code: int, detail: str) -> None:
+        super().__init__(detail)
+        self.status_code = status_code
+        self.detail = detail
+
+
 class NasLibraryClient:
     def __init__(
         self,
@@ -71,12 +78,29 @@ class NasLibraryClient:
                 return set(self._cached_weak_identities)
             raise
 
+    async def import_song(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            "/v1/nas/import",
+            json=payload,
+            timeout=max(self._timeout, 120.0),
+        )
+
+    async def delete_songs(self, song_ids: list[str]) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            "/v1/songs/delete",
+            json={"song_ids": song_ids},
+        )
+
     async def _request_json(
         self,
         method: str,
         path: str,
         *,
         params: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
+        timeout: float | None = None,
     ) -> dict[str, Any]:
         if not self.enabled:
             raise RuntimeError("NAS agent client is not configured")
@@ -87,10 +111,15 @@ class NasLibraryClient:
                     method,
                     f"{self._base_url}{path}",
                     params=params,
+                    json=json,
                     headers={"X-API-Key": self._api_key},
-                    timeout=self._timeout,
+                    timeout=timeout or self._timeout,
                 )
-                response.raise_for_status()
+                if response.status_code >= 400:
+                    raise NasAgentError(
+                        response.status_code,
+                        _nas_error_detail(response),
+                    )
                 data = response.json()
                 if not isinstance(data, dict):
                     raise TypeError("NAS agent response must be a JSON object")
@@ -102,3 +131,16 @@ class NasLibraryClient:
                 raise
 
         raise RuntimeError("unreachable")
+
+
+def _nas_error_detail(response: httpx.Response) -> str:
+    try:
+        data = response.json()
+    except ValueError:
+        data = None
+    if isinstance(data, dict):
+        detail = data.get("detail") or data.get("error") or data.get("msg")
+        if isinstance(detail, str) and detail.strip():
+            return detail.strip()
+    text = response.text.strip()
+    return text or f"NAS agent error {response.status_code}"

@@ -64,7 +64,43 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-          side: BorderSide(color: base.colorScheme.outlineVariant),
+          side: BorderSide(
+            color: base.colorScheme.outlineVariant.withValues(alpha: 0.35),
+            width: 0.8,
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          elevation: 0,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          elevation: 2,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+          side: BorderSide(
+            color: base.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            width: 1,
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          shape: const StadiumBorder(),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         ),
       ),
       listTileTheme: ListTileThemeData(
@@ -75,22 +111,64 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: base.colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+        fillColor:
+            (useSchemeBrand
+                    ? base.colorScheme.surfaceContainerHigh
+                    : const Color(0xFFF2F2F7))
+                .withValues(alpha: 0.75),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.black.withValues(alpha: 0.08),
+            width: 0.8,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.black.withValues(alpha: 0.08),
+            width: 0.8,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-          borderSide: BorderSide(color: primary, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: primary, width: 1.2),
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: 14,
+          vertical: 12,
+        ),
+        prefixIconColor: base.colorScheme.onSurfaceVariant.withValues(
+          alpha: 0.7,
+        ),
+        suffixIconColor: base.colorScheme.onSurfaceVariant.withValues(
+          alpha: 0.7,
+        ),
+        hintStyle: TextStyle(
+          color: base.colorScheme.onSurfaceVariant.withValues(alpha: 0.60),
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: primary,
+        unselectedLabelColor: base.colorScheme.onSurfaceVariant.withValues(
+          alpha: 0.8,
+        ),
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          letterSpacing: -0.2,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        indicator: UnderlineTabIndicator(
+          borderSide: BorderSide(color: primary, width: 3),
+          borderRadius: BorderRadius.circular(3),
         ),
       ),
       dialogTheme: DialogThemeData(
@@ -172,7 +250,43 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-          side: BorderSide(color: base.colorScheme.outlineVariant),
+          side: BorderSide(
+            color: base.colorScheme.outlineVariant.withValues(alpha: 0.35),
+            width: 0.8,
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          elevation: 0,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          elevation: 2,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+          side: BorderSide(
+            color: base.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            width: 1,
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          shape: const StadiumBorder(),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         ),
       ),
       listTileTheme: ListTileThemeData(
@@ -183,22 +297,62 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: base.colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+        fillColor: amoled
+            ? const Color(0xFF141414)
+            : Colors.white.withValues(alpha: 0.07),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: 0.10),
+            width: 0.8,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: 0.10),
+            width: 0.8,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-          borderSide: BorderSide(color: primary, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: primary, width: 1.2),
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: 14,
+          vertical: 12,
+        ),
+        prefixIconColor: base.colorScheme.onSurfaceVariant.withValues(
+          alpha: 0.7,
+        ),
+        suffixIconColor: base.colorScheme.onSurfaceVariant.withValues(
+          alpha: 0.7,
+        ),
+        hintStyle: TextStyle(
+          color: base.colorScheme.onSurfaceVariant.withValues(alpha: 0.60),
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: primary,
+        unselectedLabelColor: base.colorScheme.onSurfaceVariant.withValues(
+          alpha: 0.8,
+        ),
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          letterSpacing: -0.2,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        indicator: UnderlineTabIndicator(
+          borderSide: BorderSide(color: primary, width: 3),
+          borderRadius: BorderRadius.circular(3),
         ),
       ),
       sliderTheme: SliderThemeData(
@@ -236,53 +390,97 @@ class AppTheme {
 
 extension AppTextStyles on TextTheme {
   // ── Page-level ──
-  TextStyle get pageTitle =>
-      const TextStyle(fontSize: 28, fontWeight: FontWeight.w700);
+  TextStyle get pageTitle => const TextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.6,
+  );
 
-  TextStyle get sectionTitle =>
-      const TextStyle(fontSize: 20, fontWeight: FontWeight.w600);
+  TextStyle get sectionTitle => const TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.4,
+  );
 
-  TextStyle get sectionSubheader =>
-      const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
+  TextStyle get sectionSubheader => const TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.4,
+  );
 
   TextStyle get chipLabel => const TextStyle(fontSize: 13);
 
   // ── Stats / values ──
-  TextStyle get statValue =>
-      const TextStyle(fontSize: 20, fontWeight: FontWeight.w700);
+  TextStyle get statValue => const TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.4,
+  );
 
   TextStyle get segmentLabel => const TextStyle(fontSize: 12);
 
   // ── Song list items ──
-  TextStyle get songTitle =>
-      const TextStyle(fontSize: 14, fontWeight: FontWeight.w500);
+  TextStyle get songTitle => const TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.2,
+  );
 
-  TextStyle get songSubtitle => const TextStyle(fontSize: 12);
+  TextStyle get songSubtitle => const TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0.1,
+  );
 
-  TextStyle get songDuration => const TextStyle(fontSize: 12);
+  TextStyle get songDuration => const TextStyle(
+    fontSize: 12,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
 
   // ── Player-specific ──
-  TextStyle get playerSongName =>
-      const TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
+  TextStyle get playerSongName => const TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.3,
+  );
 
-  TextStyle get playerLargeSongName =>
-      const TextStyle(fontSize: 24, fontWeight: FontWeight.w700);
+  TextStyle get playerLargeSongName => const TextStyle(
+    fontSize: 26,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.5,
+  );
 
-  TextStyle get playerMediumTitle =>
-      const TextStyle(fontSize: 22, fontWeight: FontWeight.w600);
+  TextStyle get playerMediumTitle => const TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.4,
+  );
 
-  TextStyle get playerQueueHeader =>
-      const TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
+  TextStyle get playerQueueHeader => const TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.2,
+  );
 
-  TextStyle get playerTimestamp => const TextStyle(fontSize: 12);
+  TextStyle get playerTimestamp => const TextStyle(
+    fontSize: 12,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
 
-  TextStyle get playerSubtitle => const TextStyle(fontSize: 14);
+  TextStyle get playerSubtitle => const TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0.1,
+  );
 
   // ── Settings (kept for backward compat) ──
   TextStyle get settingsPageTitle => pageTitle;
 
-  TextStyle get settingsSectionTitle =>
-      const TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
+  TextStyle get settingsSectionTitle => const TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.2,
+  );
 
   TextStyle get settingsSectionSubtitle =>
       const TextStyle(fontSize: 13, height: 1.5);

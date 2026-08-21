@@ -29,7 +29,10 @@ class MultiServerScreen extends ConsumerWidget {
               children: [
                 if (isMobile)
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                    ),
                     onPressed: () {
                       if (Navigator.of(context).canPop()) {
                         Navigator.of(context).pop();
@@ -62,7 +65,7 @@ class MultiServerScreen extends ConsumerWidget {
             Center(
               child: FilledButton.icon(
                 onPressed: () => _showServerDialog(context, ref, null),
-                icon: const Icon(Icons.add, size: 18),
+                icon: const Icon(Icons.add_rounded, size: 18),
                 label: Text(S.of(context).multiServerAdd),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(0, 40),
@@ -217,9 +220,6 @@ class _ServerDialogState extends State<_ServerDialog> {
   late final TextEditingController _url;
   late final TextEditingController _username;
   late final TextEditingController _password;
-  late final TextEditingController _backendUrl;
-  late final TextEditingController _nasAgentUrl;
-  late final TextEditingController _nasAgentKey;
   bool _saving = false;
 
   @override
@@ -229,15 +229,6 @@ class _ServerDialogState extends State<_ServerDialog> {
     _url = TextEditingController(text: widget.existing?.url ?? '');
     _username = TextEditingController(text: widget.existing?.username ?? '');
     _password = TextEditingController(text: widget.existing?.password ?? '');
-    _backendUrl = TextEditingController(
-      text: widget.existing?.backendUrl ?? '',
-    );
-    _nasAgentUrl = TextEditingController(
-      text: widget.existing?.nasAgentUrl ?? '',
-    );
-    _nasAgentKey = TextEditingController(
-      text: widget.existing?.nasAgentKey ?? '',
-    );
   }
 
   @override
@@ -246,9 +237,6 @@ class _ServerDialogState extends State<_ServerDialog> {
     _url.dispose();
     _username.dispose();
     _password.dispose();
-    _backendUrl.dispose();
-    _nasAgentUrl.dispose();
-    _nasAgentKey.dispose();
     super.dispose();
   }
 
@@ -297,33 +285,6 @@ class _ServerDialogState extends State<_ServerDialog> {
               ),
               obscureText: true,
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _backendUrl,
-              decoration: InputDecoration(
-                labelText: S.of(context).backendUrl,
-                hintText: S.of(context).backendUrlHint,
-              ),
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _nasAgentUrl,
-              decoration: InputDecoration(
-                labelText: S.of(context).nasAgentUrl,
-                hintText: S.of(context).nasAgentUrlHint,
-              ),
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _nasAgentKey,
-              decoration: InputDecoration(
-                labelText: S.of(context).nasAgentKey,
-                hintText: S.of(context).nasAgentKeyHint,
-              ),
-              obscureText: true,
-            ),
           ],
         ),
       ),
@@ -354,9 +315,6 @@ class _ServerDialogState extends State<_ServerDialog> {
     final url = _url.text.trim();
     final username = _username.text.trim();
     final password = _password.text;
-    final backendUrl = _backendUrl.text.trim();
-    final nasAgentUrl = _nasAgentUrl.text.trim();
-    final nasAgentKey = _nasAgentKey.text;
     if (name.isEmpty || url.isEmpty || username.isEmpty) return;
     setState(() => _saving = true);
     try {
@@ -365,10 +323,10 @@ class _ServerDialogState extends State<_ServerDialog> {
         url,
         username,
         password,
-        backendUrl,
+        widget.existing?.backendUrl ?? '',
         '',
-        nasAgentUrl,
-        nasAgentKey,
+        widget.existing?.nasAgentUrl ?? '',
+        widget.existing?.nasAgentKey ?? '',
       );
       if (mounted) Navigator.pop(context);
     } finally {
@@ -419,7 +377,7 @@ class _ServerCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
-              Icons.dns_outlined,
+              Icons.dns_rounded,
               color: server.isActive
                   ? context.colors.primary
                   : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -474,13 +432,13 @@ class _ServerCard extends StatelessWidget {
             ),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 18),
+            icon: const Icon(Icons.edit_rounded, size: 18),
             color: Theme.of(context).colorScheme.onSurfaceVariant,
             tooltip: S.of(context).tooltipEdit,
             onPressed: onEdit,
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, size: 18),
+            icon: const Icon(Icons.delete_outline_rounded, size: 18),
             color: Theme.of(context).colorScheme.onSurfaceVariant,
             tooltip: S.of(context).tooltipDelete,
             onPressed: onDelete,
