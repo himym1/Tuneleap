@@ -12,6 +12,7 @@ import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/player/playback_origin.dart';
+import 'package:navidrome_player/utils/player_navigation.dart';
 
 List<Song> composePersonalizedLocalMix({
   required List<Song> playHistory,
@@ -201,7 +202,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
       if (songs.isEmpty) throw StateError('empty local library');
       await player.playAll(songs);
-      if (mounted) context.push('/player');
+      if (mounted) openPlayer(context);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -617,7 +618,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await ref
         .read(audioPlayerServiceProvider)
         .playAll(songs, startIndex: index, origins: origins);
-    if (mounted) context.push('/player');
+    if (mounted) openPlayer(context);
   }
 
   Future<void> _playRecentSongs(List<Song> songs, int index) async {
@@ -625,7 +626,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await ref
         .read(audioPlayerServiceProvider)
         .playAll(songs, startIndex: index);
-    if (mounted) context.push('/player');
+    if (mounted) openPlayer(context);
   }
 
   Widget _buildSongRows(List<Widget> rows) {

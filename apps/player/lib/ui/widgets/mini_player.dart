@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'dart:ui';
-import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/api/models/song.dart';
@@ -12,6 +11,7 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
+import 'package:navidrome_player/utils/player_navigation.dart';
 
 /// 底部迷你播放条
 class MiniPlayer extends ConsumerWidget {
@@ -128,7 +128,7 @@ class MiniPlayer extends ConsumerWidget {
         label: '${currentSong.title} - ${currentSong.artist}',
         hint: S.of(context).playerNowPlaying,
         child: InkWell(
-          onTap: () => context.push('/player'),
+          onTap: () => openPlayer(context),
           child: SizedBox(
             width: double.infinity,
             height: AppDimensions.miniPlayerHeightMobile,
@@ -222,7 +222,7 @@ class MiniPlayer extends ConsumerWidget {
               hint: S.of(context).playerNowPlaying,
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
-                onTap: () => context.push('/player'),
+                onTap: () => openPlayer(context),
                 child: _buildCover(coverUrl, useHero: true, size: 46),
               ),
             ),
@@ -238,7 +238,7 @@ class MiniPlayer extends ConsumerWidget {
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: () => context.push('/player'),
+                    onTap: () => openPlayer(context),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -386,7 +386,7 @@ class MiniPlayer extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(Icons.queue_music_rounded, size: 22),
                     tooltip: S.of(context).playerQueue,
-                    onPressed: () => context.push('/player'),
+                    onPressed: () => openPlayer(context),
                   ),
                 ],
               ),

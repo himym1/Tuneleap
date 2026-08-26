@@ -15,6 +15,7 @@ import 'package:navidrome_player/ui/widgets/nas_import_queue_popup.dart';
 import 'package:navidrome_player/ui/widgets/update_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/platform_utils.dart';
+import 'package:navidrome_player/utils/player_navigation.dart';
 import 'package:navidrome_player/utils/request_generation.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -511,7 +512,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           meta: useMeta,
           control: !useMeta,
         ): () =>
-            context.push('/player'),
+            openPlayer(context),
         SingleActivator(
           LogicalKeyboardKey.slash,
           meta: useMeta,

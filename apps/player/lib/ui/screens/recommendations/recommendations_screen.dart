@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/player/playback_origin.dart';
+import 'package:navidrome_player/utils/player_navigation.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
@@ -79,7 +80,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
     await ref
         .read(audioPlayerServiceProvider)
         .playAll(songs, startIndex: index, origins: origins);
-    if (mounted) context.push('/player');
+    if (mounted) openPlayer(context);
   }
 
   void _goBack() {

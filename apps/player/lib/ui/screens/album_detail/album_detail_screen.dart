@@ -12,6 +12,7 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
+import 'package:navidrome_player/utils/player_navigation.dart';
 
 /// 专辑详情页 — 大封面 + 信息 + 歌曲列表
 class AlbumDetailScreen extends ConsumerWidget {
@@ -336,7 +337,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                     song: song,
                     onPlay: () {
                       playerService.playAll(album.songs, startIndex: index);
-                      context.push('/player');
+                      openPlayer(context);
                     },
                     child: Container(
                       decoration: BoxDecoration(
@@ -346,7 +347,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                       child: InkWell(
                         onTap: () {
                           playerService.playAll(album.songs, startIndex: index);
-                          context.push('/player');
+                          openPlayer(context);
                         },
                         borderRadius: BorderRadius.circular(8),
                         child: Padding(

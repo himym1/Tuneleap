@@ -82,7 +82,7 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "导入显示真实进度和速度；遇到网易慢节点会换链重试；大文件不再因 120 秒超时整批失败。"
+        "播放页同时只会打开一页；连点迷你播放条或快捷键不会再叠出两层。"
     )
 }
 if Path(windows_name).is_file():

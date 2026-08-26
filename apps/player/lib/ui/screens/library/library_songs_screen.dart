@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
@@ -11,6 +10,7 @@ import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/ui/widgets/library_section_tabs.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/utils/player_navigation.dart';
 
 class LibrarySongsScreen extends ConsumerStatefulWidget {
   const LibrarySongsScreen({super.key});
@@ -364,7 +364,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
                     ref
                         .read(audioPlayerServiceProvider)
                         .playAll(filtered, startIndex: index);
-                    context.push('/player');
+                    openPlayer(context);
                   },
                   onDeleted: () {
                     setState(() {
@@ -450,7 +450,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
                         ref
                             .read(audioPlayerServiceProvider)
                             .playAll(filtered, startIndex: index);
-                        context.push('/player');
+                        openPlayer(context);
                       },
                     ),
                   ),

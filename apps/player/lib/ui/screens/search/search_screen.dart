@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
@@ -14,6 +13,7 @@ import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/utils/player_navigation.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -501,7 +501,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     .playSongAndConfirm(song);
                 if (!context.mounted) return;
                 if (loaded) {
-                  context.push('/player');
+                  openPlayer(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
