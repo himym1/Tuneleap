@@ -2,6 +2,8 @@ name: Windows player
 
 on:
   workflow_dispatch:
+  push:
+    branches: [windows-player]
 
 jobs:
   build:
