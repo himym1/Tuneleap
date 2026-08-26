@@ -60,8 +60,8 @@ make publish
 ## App 更新流程
 
 1. App 使用 Cloud 登录获得的 Bearer Access Token。401 时用安全存储中的 Refresh Token 轮换后重试一次。
-2. Android 请求 `/version.json`，按语义版本和 build number 判断是否有新版本，下载 APK 后打开系统安装器。
-3. macOS 1.0.48 起走 Sparkle：设置页仍读 `/version.json` 显示是否有新版本；安装走 `/appcast.xml`，用同一 Bearer 下载 DMG，由 Installer XPC 替换 `/Applications/音跃.app` 并重启。更旧的 macOS 客户端仍走 `/version.json` + 访达替换。
+2. Android / Windows 各读 `version.json` 里自己的平台字段，按语义版本和 build number 判断是否有新版本。
+3. macOS 1.0.48 起走 Sparkle：设置页仍读 `version.json` 的 macos 字段；安装走 `/appcast.xml`，用同一 Bearer 下载 DMG，由 Installer XPC 替换 `/Applications/音跃.app` 并重启。更旧的 macOS 客户端仍走访达替换。
 4. 校验失败会删除下载文件。
 
 Cloud 服务端 API Key 只用于运维和服务器侧发布验证。App 不保存该 Key；更新检查和下载使用 Cloud 用户 Bearer Token。NAS Agent Key 只用于局域网导入/删除。
