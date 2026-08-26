@@ -253,7 +253,7 @@
     "nasImportErrorFailed": "Import failed",
     "nasImportErrorTimeout": "NAS download timed out. Retry after the current transfer finishes.",
     "nasImportErrorUnavailable": "NAS is temporarily unavailable",
-    "nasImportErrorSlowUpstream": "The source line was too slow. Retry to get another CDN node.",
+    "nasImportErrorSlowUpstream": "Several CDN nodes were too slow. Try again later, or tap retry for another node.",
     "multiServerManage": "Server Management",
     "multiServerCount": "{count} servers",
     "multiServerDeleteTitle": "Delete Server",

@@ -82,7 +82,7 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "macOS 点立即安装会由访达装进应用程序并重启，不再只退出；播放页同时只会打开一页。"
+        "macOS 更新由访达自动装进应用程序；封面取色改用 Material 官方算法；导入太慢会连续自动换 CDN。"
     )
 }
 if Path(windows_name).is_file():

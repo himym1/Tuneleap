@@ -8,73 +8,77 @@ import 'package:navidrome_player/utils/cover_color.dart';
 
 const _fallback = Color(0xFF1E1B4B);
 const _orangeAccent = Color(0xFFFF9A1F);
-const _beigeMud = Color(0xFFC4B5A0);
+const _googleBlue = Color(0xFF4285F4);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(initializeAppColors);
 
-  test('grayscale cover with a small orange highlight keeps the accent', () {
-    final raster = _Raster(80, 80, const Color(0xFF6E6E6E))
-      ..fillRect(36, 36, 8, 8, _orangeAccent)
-      ..fillRect(38, 38, 4, 4, const Color(0xFFFFD54A));
-
-    final seed = raster.extract();
-    final hsl = HSLColor.fromColor(seed);
-
-    expect(hsl.hue, inInclusiveRange(20, 60));
-    expect(hsl.saturation, greaterThan(0.40));
-    expect(seed, isNot(_fallback));
-  });
-
-  test('warm gray field does not beat a vivid center accent', () {
-    final raster = _Raster(64, 64, _beigeMud)
-      ..fillRect(28, 28, 8, 8, _orangeAccent);
-
-    final seed = raster.extract();
-    final hsl = HSLColor.fromColor(seed);
-
-    expect(hsl.hue, inInclusiveRange(20, 55));
-    expect(hsl.saturation, greaterThan(0.40));
-  });
-
-  test('smeared highlight ring does not replace the vivid core', () {
-    final raster = _Raster(80, 80, const Color(0xFF606060))
-      ..fillRect(34, 34, 12, 12, const Color(0xFFB89A70))
-      ..fillRect(37, 37, 6, 6, _orangeAccent);
-
-    final seed = raster.extract();
-    final hsl = HSLColor.fromColor(seed);
-
-    expect(hsl.hue, inInclusiveRange(20, 55));
-    expect(hsl.saturation, greaterThan(0.45));
-  });
-
-  test('true grayscale cover falls back instead of becoming beige', () {
+  test('true grayscale cover uses the app fallback, not Google Blue', () async {
     final raster = _Raster(48, 48, const Color(0xFF808080))
       ..fillRect(0, 0, 24, 48, const Color(0xFF2A2A2A))
       ..fillRect(24, 0, 24, 48, const Color(0xFFD0D0D0));
 
-    expect(raster.extract(), _fallback);
+    expect(await raster.extract(), _fallback);
+    expect(await raster.extract(), isNot(_googleBlue));
   });
 
-  test('uniform brown artwork stays in the earth-tone family', () {
+  test('JPEG-like green specks on grayscale do not become the theme', () async {
+    final raster = _Raster(96, 96, const Color(0xFF6A6A6A))
+      ..fillRect(0, 0, 48, 96, const Color(0xFF2C2C2C))
+      ..fillRect(48, 0, 48, 96, const Color(0xFFC8C8C8));
+    const specks = [
+      (8, 10),
+      (20, 22),
+      (33, 14),
+      (12, 60),
+      (70, 18),
+      (81, 44),
+      (55, 70),
+      (63, 82),
+      (40, 40),
+      (74, 8),
+    ];
+    for (final speck in specks) {
+      raster.fillRect(speck.$1, speck.$2, 2, 2, const Color(0xFF6B8A68));
+    }
+
+    expect(await raster.extract(), _fallback);
+  });
+
+  test('a 1% orange speck is not enough to theme a gray cover', () async {
+    final raster = _Raster(80, 80, const Color(0xFF6E6E6E))
+      ..fillRect(36, 36, 8, 8, _orangeAccent);
+
+    expect(await raster.extract(), _fallback);
+  });
+
+  test('a substantial orange field stays in the warm family', () async {
+    final raster = _Raster(64, 64, const Color(0xFF5A5A5A))
+      ..fillRect(0, 0, 64, 28, _orangeAccent);
+
+    final seed = await raster.extract();
+    final hsl = HSLColor.fromColor(seed);
+
+    expect(seed, isNot(_fallback));
+    expect(hsl.hue, inInclusiveRange(15, 70));
+  });
+
+  test('uniform brown artwork stays in the earth-tone family', () async {
     const brown = Color(0xFF8B5A2B);
-    final seed = _Raster(32, 32, brown).extract();
+    final seed = await _Raster(32, 32, brown).extract();
     final hsl = HSLColor.fromColor(seed);
 
-    expect(hsl.hue, inInclusiveRange(15, 45));
-    expect(hsl.saturation, greaterThan(0.40));
+    expect(hsl.hue, inInclusiveRange(15, 50));
   });
 
-  test('solid vivid color is preserved as the seed family', () {
+  test('solid vivid color is preserved as the seed family', () async {
     const blue = Color(0xFF2563EB);
-    final seed = _Raster(24, 24, blue).extract();
+    final seed = await _Raster(24, 24, blue).extract();
     final hsl = HSLColor.fromColor(seed);
 
-    expect(hsl.hue, inInclusiveRange(210, 250));
-    expect(hsl.saturation, greaterThan(0.40));
+    expect(hsl.hue, inInclusiveRange(210, 260));
   });
 
   test('foregroundOn picks white on dark and dark on light', () {
@@ -82,9 +86,9 @@ void main() {
     expect(foregroundOn(const Color(0xFFF5F0E6)), const Color(0xDE000000));
   });
 
-  test('empty or invalid buffers use the fallback', () {
+  test('empty or invalid buffers use the fallback', () async {
     expect(
-      extractCoverSeedColor(
+      await extractCoverSeedColor(
         rgba: Uint8List(0),
         width: 0,
         height: 0,
@@ -93,7 +97,7 @@ void main() {
       _fallback,
     );
     expect(
-      extractCoverSeedColor(
+      await extractCoverSeedColor(
         rgba: Uint8List(8),
         width: 4,
         height: 4,
@@ -103,23 +107,13 @@ void main() {
     );
   });
 
-  test('polish lifts a washed orange so Material seed stays warm', () {
-    const washed = Color(0xFFD8B48A);
-    final polished = polishCoverSeed(washed);
-    final hsl = HSLColor.fromColor(polished);
-
-    expect(hsl.saturation, greaterThanOrEqualTo(0.42));
-    expect(hsl.lightness, inInclusiveRange(0.34, 0.58));
-  });
-
-  test('dynamic theme from the eye-cover seed stays amber, not taupe', () {
-    final raster = _Raster(80, 80, const Color(0xFF5A5A5A))
-      ..fillRect(37, 37, 6, 6, _orangeAccent);
-    final theme = AppTheme.light(seedColor: raster.extract());
+  test('dynamic theme from a scored orange field stays warm', () async {
+    final raster = _Raster(64, 64, const Color(0xFF5A5A5A))
+      ..fillRect(0, 0, 64, 28, _orangeAccent);
+    final theme = AppTheme.light(seedColor: await raster.extract());
     final primary = HSLColor.fromColor(theme.colorScheme.primary);
 
-    expect(primary.hue, inInclusiveRange(10, 70));
-    expect(primary.saturation, greaterThan(0.20));
+    expect(primary.hue, inInclusiveRange(10, 80));
   });
 }
 
@@ -150,7 +144,7 @@ class _Raster {
     }
   }
 
-  Color extract() => extractCoverSeedColor(
+  Future<Color> extract() => extractCoverSeedColor(
     rgba: bytes,
     width: width,
     height: height,

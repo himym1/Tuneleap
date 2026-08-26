@@ -660,7 +660,7 @@ class SZh extends S {
   String get nasImportErrorUnavailable => 'NAS 暂时不可用';
 
   @override
-  String get nasImportErrorSlowUpstream => '源站线路太慢，重试会换一条 CDN';
+  String get nasImportErrorSlowUpstream => '几条线路都太慢，稍后再试或点重试再换节点';
 
   @override
   String get multiServerManage => '服务器管理';

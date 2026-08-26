@@ -674,7 +674,7 @@ class SEn extends S {
 
   @override
   String get nasImportErrorSlowUpstream =>
-      'The source line was too slow. Retry to get another CDN node.';
+      'Several CDN nodes were too slow. Try again later, or tap retry for another node.';
 
   @override
   String get multiServerManage => 'Server Management';

@@ -16,6 +16,7 @@ class NasImportTask {
   final String id;
   final Song song;
   final bool force;
+  final bool preferFreshUrl;
   final NasImportStage stage;
   final String? message;
   final String? errorMessage;
@@ -28,6 +29,7 @@ class NasImportTask {
     required this.id,
     required this.song,
     this.force = false,
+    this.preferFreshUrl = false,
     this.stage = NasImportStage.pending,
     this.message,
     this.errorMessage,
@@ -57,11 +59,13 @@ class NasImportTask {
     int? bytesTotal,
     double? speedBps,
     bool clearProgress = false,
+    bool? preferFreshUrl,
   }) {
     return NasImportTask(
       id: id,
       song: song,
       force: force,
+      preferFreshUrl: preferFreshUrl ?? this.preferFreshUrl,
       stage: stage ?? this.stage,
       message: message ?? this.message,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -184,6 +188,7 @@ class NasImportQueueNotifier extends Notifier<List<NasImportTask>> {
         if (item.id == id)
           item.copyWith(
             stage: NasImportStage.pending,
+            preferFreshUrl: true,
             clearError: true,
             clearProgress: true,
           )
@@ -239,6 +244,7 @@ class NasImportQueueNotifier extends Notifier<List<NasImportTask>> {
       final result = await importService.importOnlineSong(
         task.song,
         force: task.force,
+        preferFreshUrl: task.preferFreshUrl,
         onStage: (stage) {
           if (!ref.mounted) return;
           if (stage == NasImportStage.resolving ||

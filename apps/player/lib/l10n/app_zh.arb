@@ -336,7 +336,7 @@
     "nasImportErrorFailed": "导入失败",
     "nasImportErrorTimeout": "NAS 下载超时，等当前传输结束后再重试",
     "nasImportErrorUnavailable": "NAS 暂时不可用",
-    "nasImportErrorSlowUpstream": "源站线路太慢，重试会换一条 CDN",
+    "nasImportErrorSlowUpstream": "几条线路都太慢，稍后再试或点重试再换节点",
     "multiServerManage": "服务器管理",
     "multiServerCount": "共 {count} 个服务器",
     "@multiServerCount": {

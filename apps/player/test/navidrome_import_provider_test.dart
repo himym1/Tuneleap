@@ -13,6 +13,7 @@ class _FakeBackendClient extends BackendClient {
   late Map<String, dynamic> queuedSong;
   String? queuedPicUrl;
   String? failQueueWith;
+  int failQueueRemaining = 0;
   final List<String> playbackRequests = [];
   final List<String> queuedUrls = [];
 
@@ -51,10 +52,9 @@ class _FakeBackendClient extends BackendClient {
     queuedSong = song;
     queuedPicUrl = picUrl;
     queuedUrls.add(url);
-    if (failQueueWith != null) {
-      final error = failQueueWith!;
-      failQueueWith = null;
-      throw StateError(error);
+    if (failQueueRemaining > 0 && failQueueWith != null) {
+      failQueueRemaining--;
+      throw StateError(failQueueWith!);
     }
     return queueMessage;
   }
@@ -186,7 +186,7 @@ void main() {
     });
 
     test(
-      'retries once with a fresh URL when the first CDN is too slow',
+      'keeps fetching fresh CDN URLs while the upstream stays too slow',
       () async {
         const song = Song(
           id: '523250334',
@@ -200,21 +200,90 @@ void main() {
           onlineProvider: 'chksz',
           urlId: '523250334',
         );
-        final backendClient = _FakeBackendClient(
-          playbackUrl: 'https://cdn.example.com/song.flac?token=1',
-          queueMessage: 'imported',
-        )..failQueueWith = 'media upstream too slow';
+        final backendClient =
+            _FakeBackendClient(
+                playbackUrl: 'https://cdn.example.com/song.flac?token=1',
+                queueMessage: 'imported',
+              )
+              ..failQueueWith = 'media upstream too slow'
+              ..failQueueRemaining = 2;
         final service = NavidromeImportService(backendClient: backendClient);
 
         final result = await service.importOnlineSong(song);
 
         expect(result.message, 'imported');
-        expect(backendClient.playbackRequests, ['cached', 'fresh']);
+        expect(backendClient.playbackRequests, ['cached', 'fresh', 'fresh']);
         expect(backendClient.queuedUrls, [
           'https://cdn.example.com/song.flac?token=1',
+          'https://cdn.example.com/song.flac?token=1&fresh=1',
           'https://cdn.example.com/song.flac?token=1&fresh=1',
         ]);
       },
     );
+
+    test('manual retry starts with a fresh URL', () async {
+      const song = Song(
+        id: '523250334',
+        title: '永不失联的爱',
+        album: '',
+        albumId: '',
+        artist: '周兴哲',
+        artistId: '',
+        backend: SongBackend.solara,
+        onlineSource: 'netease',
+        onlineProvider: 'chksz',
+        urlId: '523250334',
+      );
+      final backendClient = _FakeBackendClient(
+        playbackUrl: 'https://cdn.example.com/song.flac?token=1',
+        queueMessage: 'imported',
+      );
+      final service = NavidromeImportService(backendClient: backendClient);
+
+      await service.importOnlineSong(song, preferFreshUrl: true);
+
+      expect(backendClient.playbackRequests, ['fresh']);
+    });
+
+    test('gives up after the slow-upstream attempt budget', () async {
+      const song = Song(
+        id: '523250334',
+        title: '永不失联的爱',
+        album: '',
+        albumId: '',
+        artist: '周兴哲',
+        artistId: '',
+        backend: SongBackend.solara,
+        onlineSource: 'netease',
+        onlineProvider: 'chksz',
+        urlId: '523250334',
+      );
+      final backendClient =
+          _FakeBackendClient(
+              playbackUrl: 'https://cdn.example.com/song.flac?token=1',
+              queueMessage: 'imported',
+            )
+            ..failQueueWith = 'media upstream too slow'
+            ..failQueueRemaining = 8;
+      final service = NavidromeImportService(backendClient: backendClient);
+
+      await expectLater(
+        service.importOnlineSong(song),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('too slow'),
+          ),
+        ),
+      );
+      expect(backendClient.queuedUrls, hasLength(4));
+      expect(backendClient.playbackRequests, [
+        'cached',
+        'fresh',
+        'fresh',
+        'fresh',
+      ]);
+    });
   });
 }

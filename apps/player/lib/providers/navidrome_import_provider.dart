@@ -25,9 +25,12 @@ class NavidromeImportService {
 
   NavidromeImportService({required this.backendClient});
 
+  static const maxSlowUpstreamAttempts = 4;
+
   Future<NavidromeImportResult> importOnlineSong(
     Song song, {
     bool force = false,
+    bool preferFreshUrl = false,
     void Function(NasImportStage stage)? onStage,
   }) async {
     if (!song.isOnline) {
@@ -44,7 +47,10 @@ class NavidromeImportService {
 
     try {
       onStage?.call(NasImportStage.resolving);
-      var playbackUrl = await backendClient.getPlaybackUrl(song);
+      var playbackUrl = await backendClient.getPlaybackUrl(
+        song,
+        bypassCache: preferFreshUrl,
+      );
       debugPrint('[Import] playback URL resolved');
 
       final extension = inferFileExtension(playbackUrl, song);
@@ -68,30 +74,33 @@ class NavidromeImportService {
 
       onStage?.call(NasImportStage.uploading);
       String? message;
-      try {
-        message = await backendClient.queueNasDownload(
-          url: playbackUrl,
-          filename: filename,
-          song: buildNasDownloadSong(song),
-          picUrl: picUrl,
-          lyric: lrcText,
-          force: force,
-        );
-      } catch (error) {
-        if (!isSlowNasUpstream(error)) rethrow;
-        debugPrint('[Import] slow upstream; resolving a fresh URL');
-        playbackUrl = await backendClient.getPlaybackUrl(
-          song,
-          bypassCache: true,
-        );
-        message = await backendClient.queueNasDownload(
-          url: playbackUrl,
-          filename: filename,
-          song: buildNasDownloadSong(song),
-          picUrl: picUrl,
-          lyric: lrcText,
-          force: force,
-        );
+      for (var attempt = 0; attempt < maxSlowUpstreamAttempts; attempt++) {
+        try {
+          if (attempt > 0) {
+            debugPrint(
+              '[Import] slow upstream; resolving a fresh URL '
+              '(${attempt + 1}/$maxSlowUpstreamAttempts)',
+            );
+            playbackUrl = await backendClient.getPlaybackUrl(
+              song,
+              bypassCache: true,
+            );
+          }
+          message = await backendClient.queueNasDownload(
+            url: playbackUrl,
+            filename: filename,
+            song: buildNasDownloadSong(song),
+            picUrl: picUrl,
+            lyric: lrcText,
+            force: force,
+          );
+          break;
+        } catch (error) {
+          if (!isSlowNasUpstream(error) ||
+              attempt >= maxSlowUpstreamAttempts - 1) {
+            rethrow;
+          }
+        }
       }
       debugPrint('[Import] queued successfully');
 

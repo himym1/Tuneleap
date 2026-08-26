@@ -1330,7 +1330,7 @@ abstract class S {
   /// No description provided for @nasImportErrorSlowUpstream.
   ///
   /// In zh, this message translates to:
-  /// **'源站线路太慢，重试会换一条 CDN'**
+  /// **'几条线路都太慢，稍后再试或点重试再换节点'**
   String get nasImportErrorSlowUpstream;
 
   /// No description provided for @multiServerManage.
