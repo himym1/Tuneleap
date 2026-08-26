@@ -92,7 +92,8 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
       });
       return;
     }
-    if (Platform.isMacOS) {
+    // Desktop opens the package in Finder/Explorer; keep the dialog for the hint.
+    if (Platform.isMacOS || Platform.isWindows) {
       setState(() => _state = _UpdateState.manualInstall);
       return;
     }
@@ -170,7 +171,11 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
         );
 
       case _UpdateState.manualInstall:
-        return Text(s.updateMacInstallHint);
+        return Text(
+          Platform.isWindows
+              ? s.updateWindowsInstallHint
+              : s.updateMacInstallHint,
+        );
 
       case _UpdateState.failed:
         return Text(

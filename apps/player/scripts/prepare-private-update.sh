@@ -9,14 +9,20 @@ UPDATE_ORIGIN="${UPDATE_ORIGIN:-https://player.himym.us.ci}"
 
 android="navidrome_player-${ANDROID_VERSION}+${ANDROID_BUILD}-android.apk"
 macos="navidrome_player-${MACOS_VERSION}+${MACOS_BUILD}-macos.dmg"
+windows="navidrome_player-${WINDOWS_VERSION}+${WINDOWS_BUILD}-windows.zip"
 [ -f "$DIST_DIR/$android" ] || { echo "Missing $DIST_DIR/$android" >&2; exit 1; }
 [ -f "$DIST_DIR/$macos" ] || { echo "Missing $DIST_DIR/$macos" >&2; exit 1; }
 
 cd "$DIST_DIR"
-shasum -a 256 "$android" "$macos" > SHA256SUMS
+if [ -f "$windows" ]; then
+  shasum -a 256 "$android" "$macos" "$windows" > SHA256SUMS
+else
+  shasum -a 256 "$android" "$macos" > SHA256SUMS
+fi
 
 python3 - "$ANDROID_VERSION" "$ANDROID_BUILD" "$android" \
-  "$MACOS_VERSION" "$MACOS_BUILD" "$macos" "$UPDATE_ORIGIN" <<'PY'
+  "$MACOS_VERSION" "$MACOS_BUILD" "$macos" "$UPDATE_ORIGIN" \
+  "${WINDOWS_VERSION:-}" "${WINDOWS_BUILD:-}" "$windows" <<'PY'
 import hashlib
 import json
 import re
@@ -32,6 +38,9 @@ from urllib.parse import urlsplit
     macos_build,
     macos_name,
     update_origin,
+    windows_version,
+    windows_build,
+    windows_name,
  ) = sys.argv[1:]
 for version in (android_version, macos_version):
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
@@ -73,9 +82,20 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "登录只填用户名和密码；曲库与 Cloud 地址内置，同一套账号同时登录。"
+        "导入显示真实进度和速度；遇到网易慢节点会换链重试；大文件不再因 120 秒超时整批失败。"
     )
 }
+if Path(windows_name).is_file():
+    if not re.fullmatch(r"\d+\.\d+\.\d+", windows_version):
+        raise SystemExit(f"Invalid version: {windows_version}")
+    if not windows_build.isdecimal() or int(windows_build) < 1:
+        raise SystemExit(f"Invalid build: {windows_build}")
+    data["windows"] = {
+        "version": windows_version,
+        "build": int(windows_build),
+        "url": f"{origin}/{windows_name}",
+        "sha256": digest(windows_name),
+    }
 Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
 )

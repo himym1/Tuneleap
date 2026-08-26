@@ -492,7 +492,13 @@ class SEn extends S {
       'Submitting to NAS download queue...';
 
   @override
-  String get contextMenuQueuedNavidrome => 'Submitted to NAS download queue';
+  String get contextMenuQueuedNavidrome => 'Queued for library import';
+
+  @override
+  String get nasImportViewQueue => 'View';
+
+  @override
+  String get contextMenuDeleting => 'Deleting…';
 
   @override
   String contextMenuAddedPlaylist(String name) {
@@ -655,6 +661,20 @@ class SEn extends S {
 
   @override
   String get nasImportClearFinished => 'Clear finished';
+
+  @override
+  String get nasImportErrorFailed => 'Import failed';
+
+  @override
+  String get nasImportErrorTimeout =>
+      'NAS download timed out. Retry after the current transfer finishes.';
+
+  @override
+  String get nasImportErrorUnavailable => 'NAS is temporarily unavailable';
+
+  @override
+  String get nasImportErrorSlowUpstream =>
+      'The source line was too slow. Retry to get another CDN node.';
 
   @override
   String get multiServerManage => 'Server Management';
@@ -1189,7 +1209,7 @@ class SEn extends S {
   String get updateInstall => 'Install Update';
 
   @override
-  String get updateInstalling => 'Opening installer...';
+  String get updateInstalling => 'Installing — the app will restart…';
 
   @override
   String get updateAlreadyDownloaded =>
@@ -1203,7 +1223,11 @@ class SEn extends S {
 
   @override
   String get updateMacInstallHint =>
-      'The DMG is open. Drag YinYue to Applications to finish updating.';
+      'The disk image is open. Drag YinYue into Applications to replace the current app, then reopen it.';
+
+  @override
+  String get updateWindowsInstallHint =>
+      'The zip is open. Extract it over the current Tuneleap folder, then run navidrome_player.exe again.';
 
   @override
   String get contextMenuDeleteTitle => 'Confirm Delete';

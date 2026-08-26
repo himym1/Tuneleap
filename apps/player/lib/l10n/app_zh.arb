@@ -220,7 +220,9 @@
     "nasAgentConfigRequired": "请先登录 Cloud 后再导入或删除",
     "commonContinue": "继续",
     "contextMenuQueueingNavidrome": "正在提交到 NAS 下载队列…",
-    "contextMenuQueuedNavidrome": "已提交到 NAS 下载队列",
+    "contextMenuQueuedNavidrome": "已加入导入队列",
+    "nasImportViewQueue": "查看",
+    "contextMenuDeleting": "正在删除…",
     "contextMenuAddedPlaylist": "已添加到 {name}",
     "@contextMenuAddedPlaylist": {
         "placeholders": {
@@ -331,6 +333,10 @@
     "nasImportStageResolving": "准备中",
     "nasImportStageUploading": "下载到 NAS",
     "nasImportClearFinished": "清除已结束",
+    "nasImportErrorFailed": "导入失败",
+    "nasImportErrorTimeout": "NAS 下载超时，等当前传输结束后再重试",
+    "nasImportErrorUnavailable": "NAS 暂时不可用",
+    "nasImportErrorSlowUpstream": "源站线路太慢，重试会换一条 CDN",
     "multiServerManage": "服务器管理",
     "multiServerCount": "共 {count} 个服务器",
     "@multiServerCount": {
@@ -625,11 +631,12 @@
     "updateChangelog": "更新内容",
     "updateDownload": "下载更新",
     "updateInstall": "立即安装",
-    "updateInstalling": "正在打开安装包...",
+    "updateInstalling": "正在安装，应用即将重启…",
     "updateAlreadyDownloaded": "安装包已下载完成，可直接安装，无需重新下载。",
     "updateLatest": "已是最新版本",
     "updateFailed": "检查更新失败，请稍后重试",
-    "updateMacInstallHint": "DMG 已打开，请将音跃拖入“应用程序”文件夹完成更新。",
+    "updateMacInstallHint": "安装包已打开。请把「音跃」拖进「应用程序」替换当前版本，然后重新打开。",
+    "updateWindowsInstallHint": "安装包已打开。请解压后覆盖当前音跃目录，然后重新运行 navidrome_player.exe。",
 
     "contextMenuDelete": "删除歌曲",
     "contextMenuDeleteTitle": "确认删除",

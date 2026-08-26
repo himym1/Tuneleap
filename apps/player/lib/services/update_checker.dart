@@ -57,6 +57,8 @@ class AppUpdateInfo {
             ? 'android'
             : Platform.isMacOS
             ? 'macos'
+            : Platform.isWindows
+            ? 'windows'
             : null);
     final platformInfo = platformKey == null ? null : json[platformKey];
     if (platformInfo is! Map) {
@@ -171,10 +173,24 @@ Future<bool> verifyFileSha256(String path, String expected) async {
   return digest.toString() == expected.toLowerCase();
 }
 
+String updatePackageExtension({String? platform}) {
+  final key =
+      platform ??
+      (Platform.isAndroid
+          ? 'android'
+          : Platform.isWindows
+          ? 'windows'
+          : 'macos');
+  return switch (key) {
+    'android' => 'apk',
+    'windows' => 'zip',
+    _ => 'dmg',
+  };
+}
+
 Future<String> defaultUpdateSavePath() async {
   final dir = await getTemporaryDirectory();
-  final ext = Platform.isAndroid ? 'apk' : 'dmg';
-  return '${dir.path}/app_update.$ext';
+  return '${dir.path}/app_update.${updatePackageExtension()}';
 }
 
 /// Returns a local path when a previously downloaded package still matches.
@@ -244,6 +260,7 @@ Future<String?> downloadUpdate(
 Future<bool> installUpdate(String filePath) async {
   if (Platform.isAndroid) return _installAndroid(filePath);
   if (Platform.isMacOS) return _installMacOS(filePath);
+  if (Platform.isWindows) return _installWindows(filePath);
   return false;
 }
 
@@ -257,19 +274,26 @@ Future<bool> _installAndroid(String apkPath) async {
   }
 }
 
+Future<bool> _installWindows(String zipPath) async {
+  try {
+    await Process.start('explorer.exe', [zipPath]);
+    return true;
+  } catch (error) {
+    debugPrint('Open Windows update zip failed: ${error.runtimeType}');
+    return false;
+  }
+}
+
 Future<bool> _installMacOS(String dmgPath) async {
   try {
-    // Downloaded DMGs get com.apple.quarantine; combined with unnotarized
-    // Developer ID builds, Gatekeeper may refuse to launch the app.
+    // App Sandbox blocks hdiutil attach ("Device not configured") and writing
+    // /Applications. Asking Finder to open the DMG is the supported path.
     await Process.run('xattr', ['-cr', dmgPath]);
     final result = await Process.run('open', [dmgPath]);
     if (result.exitCode != 0) {
       debugPrint('Open DMG failed: exit=${result.exitCode}');
       return false;
     }
-    // Best-effort: if the user already dragged the app into /Applications,
-    // clear quarantine so the next launch is not blocked as "Operation not permitted".
-    await Process.run('xattr', ['-cr', '/Applications/音跃.app']);
     return true;
   } catch (error) {
     debugPrint('Open DMG failed: ${error.runtimeType}');

@@ -1,0 +1,25 @@
+name: Windows player
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/player
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Build Windows zip
+        shell: bash
+        run: bash scripts/build.sh windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-player
+          path: apps/player/dist/*-windows.zip
+          if-no-files-found: error

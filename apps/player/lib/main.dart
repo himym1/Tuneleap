@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'app.dart';
 import 'providers/providers.dart';
@@ -11,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:navidrome_player/l10n/localization_utils.dart';
 import 'package:navidrome_player/ui/theme/app_color_loader.dart';
 import 'package:navidrome_player/providers/server_scope.dart';
+import 'package:navidrome_player/utils/platform_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,21 +65,37 @@ void main() async {
   final strings = systemLocalizations();
   final packageInfo = await PackageInfo.fromPlatform();
 
-  // 初始化 AudioService + Handler
-  final handler = await AudioService.init(
-    builder: () => NavidromeAudioHandler(
-      client,
-      backendClient,
-      prefs: prefs,
-      serverId: serverId,
-    ),
-    config: AudioServiceConfig(
-      androidNotificationChannelId: 'com.navidrome.player.audio',
-      androidNotificationChannelName: strings.appName,
-      androidNotificationOngoing: true,
-      androidStopForegroundOnPause: true,
-    ),
+  NavidromeAudioHandler buildHandler() => NavidromeAudioHandler(
+    client,
+    backendClient,
+    prefs: prefs,
+    serverId: serverId,
   );
+
+  // just_audio has no Windows engine; media_kit registers one.
+  // audio_service has no Windows plugin, so skip SMTC and play in-process.
+  if (isWindows) {
+    JustAudioMediaKit.title = strings.appName;
+    JustAudioMediaKit.ensureInitialized(
+      linux: false,
+      windows: true,
+      android: false,
+      iOS: false,
+      macOS: false,
+    );
+  }
+
+  final handler = isWindows
+      ? buildHandler()
+      : await AudioService.init(
+          builder: buildHandler,
+          config: AudioServiceConfig(
+            androidNotificationChannelId: 'com.navidrome.player.audio',
+            androidNotificationChannelName: strings.appName,
+            androidNotificationOngoing: true,
+            androidStopForegroundOnPause: true,
+          ),
+        );
 
   // 创建 ProviderContainer 以便预设密码
   final container = ProviderContainer(

@@ -482,7 +482,13 @@ class SZh extends S {
   String get contextMenuQueueingNavidrome => '正在提交到 NAS 下载队列…';
 
   @override
-  String get contextMenuQueuedNavidrome => '已提交到 NAS 下载队列';
+  String get contextMenuQueuedNavidrome => '已加入导入队列';
+
+  @override
+  String get nasImportViewQueue => '查看';
+
+  @override
+  String get contextMenuDeleting => '正在删除…';
 
   @override
   String contextMenuAddedPlaylist(String name) {
@@ -643,6 +649,18 @@ class SZh extends S {
 
   @override
   String get nasImportClearFinished => '清除已结束';
+
+  @override
+  String get nasImportErrorFailed => '导入失败';
+
+  @override
+  String get nasImportErrorTimeout => 'NAS 下载超时，等当前传输结束后再重试';
+
+  @override
+  String get nasImportErrorUnavailable => 'NAS 暂时不可用';
+
+  @override
+  String get nasImportErrorSlowUpstream => '源站线路太慢，重试会换一条 CDN';
 
   @override
   String get multiServerManage => '服务器管理';
@@ -1164,7 +1182,7 @@ class SZh extends S {
   String get updateInstall => '立即安装';
 
   @override
-  String get updateInstalling => '正在打开安装包...';
+  String get updateInstalling => '正在安装，应用即将重启…';
 
   @override
   String get updateAlreadyDownloaded => '安装包已下载完成，可直接安装，无需重新下载。';
@@ -1176,7 +1194,11 @@ class SZh extends S {
   String get updateFailed => '检查更新失败，请稍后重试';
 
   @override
-  String get updateMacInstallHint => 'DMG 已打开，请将音跃拖入“应用程序”文件夹完成更新。';
+  String get updateMacInstallHint => '安装包已打开。请把「音跃」拖进「应用程序」替换当前版本，然后重新打开。';
+
+  @override
+  String get updateWindowsInstallHint =>
+      '安装包已打开。请解压后覆盖当前音跃目录，然后重新运行 navidrome_player.exe。';
 
   @override
   String get contextMenuDeleteTitle => '确认删除';

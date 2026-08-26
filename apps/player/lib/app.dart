@@ -113,7 +113,7 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
     await windowManager.ensureInitialized();
     await windowManager.setTitleBarStyle(
       TitleBarStyle.hidden,
-      windowButtonVisibility: true,
+      windowButtonVisibility: isMacOS,
     );
     await windowManager.setMinimumSize(const Size(800, 600));
     await windowManager.setSize(const Size(1200, 800));
@@ -347,7 +347,9 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   path: '/downloads',
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
-                    child: const DownloadsScreen(),
+                    child: DownloadsScreen(
+                      initialTab: state.uri.queryParameters['tab'],
+                    ),
                     transitionsBuilder: _fadeThroughTransition,
                     transitionDuration: _kFadeDuration,
                   ),
@@ -419,6 +421,7 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
         themeMode: effectiveThemeMode,
         localizationsDelegates: S.localizationsDelegates,
         supportedLocales: S.supportedLocales,
+        builder: _desktopChrome,
         home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
@@ -431,7 +434,24 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
       debugShowCheckedModeBanner: false,
       localizationsDelegates: S.localizationsDelegates,
       supportedLocales: S.supportedLocales,
+      builder: _desktopChrome,
       routerConfig: _router,
     );
   }
+}
+
+Widget _desktopChrome(BuildContext context, Widget? child) {
+  if (!isWindows) return child ?? const SizedBox.shrink();
+  return Column(
+    children: [
+      SizedBox(
+        height: kWindowCaptionHeight,
+        child: WindowCaption(
+          brightness: Theme.of(context).brightness,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+        ),
+      ),
+      Expanded(child: child ?? const SizedBox.shrink()),
+    ],
+  );
 }

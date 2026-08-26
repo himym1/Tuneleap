@@ -15,7 +15,13 @@ DIST_DIR="$DIST_DIR" UPDATE_ORIGIN="$UPDATE_ORIGIN" \
 
 android_file="navidrome_player-${ANDROID_VERSION}+${ANDROID_BUILD}-android.apk"
 macos_file="navidrome_player-${MACOS_VERSION}+${MACOS_BUILD}-macos.dmg"
+windows_file="navidrome_player-${WINDOWS_VERSION}+${WINDOWS_BUILD}-windows.zip"
 files=("$android_file" "$macos_file" "SHA256SUMS" "version.json")
+install_list="'$android_file' '$macos_file'"
+if [ -f "$DIST_DIR/$windows_file" ]; then
+  files+=("$windows_file")
+  install_list="$install_list '$windows_file'"
+fi
 
 for file in "${files[@]}"; do
   test -f "$DIST_DIR/$file" || { echo "missing artifact: $DIST_DIR/$file" >&2; exit 2; }
@@ -31,7 +37,7 @@ trap 'rm -rf \"\$staging\"; test -z \"\$manifest_tmp\" || rm -f \"\$manifest_tmp
 tar -xf - -C \"\$staging\"
 cd \"\$staging\"
 sha256sum -c SHA256SUMS
-for file in '$android_file' '$macos_file' SHA256SUMS; do
+for file in $install_list SHA256SUMS; do
   incoming='$REMOTE_DIR/.incoming.'\"\$file\"'.'\"\$\$\"
   install -m 0644 \"\$file\" \"\$incoming\"
   mv -f \"\$incoming\" '$REMOTE_DIR/'\"\$file\"
@@ -85,8 +91,12 @@ import sys
 data = json.loads(os.environ["UPDATE_RESPONSE"])
 expected_version, expected_build, origin = sys.argv[1:]
 expected_prefix = f"{origin.rstrip('/')}/releases/"
-for platform in ("android", "macos"):
-    item = data[platform]
+for platform in ("android", "macos", "windows"):
+    item = data.get(platform)
+    if item is None:
+        if platform == "windows":
+            continue
+        raise AssertionError(platform)
     assert item["url"].startswith(expected_prefix), item
 android = data["android"]
 assert android["version"] == expected_version, android

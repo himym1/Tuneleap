@@ -1006,8 +1006,20 @@ abstract class S {
   /// No description provided for @contextMenuQueuedNavidrome.
   ///
   /// In zh, this message translates to:
-  /// **'已提交到 NAS 下载队列'**
+  /// **'已加入导入队列'**
   String get contextMenuQueuedNavidrome;
+
+  /// No description provided for @nasImportViewQueue.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看'**
+  String get nasImportViewQueue;
+
+  /// No description provided for @contextMenuDeleting.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在删除…'**
+  String get contextMenuDeleting;
 
   /// No description provided for @contextMenuAddedPlaylist.
   ///
@@ -1296,6 +1308,30 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'清除已结束'**
   String get nasImportClearFinished;
+
+  /// No description provided for @nasImportErrorFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入失败'**
+  String get nasImportErrorFailed;
+
+  /// No description provided for @nasImportErrorTimeout.
+  ///
+  /// In zh, this message translates to:
+  /// **'NAS 下载超时，等当前传输结束后再重试'**
+  String get nasImportErrorTimeout;
+
+  /// No description provided for @nasImportErrorUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'NAS 暂时不可用'**
+  String get nasImportErrorUnavailable;
+
+  /// No description provided for @nasImportErrorSlowUpstream.
+  ///
+  /// In zh, this message translates to:
+  /// **'源站线路太慢，重试会换一条 CDN'**
+  String get nasImportErrorSlowUpstream;
 
   /// No description provided for @multiServerManage.
   ///
@@ -2260,7 +2296,7 @@ abstract class S {
   /// No description provided for @updateInstalling.
   ///
   /// In zh, this message translates to:
-  /// **'正在打开安装包...'**
+  /// **'正在安装，应用即将重启…'**
   String get updateInstalling;
 
   /// No description provided for @updateAlreadyDownloaded.
@@ -2284,8 +2320,14 @@ abstract class S {
   /// No description provided for @updateMacInstallHint.
   ///
   /// In zh, this message translates to:
-  /// **'DMG 已打开，请将音跃拖入“应用程序”文件夹完成更新。'**
+  /// **'安装包已打开。请把「音跃」拖进「应用程序」替换当前版本，然后重新打开。'**
   String get updateMacInstallHint;
+
+  /// No description provided for @updateWindowsInstallHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'安装包已打开。请解压后覆盖当前音跃目录，然后重新运行 navidrome_player.exe。'**
+  String get updateWindowsInstallHint;
 
   /// No description provided for @contextMenuDeleteTitle.
   ///

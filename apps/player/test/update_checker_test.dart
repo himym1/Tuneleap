@@ -35,6 +35,12 @@ Map<String, dynamic> _metadata({String host = 'player.himym.us.ci'}) => {
     'url': 'https://$host/releases/navidrome_player-1.0.8+3-macos.dmg',
     'sha256': List.filled(64, 'b').join(),
   },
+  'windows': {
+    'version': '1.0.8',
+    'build': 3,
+    'url': 'https://$host/releases/navidrome_player-1.0.8+3-windows.zip',
+    'sha256': List.filled(64, 'c').join(),
+  },
 };
 
 Future<String?> _token({bool forceRefresh = false}) async => 'access-token';
@@ -53,6 +59,16 @@ void main() {
       ),
       throwsFormatException,
     );
+  });
+
+  test('windows platform metadata uses a zip URL', () {
+    final windows = AppUpdateInfo.fromJson(_metadata(), platform: 'windows');
+
+    expect(windows.version, '1.0.8');
+    expect(windows.build, 3);
+    expect(windows.url, contains('-windows.zip'));
+    expect(updatePackageExtension(platform: 'windows'), 'zip');
+    expect(updatePackageExtension(platform: 'android'), 'apk');
   });
 
   test('version comparison uses build when semantic versions are equal', () {
