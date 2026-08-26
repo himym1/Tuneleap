@@ -82,7 +82,7 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "播放页同时只会打开一页；连点迷你播放条或快捷键不会再叠出两层。"
+        "macOS 点立即安装会由访达装进应用程序并重启，不再只退出；播放页同时只会打开一页。"
     )
 }
 if Path(windows_name).is_file():

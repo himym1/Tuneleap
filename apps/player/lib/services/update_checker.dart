@@ -257,11 +257,26 @@ Future<String?> downloadUpdate(
   return null;
 }
 
-Future<bool> installUpdate(String filePath) async {
-  if (Platform.isAndroid) return _installAndroid(filePath);
+class UpdateInstallOutcome {
+  const UpdateInstallOutcome({
+    required this.ok,
+    this.manualDesktopHint = false,
+  });
+
+  final bool ok;
+  final bool manualDesktopHint;
+}
+
+Future<UpdateInstallOutcome> installUpdate(String filePath) async {
+  if (Platform.isAndroid) {
+    return UpdateInstallOutcome(ok: await _installAndroid(filePath));
+  }
   if (Platform.isMacOS) return _installMacOS(filePath);
-  if (Platform.isWindows) return _installWindows(filePath);
-  return false;
+  if (Platform.isWindows) {
+    final ok = await _installWindows(filePath);
+    return UpdateInstallOutcome(ok: ok, manualDesktopHint: ok);
+  }
+  return const UpdateInstallOutcome(ok: false);
 }
 
 Future<bool> _installAndroid(String apkPath) async {
@@ -284,19 +299,95 @@ Future<bool> _installWindows(String zipPath) async {
   }
 }
 
-Future<bool> _installMacOS(String dmgPath) async {
-  try {
-    // App Sandbox blocks hdiutil attach ("Device not configured") and writing
-    // /Applications. Asking Finder to open the DMG is the supported path.
-    await Process.run('xattr', ['-cr', dmgPath]);
-    final result = await Process.run('open', [dmgPath]);
-    if (result.exitCode != 0) {
-      debugPrint('Open DMG failed: exit=${result.exitCode}');
-      return false;
-    }
-    return true;
-  } catch (error) {
-    debugPrint('Open DMG failed: ${error.runtimeType}');
+const _macVolumeName = '音跃';
+const _macAppName = '音跃';
+
+@visibleForTesting
+String macMountedAppPath({
+  String volumeName = _macVolumeName,
+  String appName = _macAppName,
+}) => '/Volumes/$volumeName/$appName.app';
+
+@visibleForTesting
+String macInstalledAppPath({String appName = _macAppName}) =>
+    '/Applications/$appName.app';
+
+@visibleForTesting
+Future<String?> waitForMountedMacApp({
+  Duration timeout = const Duration(seconds: 20),
+  Duration interval = const Duration(milliseconds: 250),
+  bool Function(String path)? exists,
+}) async {
+  final path = macMountedAppPath();
+  final present = exists ?? (candidate) => Directory(candidate).existsSync();
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    if (present(path)) return path;
+    await Future<void>.delayed(interval);
+  }
+  return present(path) ? path : null;
+}
+
+String _finderReplaceScript({
+  required String sourceApp,
+  required String destinationApp,
+  required String destinationFolder,
+  required String volumeName,
+}) {
+  String quote(String value) =>
+      value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+  return '''
+set srcPath to "${quote(sourceApp)}"
+set dstApp to "${quote(destinationApp)}"
+set dstFolder to "${quote(destinationFolder)}"
+tell application "Finder"
+  if exists POSIX file dstApp then
+    delete POSIX file dstApp
+  end if
+  duplicate (POSIX file srcPath as alias) to (POSIX file dstFolder as alias)
+  try
+    eject disk "${quote(volumeName)}"
+  end try
+end tell
+''';
+}
+
+Future<bool> _replaceMacAppViaFinder(String sourceApp) async {
+  final result = await Process.run('osascript', [
+    '-e',
+    _finderReplaceScript(
+      sourceApp: sourceApp,
+      destinationApp: macInstalledAppPath(),
+      destinationFolder: '/Applications',
+      volumeName: _macVolumeName,
+    ),
+  ]);
+  if (result.exitCode != 0) {
+    debugPrint('Finder replace failed: exit=${result.exitCode}');
     return false;
+  }
+  return Directory(macInstalledAppPath()).existsSync();
+}
+
+Future<UpdateInstallOutcome> _installMacOS(String dmgPath) async {
+  try {
+    // Sandbox blocks hdiutil attach ("Device not configured"). Finder can
+    // mount the DMG and copy into /Applications.
+    await Process.run('xattr', ['-cr', dmgPath]);
+    final opened = await Process.run('open', [dmgPath]);
+    if (opened.exitCode != 0) {
+      debugPrint('Open DMG failed: exit=${opened.exitCode}');
+      return const UpdateInstallOutcome(ok: false);
+    }
+
+    final mounted = await waitForMountedMacApp();
+    if (mounted != null && await _replaceMacAppViaFinder(mounted)) {
+      await Process.run('open', ['-n', macInstalledAppPath()]);
+      exit(0);
+    }
+    return const UpdateInstallOutcome(ok: true, manualDesktopHint: true);
+  } catch (error) {
+    debugPrint('Install DMG failed: ${error.runtimeType}');
+    return const UpdateInstallOutcome(ok: false);
   }
 }

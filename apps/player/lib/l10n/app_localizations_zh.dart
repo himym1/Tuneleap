@@ -1182,7 +1182,7 @@ class SZh extends S {
   String get updateInstall => '立即安装';
 
   @override
-  String get updateInstalling => '正在安装，应用即将重启…';
+  String get updateInstalling => '正在安装…';
 
   @override
   String get updateAlreadyDownloaded => '安装包已下载完成，可直接安装，无需重新下载。';

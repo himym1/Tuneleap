@@ -261,6 +261,34 @@ void main() {
     expect(path, destination);
     expect(downloads, 0);
   });
+  test('macOS update paths use the 音跃 volume and Applications', () {
+    expect(macMountedAppPath(), '/Volumes/音跃/音跃.app');
+    expect(macInstalledAppPath(), '/Applications/音跃.app');
+  });
+
+  test('waitForMountedMacApp returns when the volume appears', () async {
+    var ticks = 0;
+    final mounted = await waitForMountedMacApp(
+      timeout: const Duration(seconds: 1),
+      interval: const Duration(milliseconds: 10),
+      exists: (_) => ++ticks >= 3,
+    );
+    expect(mounted, '/Volumes/音跃/音跃.app');
+    expect(ticks, 3);
+  });
+
+  test(
+    'waitForMountedMacApp times out when the volume never appears',
+    () async {
+      final mounted = await waitForMountedMacApp(
+        timeout: const Duration(milliseconds: 30),
+        interval: const Duration(milliseconds: 10),
+        exists: (_) => false,
+      );
+      expect(mounted, isNull);
+    },
+  );
+
   test('update metadata refreshes Bearer token once after 401', () async {
     var requests = 0;
     final refreshFlags = <bool>[];

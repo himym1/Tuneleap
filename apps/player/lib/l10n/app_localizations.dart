@@ -2296,7 +2296,7 @@ abstract class S {
   /// No description provided for @updateInstalling.
   ///
   /// In zh, this message translates to:
-  /// **'正在安装，应用即将重启…'**
+  /// **'正在安装…'**
   String get updateInstalling;
 
   /// No description provided for @updateAlreadyDownloaded.

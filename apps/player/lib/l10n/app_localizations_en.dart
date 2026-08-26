@@ -1209,7 +1209,7 @@ class SEn extends S {
   String get updateInstall => 'Install Update';
 
   @override
-  String get updateInstalling => 'Installing — the app will restart…';
+  String get updateInstalling => 'Installing…';
 
   @override
   String get updateAlreadyDownloaded =>

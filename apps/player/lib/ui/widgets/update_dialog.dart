@@ -83,17 +83,16 @@ class _UpdateDialogState extends ConsumerState<UpdateDialog> {
   Future<void> _install(String filePath) async {
     setState(() => _state = _UpdateState.installing);
 
-    final ok = await installUpdate(filePath);
+    final outcome = await installUpdate(filePath);
     if (!mounted) return;
-    if (!ok) {
+    if (!outcome.ok) {
       setState(() {
         _state = _UpdateState.failed;
         _error = S.of(context).updateFailed;
       });
       return;
     }
-    // Desktop opens the package in Finder/Explorer; keep the dialog for the hint.
-    if (Platform.isMacOS || Platform.isWindows) {
+    if (outcome.manualDesktopHint) {
       setState(() => _state = _UpdateState.manualInstall);
       return;
     }

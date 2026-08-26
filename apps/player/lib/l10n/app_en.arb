@@ -492,7 +492,7 @@
     "updateChangelog": "Changelog",
     "updateDownload": "Download Update",
     "updateInstall": "Install Update",
-    "updateInstalling": "Installing — the app will restart…",
+    "updateInstalling": "Installing…",
     "updateAlreadyDownloaded": "Package already downloaded. You can install now without downloading again.",
     "updateLatest": "You're up to date",
     "updateFailed": "Update check failed, please try again",

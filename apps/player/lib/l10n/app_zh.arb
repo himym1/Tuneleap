@@ -631,7 +631,7 @@
     "updateChangelog": "更新内容",
     "updateDownload": "下载更新",
     "updateInstall": "立即安装",
-    "updateInstalling": "正在安装，应用即将重启…",
+    "updateInstalling": "正在安装…",
     "updateAlreadyDownloaded": "安装包已下载完成，可直接安装，无需重新下载。",
     "updateLatest": "已是最新版本",
     "updateFailed": "检查更新失败，请稍后重试",
