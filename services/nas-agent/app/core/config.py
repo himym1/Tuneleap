@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     min_free_bytes: int = 512 * 1024 * 1024
     max_redirects: int = 5
     allow_private_media_urls: bool = False
+    import_speed_probe_seconds: float = 8.0
+    import_min_speed_bps: int = 128 * 1024
+    import_slow_min_remaining_bytes: int = 8 * 1024 * 1024
 
     navidrome_url: str = ""
     navidrome_user: str = ""
@@ -56,9 +59,14 @@ class Settings(BaseSettings):
             raise ValueError("must be greater than zero")
         return value
 
-    @field_validator("min_free_bytes")
+    @field_validator(
+        "min_free_bytes",
+        "import_speed_probe_seconds",
+        "import_min_speed_bps",
+        "import_slow_min_remaining_bytes",
+    )
     @classmethod
-    def _require_non_negative_number(cls, value: int) -> int:
+    def _require_non_negative_number(cls, value: int | float) -> int | float:
         if value < 0:
             raise ValueError("must be zero or greater")
         return value

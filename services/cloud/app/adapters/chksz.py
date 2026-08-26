@@ -281,6 +281,22 @@ class ChkszAdapter(MusicAdapter):
                 song["cover_id"] = None
         return songs
 
+    def invalidate_url_cache(self, id: str, *, source: str, br: int) -> None:
+        resolved = self._resolve_source(source)
+        if resolved is None:
+            return
+        if resolved == "netease":
+            path = "/api/163_music"
+            params = {"id": id, "level": _netease_level(br), "type": "json"}
+        elif resolved == "tencent":
+            path = "/api/qq_music"
+            params = {"mid": id, "size": _common_size(br), "type": "json"}
+        else:
+            path = "/api/kugou_music"
+            params = {"id": id, "size": _common_size(br), "type": "json"}
+        self._response_cache.pop((path, tuple(sorted(params.items()))), None)
+        self._detail_cache.pop((resolved, id), None)
+
     async def get_url(self, id: str, *, source: str, br: int) -> dict[str, Any]:
         resolved = self._resolve_source(source)
         if resolved is None:

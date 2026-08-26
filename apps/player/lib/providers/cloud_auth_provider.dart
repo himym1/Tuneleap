@@ -9,7 +9,9 @@ import 'server_scope.dart';
 
 /// Personal-deploy defaults. Empty prefs fall back here so login stays simple.
 const defaultCloudOrigin = 'https://player.himym.us.ci';
-const defaultNavidromeOrigin = 'http://192.168.1.10:54533';
+
+/// Public Subsonic endpoint (LAN `192.168.1.10:54533` is unreachable off-home).
+const defaultNavidromeOrigin = 'http://navidrome.example:54533';
 
 String resolveCloudOrigin(String configured) {
   final value = configured.trim();
@@ -24,6 +26,11 @@ String resolveCloudOrigin(String configured) {
 String resolveNavidromeOrigin(String configured) {
   final value = configured.trim();
   if (value.isEmpty) return defaultNavidromeOrigin;
+  final uri = Uri.tryParse(value);
+  // Rewrite stale LAN-only hosts left in prefs from older builds.
+  if (uri != null && (uri.host == '192.168.1.10' || uri.host == 'localhost')) {
+    return defaultNavidromeOrigin;
+  }
   return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
 }
 

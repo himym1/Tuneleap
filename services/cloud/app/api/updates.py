@@ -14,7 +14,7 @@ from app.core.config import get_settings
 router = APIRouter(tags=["updates"], dependencies=[Depends(verify_api_key)])
 
 _RELEASE_NAME = re.compile(
-    r"^navidrome_player-\d+\.\d+\.\d+\+\d+-(?:android\.apk|macos\.dmg)$"
+    r"^navidrome_player-\d+\.\d+\.\d+\+\d+-(?:android\.apk|macos\.dmg|windows\.zip)$"
 )
 
 

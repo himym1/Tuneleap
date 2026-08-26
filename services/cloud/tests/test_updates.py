@@ -32,5 +32,11 @@ def test_private_updates_guards(tmp_path: Path, monkeypatch):
         assert good.status_code == 200
         assert good.content == b"private-apk"
 
+        windows = "navidrome_player-1.0.10+10-windows.zip"
+        (release_dir / windows).write_bytes(b"private-zip")
+        win = client.get(f"/releases/{windows}", headers=headers)
+        assert win.status_code == 200
+        assert win.content == b"private-zip"
+
         bad = client.get("/releases/secret.txt", headers=headers)
         assert bad.status_code == 404

@@ -11,6 +11,7 @@ import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/keyboard_shortcuts_dialog.dart';
 import 'package:navidrome_player/ui/widgets/mini_player.dart';
+import 'package:navidrome_player/ui/widgets/nas_import_queue_popup.dart';
 import 'package:navidrome_player/ui/widgets/update_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/platform_utils.dart';
@@ -314,23 +315,32 @@ class _AppShellState extends ConsumerState<AppShell> {
     final coverTint = _coverTintColor();
 
     return Scaffold(
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 800),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              ref.watch(themePresetProvider) == ThemePreset.amoled
-                  ? context.colors.background
-                  : (coverTint ?? context.colors.background).withValues(
-                      alpha: coverTint == null ? 1 : 0.15,
-                    ),
-              context.colors.background,
-            ],
+      body: Stack(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 800),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  ref.watch(themePresetProvider) == ThemePreset.amoled
+                      ? context.colors.background
+                      : (coverTint ?? context.colors.background).withValues(
+                          alpha: coverTint == null ? 1 : 0.15,
+                        ),
+                  context.colors.background,
+                ],
+              ),
+            ),
+            child: SafeArea(bottom: false, child: shell),
           ),
-        ),
-        child: SafeArea(bottom: false, child: shell),
+          const Positioned(
+            left: 16,
+            bottom: 16,
+            child: NasImportQueueIndicator(),
+          ),
+        ],
       ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
@@ -514,35 +524,44 @@ class _AppShellState extends ConsumerState<AppShell> {
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          body: AnimatedContainer(
-            duration: const Duration(milliseconds: 800),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  ref.watch(themePresetProvider) == ThemePreset.amoled
-                      ? context.colors.background
-                      : (coverTint ?? context.colors.background).withValues(
-                          alpha: coverTint == null ? 1 : 0.15,
-                        ),
-                  context.colors.background,
-                ],
-              ),
-            ),
-            child: Row(
-              children: [
-                _buildSidebar(context),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      top: MediaQuery.of(context).padding.top,
-                    ),
-                    child: widget.navigationShell,
+          body: Stack(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 800),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      ref.watch(themePresetProvider) == ThemePreset.amoled
+                          ? context.colors.background
+                          : (coverTint ?? context.colors.background).withValues(
+                              alpha: coverTint == null ? 1 : 0.15,
+                            ),
+                      context.colors.background,
+                    ],
                   ),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    _buildSidebar(context),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: MediaQuery.of(context).padding.top,
+                        ),
+                        child: widget.navigationShell,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: AppDimensions.sidebarWidth + 20,
+                bottom: 20,
+                child: const NasImportQueueIndicator(),
+              ),
+            ],
           ),
           bottomNavigationBar: const MiniPlayer(
             key: ValueKey('desktop-mini'),

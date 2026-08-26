@@ -83,6 +83,18 @@ void main() {
     );
   });
 
+  test('LAN Navidrome host resolves to public Subsonic origin', () {
+    expect(resolveNavidromeOrigin(''), defaultNavidromeOrigin);
+    expect(
+      resolveNavidromeOrigin('http://192.168.1.10:54533'),
+      defaultNavidromeOrigin,
+    );
+    expect(
+      resolveNavidromeOrigin('http://navidrome.example:54533/'),
+      'http://navidrome.example:54533',
+    );
+  });
+
   test('login stores refresh token and never sends shared API key', () async {
     final store = _MemoryTokenStore();
     final dio = Dio()

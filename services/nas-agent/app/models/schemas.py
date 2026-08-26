@@ -40,12 +40,24 @@ class ImportRequest(BaseModel):
     )
     lyric: str | None = Field(default=None, max_length=2_000_000)
     force: bool = False
+    wait: bool = True
 
 
 class ImportResult(BaseModel):
     ok: bool
     path: str | None = None
     message: str = ""
+
+
+class ImportProgress(BaseModel):
+    active: bool = False
+    filename: str | None = None
+    bytes_received: int = 0
+    bytes_total: int | None = None
+    speed_bps: float = 0
+    stage: str = "idle"
+    error: str | None = None
+    message: str | None = None
 
 
 class DeleteRequest(BaseModel):

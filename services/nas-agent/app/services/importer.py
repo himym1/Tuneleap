@@ -8,6 +8,7 @@ import shutil
 import socket
 import sqlite3
 import tempfile
+import time
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
@@ -18,7 +19,8 @@ from mutagen.mp4 import MP4, MP4Cover
 
 from app.core.audit import audit_event
 from app.core.config import Settings
-from app.models.schemas import ImportResult, SongMeta
+from app.models.schemas import ImportProgress, ImportResult, SongMeta
+from app.services.import_progress import ImportProgressTracker
 from app.services.recommendation_identity import weak_identity
 
 _logger = logging.getLogger(__name__)
@@ -38,12 +40,48 @@ class UpstreamContentError(RuntimeError):
     pass
 
 
+class UpstreamTooSlowError(UpstreamContentError):
+    pass
+
+
 class DuplicateTrackError(RuntimeError):
     pass
 
 
 class DuplicateCheckUnavailableError(RuntimeError):
     pass
+
+
+class ImportBusyError(RuntimeError):
+    pass
+
+
+def _public_import_error(exc: BaseException) -> str:
+    if isinstance(exc, DuplicateTrackError):
+        return "song already exists in the Navidrome library"
+    if isinstance(exc, DownloadTooLargeError):
+        return "media exceeds MAX_DOWNLOAD_BYTES"
+    if isinstance(exc, InsufficientStorageError):
+        return "reserved free disk space would be exceeded"
+    if isinstance(exc, DuplicateCheckUnavailableError):
+        return "Navidrome duplicate check is unavailable"
+    if isinstance(exc, httpx.TimeoutException):
+        return "media download timed out"
+    if isinstance(exc, httpx.HTTPStatusError):
+        return f"media upstream returned {exc.response.status_code}"
+    if isinstance(exc, UpstreamTooSlowError):
+        return "media upstream too slow"
+    if isinstance(exc, (httpx.TooManyRedirects, UpstreamContentError)):
+        text = str(exc).strip()
+        return text if text and "http" not in text.lower() else "media upstream failed"
+    if isinstance(exc, ValueError):
+        text = str(exc).strip()
+        if text and "http" not in text.lower() and "://" not in text:
+            return text
+        return "invalid import request"
+    if isinstance(exc, OSError):
+        return "media file write failed"
+    return "import failed"
 
 
 class ImporterService:
@@ -53,6 +91,104 @@ class ImporterService:
         # ponytail: one NAS-wide import lock avoids duplicate writes and disk thrash;
         # replace with per-target locks only if measured concurrency requires it.
         self._import_lock = asyncio.Lock()
+        self._enqueue_lock = asyncio.Lock()
+        self._background_task: asyncio.Task[None] | None = None
+        self.progress = ImportProgressTracker()
+
+    def current_progress(self) -> ImportProgress:
+        return self.progress.snapshot()
+
+    async def aclose(self) -> None:
+        task = self._background_task
+        if task is None or task.done():
+            return
+        task.cancel()
+        try:
+            await task
+        except (asyncio.CancelledError, Exception):
+            return
+
+    async def enqueue_import(
+        self,
+        *,
+        url: str,
+        filename: str,
+        song: SongMeta | None = None,
+        pic_url: str | None = None,
+        lyric: str | None = None,
+        force: bool = False,
+    ) -> ImportResult | ImportProgress:
+        download_root, target = self._resolve_target(filename)
+        async with self._enqueue_lock:
+            if target.exists() and target.is_file() and not target.is_symlink():
+                if self._import_lock.locked():
+                    return ImportResult(
+                        ok=True,
+                        path=str(target),
+                        message="already imported",
+                    )
+                return await self.import_track(
+                    url=url,
+                    filename=filename,
+                    song=song,
+                    pic_url=pic_url,
+                    lyric=lyric,
+                    force=force,
+                )
+
+            running = self._background_task is not None and not self._background_task.done()
+            if running:
+                snapshot = self.progress.snapshot()
+                if snapshot.filename == target.name:
+                    return snapshot
+                raise ImportBusyError("another import is already running")
+
+            if not force and self._has_duplicate(song):
+                audit_event(
+                    "import_duplicate_rejected",
+                    title=song.title if song else None,
+                    artist=song.artist if song else None,
+                )
+                raise DuplicateTrackError("song already exists in the Navidrome library")
+
+            self._ensure_disk_space(download_root)
+            self.progress.start(target.name)
+            self._background_task = asyncio.create_task(
+                self._run_enqueued_import(
+                    url=url,
+                    filename=filename,
+                    song=song,
+                    pic_url=pic_url,
+                    lyric=lyric,
+                    force=force,
+                ),
+                name=f"nas-import:{target.name}",
+            )
+            return self.progress.snapshot()
+
+    async def _run_enqueued_import(
+        self,
+        *,
+        url: str,
+        filename: str,
+        song: SongMeta | None,
+        pic_url: str | None,
+        lyric: str | None,
+        force: bool,
+    ) -> None:
+        try:
+            await self.import_track(
+                url=url,
+                filename=filename,
+                song=song,
+                pic_url=pic_url,
+                lyric=lyric,
+                force=force,
+            )
+        except Exception as exc:
+            if self.progress.snapshot().stage != "failed":
+                self.progress.fail(_public_import_error(exc))
+            _logger.warning("background import failed: %s", type(exc).__name__)
 
     async def import_track(
         self,
@@ -67,68 +203,78 @@ class ImporterService:
         async with self._import_lock:
             download_root, target = self._resolve_target(filename)
             sidecar = target.with_suffix(".lrc")
-
-            if target.exists():
-                if target.is_symlink() or not target.is_file():
-                    raise ValueError("target path is not a regular file")
-                if lyric is not None:
-                    if not sidecar.exists():
-                        self._write_text_atomic(sidecar, lyric)
-                    try:
-                        self._embed_metadata(target, None, None, None, lyric)
-                    except Exception as exc:
-                        _logger.warning("lyric embed skipped: %s", type(exc).__name__)
-                audit_event("import_idempotent", filename=target.name)
-                return ImportResult(ok=True, path=str(target), message="already imported")
-
-            if not force and self._has_duplicate(song):
-                audit_event(
-                    "import_duplicate_rejected",
-                    title=song.title if song else None,
-                    artist=song.artist if song else None,
-                )
-                raise DuplicateTrackError("song already exists in the Navidrome library")
-
-            await self._validate_remote_url(url)
-            self._ensure_disk_space(download_root)
-
-            media_tmp = self._new_temp_path(download_root, target.stem, target.suffix)
-            lyric_tmp: Path | None = None
-            target_created = False
+            self.progress.start(target.name)
             try:
-                await self._download_to_file(url, media_tmp, download_root)
-                cover_data = await self._download_cover(pic_url) if pic_url else None
-                cover_mime = self._cover_mime(cover_data) if cover_data else None
-                self._embed_metadata(media_tmp, song, cover_data, cover_mime, lyric)
+                if target.exists():
+                    if target.is_symlink() or not target.is_file():
+                        raise ValueError("target path is not a regular file")
+                    if lyric is not None:
+                        if not sidecar.exists():
+                            self._write_text_atomic(sidecar, lyric)
+                        try:
+                            self._embed_metadata(target, None, None, None, lyric)
+                        except Exception as exc:
+                            _logger.warning("lyric embed skipped: %s", type(exc).__name__)
+                    audit_event("import_idempotent", filename=target.name)
+                    result = ImportResult(ok=True, path=str(target), message="already imported")
+                    self.progress.complete(result.message)
+                    return result
 
-                if lyric is not None:
-                    lyric_tmp = self._new_temp_path(download_root, target.stem, ".lrc")
-                    self._write_text_file(lyric_tmp, lyric)
+                if not force and self._has_duplicate(song):
+                    audit_event(
+                        "import_duplicate_rejected",
+                        title=song.title if song else None,
+                        artist=song.artist if song else None,
+                    )
+                    raise DuplicateTrackError("song already exists in the Navidrome library")
 
-                os.replace(media_tmp, target)
-                target_created = True
-                os.chmod(target, 0o644)
-                if lyric_tmp is not None:
-                    os.replace(lyric_tmp, sidecar)
-                    os.chmod(sidecar, 0o644)
+                await self._validate_remote_url(url)
+                self._ensure_disk_space(download_root)
 
-                audit_event(
-                    "import_completed",
-                    filename=target.name,
-                    bytes=target.stat().st_size,
-                    source=song.source if song else None,
-                    has_cover=cover_data is not None,
-                    has_lyric=lyric is not None,
-                )
-                return ImportResult(ok=True, path=str(target), message="imported")
-            except Exception:
-                media_tmp.unlink(missing_ok=True)
-                if lyric_tmp is not None:
-                    lyric_tmp.unlink(missing_ok=True)
-                if target_created:
-                    target.unlink(missing_ok=True)
-                    sidecar.unlink(missing_ok=True)
-                audit_event("import_failed", filename=target.name)
+                media_tmp = self._new_temp_path(download_root, target.stem, target.suffix)
+                lyric_tmp: Path | None = None
+                target_created = False
+                try:
+                    await self._download_to_file(url, media_tmp, download_root)
+                    self.progress.finishing()
+                    cover_data = await self._download_cover(pic_url) if pic_url else None
+                    cover_mime = self._cover_mime(cover_data) if cover_data else None
+                    self._embed_metadata(media_tmp, song, cover_data, cover_mime, lyric)
+
+                    if lyric is not None:
+                        lyric_tmp = self._new_temp_path(download_root, target.stem, ".lrc")
+                        self._write_text_file(lyric_tmp, lyric)
+
+                    os.replace(media_tmp, target)
+                    target_created = True
+                    os.chmod(target, 0o644)
+                    if lyric_tmp is not None:
+                        os.replace(lyric_tmp, sidecar)
+                        os.chmod(sidecar, 0o644)
+
+                    audit_event(
+                        "import_completed",
+                        filename=target.name,
+                        bytes=target.stat().st_size,
+                        source=song.source if song else None,
+                        has_cover=cover_data is not None,
+                        has_lyric=lyric is not None,
+                    )
+                    result = ImportResult(ok=True, path=str(target), message="imported")
+                    self.progress.complete(result.message)
+                    return result
+                except Exception:
+                    media_tmp.unlink(missing_ok=True)
+                    if lyric_tmp is not None:
+                        lyric_tmp.unlink(missing_ok=True)
+                    if target_created:
+                        target.unlink(missing_ok=True)
+                        sidecar.unlink(missing_ok=True)
+                    audit_event("import_failed", filename=target.name)
+                    raise
+            except Exception as exc:
+                if self.progress.snapshot().stage != "completed":
+                    self.progress.fail(_public_import_error(exc))
                 raise
 
     def _has_duplicate(self, song: SongMeta | None) -> bool:
@@ -201,8 +347,10 @@ class ImporterService:
             if expected_size is not None and expected_size > self._settings.max_download_bytes:
                 raise DownloadTooLargeError("media exceeds MAX_DOWNLOAD_BYTES")
             self._ensure_disk_space(download_root, expected_size or 0)
+            self.progress.set_total(expected_size)
 
             total = 0
+            started = time.monotonic()
             with destination.open("wb") as output:
                 async for chunk in response.aiter_bytes(256 * 1024):
                     if not chunk:
@@ -211,8 +359,11 @@ class ImporterService:
                     if total > self._settings.max_download_bytes:
                         raise DownloadTooLargeError("media exceeds MAX_DOWNLOAD_BYTES")
                     output.write(chunk)
+                    self.progress.update(total)
+                    self._abort_if_upstream_too_slow(started, total, expected_size)
                 output.flush()
                 os.fsync(output.fileno())
+            self.progress.update(total)
             if total == 0:
                 raise UpstreamContentError("media response was empty")
         finally:
@@ -305,6 +456,32 @@ class ImporterService:
 
         if any(not ipaddress.ip_address(address).is_global for address in addresses):
             raise ValueError("private media URLs are disabled")
+
+    def _abort_if_upstream_too_slow(
+        self,
+        started: float,
+        received: int,
+        expected_size: int | None,
+    ) -> None:
+        probe = self._settings.import_speed_probe_seconds
+        min_speed = self._settings.import_min_speed_bps
+        if probe <= 0 or min_speed <= 0:
+            return
+        elapsed = time.monotonic() - started
+        if elapsed < probe:
+            return
+        speed = received / elapsed if elapsed > 0 else 0.0
+        if speed >= min_speed:
+            return
+        remaining = None if expected_size is None else max(0, expected_size - received)
+        if remaining is not None and remaining < self._settings.import_slow_min_remaining_bytes:
+            return
+        audit_event(
+            "import_upstream_too_slow",
+            filename=self.progress.snapshot().filename,
+            bytes=received,
+        )
+        raise UpstreamTooSlowError("media upstream too slow")
 
     def _ensure_disk_space(self, root: Path, expected_size: int = 0) -> None:
         free = shutil.disk_usage(root).free

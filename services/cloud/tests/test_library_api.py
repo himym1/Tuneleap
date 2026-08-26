@@ -21,6 +21,18 @@ class _Library:
         self.imported = payload
         return {"ok": True, "message": "imported"}
 
+    async def import_progress(self):
+        if self.error is not None:
+            raise self.error
+        return {
+            "active": True,
+            "filename": "a.mp3",
+            "bytes_received": 4096,
+            "bytes_total": 8192,
+            "speed_bps": 1024.0,
+            "stage": "downloading",
+        }
+
     async def delete_songs(self, song_ids: list[str]):
         if self.error is not None:
             raise self.error
@@ -73,6 +85,22 @@ def test_library_import_maps_duplicate():
     assert "already exists" in response.json()["detail"]
 
 
+def test_library_import_async_returns_202():
+    library = _Library()
+    with _client(library) as client:
+        response = client.post(
+            "/v1/library/import",
+            json={
+                "url": "https://cdn.example/a.mp3",
+                "filename": "a.mp3",
+                "song": {"title": "A"},
+                "wait": False,
+            },
+        )
+    assert response.status_code == 202
+    assert library.imported["wait"] is False
+
+
 def test_library_import_unavailable_without_nas_config():
     with _client(_Library(enabled=False)) as client:
         response = client.post(
@@ -83,6 +111,23 @@ def test_library_import_unavailable_without_nas_config():
                 "song": {"title": "A"},
             },
         )
+    assert response.status_code == 503
+
+
+def test_library_import_progress_forwards_snapshot():
+    with _client(_Library()) as client:
+        response = client.get("/v1/library/import/progress")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["active"] is True
+    assert body["filename"] == "a.mp3"
+    assert body["bytes_received"] == 4096
+    assert body["speed_bps"] == 1024.0
+
+
+def test_library_import_progress_unavailable_without_nas_config():
+    with _client(_Library(enabled=False)) as client:
+        response = client.get("/v1/library/import/progress")
     assert response.status_code == 503
 
 

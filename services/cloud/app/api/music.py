@@ -89,6 +89,7 @@ async def get_url(
     source: str = Query(...),
     br: int = Query(999, ge=128),
     provider: str | None = Query(None),
+    fresh: bool = Query(False),
 ):
     facade = _facade(request)
     try:
@@ -97,6 +98,7 @@ async def get_url(
             source=canonicalize_music_source(source) or source,
             br=br,
             provider=provider,
+            fresh=fresh,
         )
     except Exception as exc:  # noqa: BLE001
         raise _map_upstream(exc) from exc

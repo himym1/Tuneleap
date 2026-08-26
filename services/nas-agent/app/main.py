@@ -24,6 +24,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        await app.state.importer.aclose()
         await client.aclose()
 
 

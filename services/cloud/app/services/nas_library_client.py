@@ -79,12 +79,20 @@ class NasLibraryClient:
             raise
 
     async def import_song(self, payload: dict[str, Any]) -> dict[str, Any]:
+        wait = payload.get("wait", True)
+        if isinstance(wait, str):
+            wait = wait.strip().lower() not in {"0", "false", "no"}
+        timeout = self._timeout if wait is False else max(self._timeout, 120.0)
         return await self._request_json(
             "POST",
             "/v1/nas/import",
             json=payload,
-            timeout=max(self._timeout, 120.0),
+            timeout=timeout,
+            retry_transport=False,
         )
+
+    async def import_progress(self) -> dict[str, Any]:
+        return await self._request_json("GET", "/v1/nas/import/progress")
 
     async def delete_songs(self, song_ids: list[str]) -> dict[str, Any]:
         return await self._request_json(
@@ -101,11 +109,13 @@ class NasLibraryClient:
         params: dict[str, Any] | None = None,
         json: dict[str, Any] | None = None,
         timeout: float | None = None,
+        retry_transport: bool = True,
     ) -> dict[str, Any]:
         if not self.enabled:
             raise RuntimeError("NAS agent client is not configured")
 
-        for attempt in range(2):
+        attempts = 2 if retry_transport else 1
+        for attempt in range(attempts):
             try:
                 response = await self._client.request(
                     method,
@@ -125,7 +135,7 @@ class NasLibraryClient:
                     raise TypeError("NAS agent response must be a JSON object")
                 return data
             except httpx.TransportError:
-                if attempt == 0:
+                if retry_transport and attempt == 0:
                     _logger.warning("NAS agent transport failed; retrying once")
                     continue
                 raise

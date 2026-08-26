@@ -1,12 +1,14 @@
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from app.core.auth import verify_agent_key
-from app.models.schemas import ImportRequest, ImportResult, ScanResult
+from app.models.schemas import ImportProgress, ImportRequest, ImportResult, ScanResult
 from app.services.importer import (
     DownloadTooLargeError,
     DuplicateCheckUnavailableError,
     DuplicateTrackError,
+    ImportBusyError,
     InsufficientStorageError,
     UpstreamContentError,
 )
@@ -33,10 +35,27 @@ def _library(request: Request):
     return service
 
 
+@router.get("/import/progress", response_model=ImportProgress, summary="Current NAS import transfer")
+async def nas_import_progress(request: Request):
+    return _importer(request).current_progress()
+
+
 @router.post("/import", response_model=ImportResult, summary="Download audio onto NAS")
 async def nas_import(request: Request, body: ImportRequest):
     importer = _importer(request)
     try:
+        if not body.wait:
+            accepted = await importer.enqueue_import(
+                url=body.url,
+                filename=body.filename,
+                song=body.song,
+                pic_url=body.pic_url,
+                lyric=body.lyric,
+                force=body.force,
+            )
+            if isinstance(accepted, ImportResult):
+                return accepted
+            return JSONResponse(status_code=202, content=accepted.model_dump())
         return await importer.import_track(
             url=body.url,
             filename=body.filename,
@@ -45,6 +64,8 @@ async def nas_import(request: Request, body: ImportRequest):
             lyric=body.lyric,
             force=body.force,
         )
+    except ImportBusyError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except DuplicateTrackError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except DuplicateCheckUnavailableError as exc:

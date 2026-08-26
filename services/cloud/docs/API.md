@@ -94,6 +94,7 @@ Success:
 | `source` | yes |
 | `br` | no (default 999) |
 | `provider` | no (pin winning adapter) |
+| `fresh` | no (skip adapter URL cache and ask upstream again) |
 
 Success:
 
@@ -139,6 +140,7 @@ Authenticated. Allow-list:
 
 - `navidrome_player-<semver>+<build>-android.apk`
 - `navidrome_player-<semver>+<build>-macos.dmg`
+- `navidrome_player-<semver>+<build>-windows.zip`
 - `SHA256SUMS`
 
 No symlink escape from `RELEASE_DIR`.
@@ -181,7 +183,13 @@ Cloud forwards these to the NAS Agent using server-side `NAS_AGENT_URL` and `NAS
 
 ### `POST /v1/library/import`
 
-Same JSON body as NAS Agent `POST /v1/nas/import`.
+Same JSON body as NAS Agent `POST /v1/nas/import`. The App sends `wait: false`; Cloud forwards it and returns HTTP 202 with the NAS progress snapshot instead of waiting for the download. `wait: true` (default) stays synchronous for older clients.
+
+Cloud does not retry a timed-out import POST. Retrying piled a second wait onto the NAS import lock and made every following song fail.
+
+### `GET /v1/library/import/progress`
+
+Same JSON body as NAS Agent `GET /v1/nas/import/progress`. The App polls this after a `wait: false` accept until `stage` is `completed` or `failed`.
 
 ### `POST /v1/library/delete`
 

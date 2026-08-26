@@ -100,7 +100,7 @@ class LibraryService:
         try:
             await db.execute("BEGIN IMMEDIATE")
             cursor = await db.execute(
-                "SELECT rowid, path FROM media_file WHERE id = ?",
+                "SELECT path FROM media_file WHERE id = ?",
                 (song_id,),
             )
             row = await cursor.fetchone()
@@ -108,10 +108,10 @@ class LibraryService:
                 await db.rollback()
                 return {"id": song_id, "status": "skipped", "reason": "not found"}
 
-            rowid, stored_path = row
+            (stored_path,) = row
             target = self._resolve_host_path(stored_path)
             staged = self._stage_related_files(target)
-            await self._delete_related_rows(db, tables, song_id, rowid)
+            await self._delete_related_rows(db, tables, song_id)
             await db.execute("DELETE FROM media_file WHERE id = ?", (song_id,))
             await db.commit()
         except Exception as exc:
@@ -165,7 +165,6 @@ class LibraryService:
         db: aiosqlite.Connection,
         tables: set[str],
         song_id: str,
-        rowid: int,
     ) -> None:
         for table, column in _RELATED_DELETE_TARGETS:
             if table not in tables:
@@ -174,8 +173,9 @@ class LibraryService:
                 f"DELETE FROM {table} WHERE {column} = ?",
                 (song_id,),
             )
-        if "media_file_fts" in tables:
-            await db.execute("DELETE FROM media_file_fts WHERE rowid = ?", (rowid,))
+        # Do not DELETE from media_file_fts: Navidrome 0.55+ uses a contentless
+        # FTS5 index. Direct DELETE fails; the AFTER DELETE trigger on media_file
+        # issues the FTS5 'delete' command with the required column values.
 
     def _resolve_host_path(self, navidrome_path: str) -> Path:
         if not navidrome_path or "\x00" in navidrome_path or "\\" in navidrome_path:

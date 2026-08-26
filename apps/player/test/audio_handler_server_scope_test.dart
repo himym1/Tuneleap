@@ -108,7 +108,11 @@ class _ScrobbleClient extends SubsonicClient {
 class _OnlineBackendClient extends BackendClient {
   int playbackUrlCalls = 0;
   @override
-  Future<String> getPlaybackUrl(Song song, {int? maxBitRate}) async {
+  Future<String> getPlaybackUrl(
+    Song song, {
+    int? maxBitRate,
+    bool bypassCache = false,
+  }) async {
     playbackUrlCalls++;
     return 'https://music.126.net/test-$playbackUrlCalls.mp3';
   }

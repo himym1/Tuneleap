@@ -233,6 +233,44 @@ void main() {
       expect(captured.queryParameters['br'], '192');
     });
 
+    test(
+      'getPlaybackUrl bypassCache skips local cache and asks Cloud again',
+      () async {
+        var calls = 0;
+        late RequestOptions captured;
+        final dio = Dio()
+          ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+            calls += 1;
+            captured = options;
+            return _jsonBody({
+              'url': 'https://cdn.example.com/song-$calls.mp3',
+            });
+          });
+        final client = BackendClient(dio: dio)
+          ..configure(cloudBaseUrl: 'http://cloud:8600');
+        const song = Song(
+          id: '1',
+          title: 'Track',
+          album: '',
+          albumId: '',
+          artist: '',
+          artistId: '',
+          backend: SongBackend.solara,
+          onlineSource: 'netease',
+          onlineProvider: 'chksz',
+        );
+
+        final first = await client.getPlaybackUrl(song);
+        final cached = await client.getPlaybackUrl(song);
+        final fresh = await client.getPlaybackUrl(song, bypassCache: true);
+
+        expect(first, cached);
+        expect(fresh, isNot(first));
+        expect(calls, 2);
+        expect(captured.queryParameters['fresh'], 'true');
+      },
+    );
+
     test('buildCoverProxyUrl keeps Solara proxy on same host', () {
       final client = BackendClient()..configure(baseUrl: 'http://nas:10086');
       const song = Song(
@@ -458,6 +496,121 @@ void main() {
       expect(captured.data['song'], {'id': '1', 'name': 'Track'});
       expect(captured.data['picUrl'], 'http://cover/1');
       expect(captured.data['force'], isTrue);
+      expect(captured.data['wait'], isFalse);
+    });
+
+    test('queueNasDownload polls until async import completes', () async {
+      var calls = 0;
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          calls += 1;
+          if (options.method == 'POST') {
+            expect(options.data['wait'], isFalse);
+            return _jsonBody({
+              'active': true,
+              'filename': 'solara_netease_1.flac',
+              'stage': 'downloading',
+              'bytes_received': 4096,
+            }, statusCode: 202);
+          }
+          expect(options.method, 'GET');
+          return _jsonBody({
+            'active': false,
+            'filename': 'solara_netease_1.flac',
+            'stage': 'completed',
+            'message': 'imported',
+          });
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(cloudBaseUrl: 'http://cloud:8600');
+
+      final message = await client.queueNasDownload(
+        url: 'https://cdn.example.com/song.flac',
+        filename: 'solara_netease_1.flac',
+        song: {'id': '1', 'name': 'Track'},
+      );
+
+      expect(message, 'imported');
+      expect(calls, 2);
+    });
+
+    test('formatNasImportError hides DioException boilerplate', () {
+      final error = DioException(
+        requestOptions: RequestOptions(path: '/v1/library/import'),
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: RequestOptions(path: '/v1/library/import'),
+          statusCode: 504,
+          data: {'detail': 'NAS agent timeout'},
+        ),
+      );
+      expect(formatNasImportError(error), 'NAS agent timeout');
+      expect(
+        formatNasImportError(
+          DioException(
+            requestOptions: RequestOptions(path: '/v1/library/import'),
+            type: DioExceptionType.badResponse,
+            response: Response(
+              requestOptions: RequestOptions(path: '/v1/library/import'),
+              statusCode: 502,
+            ),
+          ),
+        ),
+        'NAS agent unavailable',
+      );
+    });
+
+    test('getNasImportProgress reads Cloud snapshot', () async {
+      late RequestOptions captured;
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          captured = options;
+          return _jsonBody({
+            'active': true,
+            'filename': 'a.flac',
+            'bytes_received': 4096,
+            'bytes_total': 8192,
+            'speed_bps': 1024.5,
+            'stage': 'downloading',
+          });
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(cloudBaseUrl: 'http://cloud:8600');
+
+      final progress = await client.getNasImportProgress();
+
+      expect(captured.path, 'http://cloud:8600/v1/library/import/progress');
+      expect(progress.active, isTrue);
+      expect(progress.filename, 'a.flac');
+      expect(progress.bytesReceived, 4096);
+      expect(progress.bytesTotal, 8192);
+      expect(progress.speedBps, 1024.5);
+      expect(progress.fraction, 0.5);
+    });
+
+    test('getNasImportProgress uses LAN agent when Cloud is absent', () async {
+      late RequestOptions captured;
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          captured = options;
+          return _jsonBody({
+            'active': false,
+            'filename': null,
+            'bytes_received': 0,
+            'stage': 'idle',
+          });
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(
+          nasAgentUrl: 'http://192.168.1.10:8504',
+          nasAgentKey: 'nas-key',
+        );
+
+      final progress = await client.getNasImportProgress();
+
+      expect(captured.path, 'http://192.168.1.10:8504/v1/nas/import/progress');
+      expect(captured.headers['X-API-Key'], 'nas-key');
+      expect(progress.active, isFalse);
     });
 
     test('queueNasDownload uses LAN agent when Cloud is absent', () async {

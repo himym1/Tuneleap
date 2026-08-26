@@ -48,12 +48,47 @@ Future<bool> deleteLibrarySongFromNavidrome(
     ),
   );
   if (confirmed != true) return false;
+  if (!context.mounted) return false;
 
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => PopScope(
+      canPop: false,
+      child: Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(l10n.contextMenuDeleting),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  var deleted = false;
+  Object? deleteError;
   try {
     await deleteService.deleteLibrarySong(song);
+    deleted = true;
   } catch (error) {
-    if (context.mounted) {
-      messenger.showSnackBar(_message(_formatDeleteError(l10n, error)));
+    deleteError = error;
+  }
+
+  if (context.mounted) {
+    Navigator.of(context, rootNavigator: true).pop();
+  }
+
+  if (!deleted) {
+    if (context.mounted && deleteError != null) {
+      messenger.showSnackBar(_message(_formatDeleteError(l10n, deleteError)));
     }
     return false;
   }

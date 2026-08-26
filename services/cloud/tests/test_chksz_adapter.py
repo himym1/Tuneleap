@@ -160,6 +160,44 @@ async def test_chksz_url_and_http_cover():
 
 
 @pytest.mark.asyncio
+async def test_chksz_invalidate_url_cache_asks_upstream_again():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        if request.url.path == "/api/163_music":
+            calls += 1
+            return httpx.Response(
+                200,
+                json={
+                    "code": 200,
+                    "data": {
+                        "url": f"https://m80{calls}.music.126.net/a.mp3",
+                        "br": 320000,
+                    },
+                },
+            )
+        raise AssertionError(request.url.path)
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+        )
+        first = await adapter.get_url("186001", source="netease", br=320)
+        cached = await adapter.get_url("186001", source="netease", br=320)
+        adapter.invalidate_url_cache("186001", source="netease", br=320)
+        fresh = await adapter.get_url("186001", source="netease", br=320)
+
+    assert calls == 2
+    assert first["url"] == cached["url"]
+    assert fresh["url"] != first["url"]
+
+
+@pytest.mark.asyncio
 async def test_chksz_quota_errors_fail_over():
     chksz_calls = 0
 

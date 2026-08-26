@@ -4,6 +4,7 @@ import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
+import 'package:navidrome_player/ui/widgets/nas_import_queue_popup.dart';
 import 'package:navidrome_player/utils/song_identity.dart';
 
 Future<bool> importOnlineSongToNavidrome(
@@ -69,7 +70,17 @@ Future<bool> importOnlineSongToNavidrome(
   onImported?.call();
   if (!context.mounted) return true;
   messenger.clearSnackBars();
-  messenger.showSnackBar(_message(l10n.contextMenuQueuedNavidrome));
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(l10n.contextMenuQueuedNavidrome),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 3),
+      action: SnackBarAction(
+        label: l10n.nasImportViewQueue,
+        onPressed: () => showNasImportQueuePopup(context),
+      ),
+    ),
+  );
   return true;
 }
 

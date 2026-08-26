@@ -37,11 +37,14 @@ The endpoint remains HTTP 200 for liveness; inspect the booleans before enabling
     "year": 2026,
     "source": "netease"
   },
-  "force": false
+  "force": false,
+  "wait": true
 }
 ```
 
 Compatibility inputs: `picUrl` aliases `pic_url`, and `song.name` aliases `song.title`. Supported audio extensions are `.mp3`, `.flac`, `.m4a`, and `.mp4`. Lyrics are saved beside the audio as `.lrc`.
+
+`wait` defaults to `true` and blocks until the file is on disk. The App sends `wait: false` so Cloud can return immediately; poll `GET /v1/nas/import/progress` until `stage` is `completed` or `failed`. A `wait: false` accept is HTTP 202. The same filename already in flight is idempotent. A different file while the lock is held returns 409.
 
 Success:
 
@@ -69,7 +72,26 @@ The agent applies two duplicate rules while holding the import lock:
 | 504 | Upstream timeout |
 | 507 | Reserved free-space threshold would be crossed |
 
+If the media CDN stays below about 128 KB/s after 8 seconds and a large remainder is still outstanding, the agent aborts with 502 `media upstream too slow` so the App can ask Cloud for a fresh playback URL (often a different node).
+
 Cover download/tagging is best effort: an invalid or unavailable cover does not fail the audio import.
+
+## `GET /v1/nas/import/progress`
+
+Live snapshot of the single in-flight import. The agent holds one import lock, so at most one transfer is active. The response never includes the media URL.
+
+```json
+{
+  "active": true,
+  "filename": "solara_netease_123.flac",
+  "bytes_received": 12582912,
+  "bytes_total": 161265397,
+  "speed_bps": 49152.0,
+  "stage": "downloading"
+}
+```
+
+`bytes_total` is omitted when the upstream did not send `Content-Length`. `stage` is `idle`, `downloading`, `finishing`, `completed`, or `failed`. Terminal snapshots keep `filename` / `error` / `message` until the next import starts so the App can finish polling. When nothing has run yet, `active` is `false` and the counters are zero.
 
 ## `GET /v1/songs/library-identities`
 

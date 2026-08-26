@@ -401,13 +401,24 @@ class MusicFacade:
         raise httpx.HTTPError("all music adapters failed")
 
     async def get_url(
-        self, id: str, *, source: str, br: int, provider: str | None = None
+        self,
+        id: str,
+        *,
+        source: str,
+        br: int,
+        provider: str | None = None,
+        fresh: bool = False,
     ) -> UrlResponse:
         resolved = canonicalize_music_source(source) or source
-        data = await self._with_adapters(
-            provider,
-            lambda adapter: adapter.get_url(id, source=resolved, br=br),
-        )
+
+        async def _resolve(adapter):
+            if fresh:
+                invalidate = getattr(adapter, "invalidate_url_cache", None)
+                if callable(invalidate):
+                    invalidate(id, source=resolved, br=br)
+            return await adapter.get_url(id, source=resolved, br=br)
+
+        data = await self._with_adapters(provider, _resolve)
         return UrlResponse.model_validate(data)
 
     async def get_cover(

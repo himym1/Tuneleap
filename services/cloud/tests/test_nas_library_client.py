@@ -125,6 +125,30 @@ async def test_nas_library_client_imports_song():
 
 
 @pytest.mark.asyncio
+async def test_nas_library_client_import_does_not_retry_transport_error():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        raise httpx.ConnectError("disconnected", request=request)
+
+    settings = Settings(
+        api_key="cloud",
+        nas_agent_url="https://nas-agent.test",
+        nas_agent_key="nas-key",
+        recommendation_sources="netease",
+        _env_file=None,
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(httpx.ConnectError):
+            await NasLibraryClient(client, settings).import_song(
+                {"url": "https://cdn.example/a.mp3", "filename": "a.mp3", "wait": False}
+            )
+    assert calls == 1
+
+
+@pytest.mark.asyncio
 async def test_nas_library_client_maps_duplicate_conflict():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
@@ -149,6 +173,37 @@ async def test_nas_library_client_maps_duplicate_conflict():
             )
     assert exc.value.status_code == 409
     assert "already exists" in exc.value.detail
+
+
+@pytest.mark.asyncio
+async def test_nas_library_client_reads_import_progress():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/v1/nas/import/progress")
+        assert request.method == "GET"
+        return httpx.Response(
+            200,
+            json={
+                "active": True,
+                "filename": "a.mp3",
+                "bytes_received": 2048,
+                "bytes_total": 4096,
+                "speed_bps": 512.0,
+                "stage": "downloading",
+            },
+        )
+
+    settings = Settings(
+        api_key="cloud",
+        nas_agent_url="https://nas-agent.test",
+        nas_agent_key="nas-key",
+        recommendation_sources="netease",
+        _env_file=None,
+    )
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        result = await NasLibraryClient(client, settings).import_progress()
+    assert result["bytes_received"] == 2048
+    assert result["filename"] == "a.mp3"
 
 
 @pytest.mark.asyncio

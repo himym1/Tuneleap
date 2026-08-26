@@ -22,7 +22,11 @@ class _FakeBackendClient extends BackendClient {
   bool get canMutateNas => true;
 
   @override
-  Future<String> getPlaybackUrl(Song song, {int? maxBitRate}) async {
+  Future<String> getPlaybackUrl(
+    Song song, {
+    int? maxBitRate,
+    bool bypassCache = false,
+  }) async {
     await Future<void>.delayed(delay);
     if (failWith != null) throw failWith!;
     return 'https://cdn.example.com/${song.urlId ?? song.id}.mp3';
@@ -48,6 +52,11 @@ class _FakeBackendClient extends BackendClient {
     importedIds.add(song['id']?.toString() ?? filename);
     return 'imported';
   }
+
+  NasImportProgress progress = const NasImportProgress();
+
+  @override
+  Future<NasImportProgress> getNasImportProgress() async => progress;
 }
 
 class _FakeSubsonic extends SubsonicClient {
@@ -104,7 +113,14 @@ void main() {
     expect(queue.enqueue(_song('2', title: 'Two')), isTrue);
     expect(queue.enqueue(_song('1', title: 'One')), isFalse);
 
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    await _waitUntil(
+      () =>
+          container
+              .read(nasImportQueueProvider)
+              .where((t) => t.stage == NasImportStage.completed)
+              .length ==
+          2,
+    );
 
     final tasks = container.read(nasImportQueueProvider);
     expect(tasks.where((t) => t.stage == NasImportStage.completed).length, 2);
@@ -118,19 +134,74 @@ void main() {
 
     final queue = container.read(nasImportQueueProvider.notifier);
     queue.enqueue(_song('x'));
-    await Future<void>.delayed(const Duration(milliseconds: 80));
+    await _waitUntil(
+      () =>
+          container.read(nasImportQueueProvider).single.stage ==
+          NasImportStage.failed,
+    );
 
     var tasks = container.read(nasImportQueueProvider);
     expect(tasks.single.stage, NasImportStage.failed);
 
     backend.failWith = null;
     await queue.retry(tasks.single.id);
-    await Future<void>.delayed(const Duration(milliseconds: 80));
+    await _waitUntil(
+      () =>
+          container.read(nasImportQueueProvider).single.stage ==
+          NasImportStage.completed,
+    );
 
     tasks = container.read(nasImportQueueProvider);
     expect(tasks.single.stage, NasImportStage.completed);
     expect(backend.importedIds, ['x']);
   });
+
+  test('uploading task shows NAS transfer progress', () async {
+    final backend = _FakeBackendClient(delay: const Duration(milliseconds: 80))
+      ..progress = const NasImportProgress(
+        active: true,
+        filename: 'solara_netease_via-gdstudio_p.mp3',
+        bytesReceived: 12 * 1024 * 1024,
+        bytesTotal: 160 * 1024 * 1024,
+        speedBps: 48 * 1024,
+        stage: 'downloading',
+      );
+    final container = await _container(backend: backend);
+    addTearDown(container.dispose);
+
+    container.read(nasImportQueueProvider.notifier).enqueue(_song('p'));
+    await _waitUntil(() {
+      final tasks = container.read(nasImportQueueProvider);
+      return tasks.isNotEmpty &&
+          tasks.single.bytesReceived > 0 &&
+          tasks.single.stage == NasImportStage.uploading;
+    });
+
+    final task = container.read(nasImportQueueProvider).single;
+    expect(task.bytesReceived, 12 * 1024 * 1024);
+    expect(task.bytesTotal, 160 * 1024 * 1024);
+    expect(formatNasImportTransfer(task), '12.0 MB / 160.0 MB · 48 KB/s');
+  });
+
+  test('transfer labels format bytes and speed', () {
+    expect(formatNasImportBytes(900), '900 B');
+    expect(formatNasImportBytes(48 * 1024), '48 KB');
+    expect(formatNasImportBytes(12 * 1024 * 1024), '12.0 MB');
+    expect(formatNasImportSpeed(48 * 1024), '48 KB/s');
+  });
+}
+
+Future<void> _waitUntil(
+  bool Function() predicate, {
+  Duration timeout = const Duration(seconds: 3),
+}) async {
+  final end = DateTime.now().add(timeout);
+  while (!predicate()) {
+    if (DateTime.now().isAfter(end)) {
+      fail('condition not met within $timeout');
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+  }
 }
 
 class _FixedServerConfig extends ServerConfigNotifier {

@@ -12,6 +12,9 @@ class _FakeBackendClient extends BackendClient {
   late String queuedFilename;
   late Map<String, dynamic> queuedSong;
   String? queuedPicUrl;
+  String? failQueueWith;
+  final List<String> playbackRequests = [];
+  final List<String> queuedUrls = [];
 
   @override
   bool get isConfigured => true;
@@ -19,7 +22,13 @@ class _FakeBackendClient extends BackendClient {
   bool get canMutateNas => true;
 
   @override
-  Future<String> getPlaybackUrl(Song song, {int? maxBitRate}) async {
+  Future<String> getPlaybackUrl(
+    Song song, {
+    int? maxBitRate,
+    bool bypassCache = false,
+  }) async {
+    playbackRequests.add(bypassCache ? 'fresh' : 'cached');
+    if (bypassCache) return '$playbackUrl&fresh=1';
     return playbackUrl;
   }
 
@@ -41,6 +50,12 @@ class _FakeBackendClient extends BackendClient {
     queuedFilename = filename;
     queuedSong = song;
     queuedPicUrl = picUrl;
+    queuedUrls.add(url);
+    if (failQueueWith != null) {
+      final error = failQueueWith!;
+      failQueueWith = null;
+      throw StateError(error);
+    }
     return queueMessage;
   }
 }
@@ -169,5 +184,37 @@ void main() {
         'http://solara.local/proxy?types=pic&id=109951166681216835&size=300',
       );
     });
+
+    test(
+      'retries once with a fresh URL when the first CDN is too slow',
+      () async {
+        const song = Song(
+          id: '523250334',
+          title: '永不失联的爱',
+          album: '',
+          albumId: '',
+          artist: '周兴哲',
+          artistId: '',
+          backend: SongBackend.solara,
+          onlineSource: 'netease',
+          onlineProvider: 'chksz',
+          urlId: '523250334',
+        );
+        final backendClient = _FakeBackendClient(
+          playbackUrl: 'https://cdn.example.com/song.flac?token=1',
+          queueMessage: 'imported',
+        )..failQueueWith = 'media upstream too slow';
+        final service = NavidromeImportService(backendClient: backendClient);
+
+        final result = await service.importOnlineSong(song);
+
+        expect(result.message, 'imported');
+        expect(backendClient.playbackRequests, ['cached', 'fresh']);
+        expect(backendClient.queuedUrls, [
+          'https://cdn.example.com/song.flac?token=1',
+          'https://cdn.example.com/song.flac?token=1&fresh=1',
+        ]);
+      },
+    );
   });
 }

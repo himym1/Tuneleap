@@ -13,14 +13,19 @@ enum _DownloadsTab { offline, nasImport }
 
 /// 下载管理页面 — 本机离线下载 + NAS 导入曲库队列
 class DownloadsScreen extends ConsumerStatefulWidget {
-  const DownloadsScreen({super.key});
+  const DownloadsScreen({super.key, this.initialTab});
+
+  /// `import` opens the NAS library-import queue tab.
+  final String? initialTab;
 
   @override
   ConsumerState<DownloadsScreen> createState() => _DownloadsScreenState();
 }
 
 class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
-  _DownloadsTab _tab = _DownloadsTab.offline;
+  late _DownloadsTab _tab = widget.initialTab == 'import'
+      ? _DownloadsTab.nasImport
+      : _DownloadsTab.offline;
 
   @override
   Widget build(BuildContext context) {
@@ -493,14 +498,24 @@ class _NasImportTaskTile extends StatelessWidget {
                 ),
                 if (busy) ...[
                   const SizedBox(height: 6),
-                  const LinearProgressIndicator(
-                    borderRadius: BorderRadius.all(Radius.circular(4)),
+                  LinearProgressIndicator(
+                    value: task.fraction,
+                    borderRadius: const BorderRadius.all(Radius.circular(4)),
                   ),
+                  if (formatNasImportTransfer(task).isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      formatNasImportTransfer(task),
+                      style: Theme.of(context).textTheme.chipLabel.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ],
                 if (task.errorMessage != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    task.errorMessage!,
+                    localizeNasImportError(S.of(context), task.errorMessage),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(
@@ -512,7 +527,7 @@ class _NasImportTaskTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          _NasStatusChip(stage: task.stage),
+          _NasStatusChip(task: task),
           if (task.stage == NasImportStage.failed) ...[
             const SizedBox(width: 4),
             IconButton(
@@ -597,13 +612,14 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _NasStatusChip extends StatelessWidget {
-  final NasImportStage stage;
+  final NasImportTask task;
 
-  const _NasStatusChip({required this.stage});
+  const _NasStatusChip({required this.task});
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) = switch (stage) {
+    final fraction = task.fraction;
+    final (label, color) = switch (task.stage) {
       NasImportStage.pending => (
         S.of(context).downloadsPending,
         Theme.of(context).colorScheme.onSurfaceVariant,
@@ -613,7 +629,9 @@ class _NasStatusChip extends StatelessWidget {
         context.colors.primary,
       ),
       NasImportStage.uploading => (
-        S.of(context).nasImportStageUploading,
+        fraction != null
+            ? S.of(context).commonPercent((fraction * 100).round())
+            : S.of(context).nasImportStageUploading,
         context.colors.primary,
       ),
       NasImportStage.completed => (

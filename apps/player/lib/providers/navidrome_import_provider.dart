@@ -44,7 +44,7 @@ class NavidromeImportService {
 
     try {
       onStage?.call(NasImportStage.resolving);
-      final playbackUrl = await backendClient.getPlaybackUrl(song);
+      var playbackUrl = await backendClient.getPlaybackUrl(song);
       debugPrint('[Import] playback URL resolved');
 
       final extension = inferFileExtension(playbackUrl, song);
@@ -67,14 +67,32 @@ class NavidromeImportService {
       );
 
       onStage?.call(NasImportStage.uploading);
-      final message = await backendClient.queueNasDownload(
-        url: playbackUrl,
-        filename: filename,
-        song: buildNasDownloadSong(song),
-        picUrl: picUrl,
-        lyric: lrcText,
-        force: force,
-      );
+      String? message;
+      try {
+        message = await backendClient.queueNasDownload(
+          url: playbackUrl,
+          filename: filename,
+          song: buildNasDownloadSong(song),
+          picUrl: picUrl,
+          lyric: lrcText,
+          force: force,
+        );
+      } catch (error) {
+        if (!isSlowNasUpstream(error)) rethrow;
+        debugPrint('[Import] slow upstream; resolving a fresh URL');
+        playbackUrl = await backendClient.getPlaybackUrl(
+          song,
+          bypassCache: true,
+        );
+        message = await backendClient.queueNasDownload(
+          url: playbackUrl,
+          filename: filename,
+          song: buildNasDownloadSong(song),
+          picUrl: picUrl,
+          lyric: lrcText,
+          force: force,
+        );
+      }
       debugPrint('[Import] queued successfully');
 
       return NavidromeImportResult(filename: filename, message: message);

@@ -77,6 +77,95 @@ def test_delete_removes_file_sidecar_and_database_rows(settings):
     db.close()
 
 
+def test_delete_works_with_navidrome_contentless_fts5(settings):
+    """Navidrome 0.55+ keeps media_file_fts via triggers; never DELETE the FTS table."""
+    target = Path(settings.download_dir) / "song.mp3"
+    target.write_bytes(b"audio")
+    _create_library_db(settings.navidrome_db_path, [("song-1", "download/song.mp3")])
+
+    db = sqlite3.connect(settings.navidrome_db_path)
+    db.executescript(
+        """
+        ALTER TABLE media_file ADD COLUMN title TEXT;
+        ALTER TABLE media_file ADD COLUMN album TEXT;
+        ALTER TABLE media_file ADD COLUMN artist TEXT;
+        ALTER TABLE media_file ADD COLUMN album_artist TEXT;
+        ALTER TABLE media_file ADD COLUMN sort_title TEXT;
+        ALTER TABLE media_file ADD COLUMN sort_album_name TEXT;
+        ALTER TABLE media_file ADD COLUMN sort_artist_name TEXT;
+        ALTER TABLE media_file ADD COLUMN sort_album_artist_name TEXT;
+        ALTER TABLE media_file ADD COLUMN disc_subtitle TEXT;
+        ALTER TABLE media_file ADD COLUMN search_participants TEXT;
+        ALTER TABLE media_file ADD COLUMN search_normalized TEXT;
+        UPDATE media_file SET
+            title='Song', album='Album', artist='Artist', album_artist='Artist',
+            sort_title='Song', sort_album_name='Album', sort_artist_name='Artist',
+            sort_album_artist_name='Artist', disc_subtitle='',
+            search_participants='', search_normalized='song';
+        CREATE VIRTUAL TABLE media_file_fts USING fts5(
+            title, album, artist, album_artist,
+            sort_title, sort_album_name, sort_artist_name, sort_album_artist_name,
+            disc_subtitle, search_participants, search_normalized,
+            content='', content_rowid='rowid',
+            tokenize='unicode61 remove_diacritics 2'
+        );
+        CREATE TRIGGER media_file_fts_ai AFTER INSERT ON media_file BEGIN
+            INSERT INTO media_file_fts(
+                rowid, title, album, artist, album_artist,
+                sort_title, sort_album_name, sort_artist_name, sort_album_artist_name,
+                disc_subtitle, search_participants, search_normalized
+            ) VALUES (
+                NEW.rowid, NEW.title, NEW.album, NEW.artist, NEW.album_artist,
+                NEW.sort_title, NEW.sort_album_name, NEW.sort_artist_name,
+                NEW.sort_album_artist_name,
+                COALESCE(NEW.disc_subtitle, ''), COALESCE(NEW.search_participants, ''),
+                COALESCE(NEW.search_normalized, '')
+            );
+        END;
+        CREATE TRIGGER media_file_fts_ad AFTER DELETE ON media_file BEGIN
+            INSERT INTO media_file_fts(
+                media_file_fts, rowid, title, album, artist, album_artist,
+                sort_title, sort_album_name, sort_artist_name, sort_album_artist_name,
+                disc_subtitle, search_participants, search_normalized
+            ) VALUES (
+                'delete', OLD.rowid, OLD.title, OLD.album, OLD.artist, OLD.album_artist,
+                OLD.sort_title, OLD.sort_album_name, OLD.sort_artist_name,
+                OLD.sort_album_artist_name,
+                COALESCE(OLD.disc_subtitle, ''), COALESCE(OLD.search_participants, ''),
+                COALESCE(OLD.search_normalized, '')
+            );
+        END;
+        INSERT INTO media_file_fts(
+            rowid, title, album, artist, album_artist,
+            sort_title, sort_album_name, sort_artist_name, sort_album_artist_name,
+            disc_subtitle, search_participants, search_normalized
+        )
+        SELECT rowid, title, album, artist, album_artist,
+            sort_title, sort_album_name, sort_artist_name, sort_album_artist_name,
+            COALESCE(disc_subtitle, ''), COALESCE(search_participants, ''),
+            COALESCE(search_normalized, '')
+        FROM media_file;
+        """
+    )
+    db.commit()
+    db.close()
+
+    with TestClient(create_app(settings)) as client:
+        response = client.post(
+            "/v1/songs/delete",
+            json={"song_ids": ["song-1"]},
+            headers=_headers(settings),
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["deleted"] == 1
+    assert response.json()["errors"] == 0
+    assert not target.exists()
+    db = sqlite3.connect(settings.navidrome_db_path)
+    assert db.execute("SELECT COUNT(*) FROM media_file").fetchone()[0] == 0
+    db.close()
+
+
 def test_delete_rejects_database_path_outside_music_root(settings):
     outside = Path(settings.music_dir).parent / "outside.mp3"
     outside.write_bytes(b"keep")

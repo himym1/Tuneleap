@@ -40,6 +40,113 @@ class NasDeleteResult {
   bool get ok => deleted > 0 && errors == 0;
 }
 
+bool isSlowNasUpstream(Object error) {
+  final text = formatNasImportError(error).toLowerCase();
+  return text.contains('too slow');
+}
+
+String formatNasImportError(Object error) {
+  if (error is NasDuplicateException) return error.message;
+  if (error is DioException) {
+    final status = error.response?.statusCode;
+    final data = error.response?.data;
+    final detail = data is Map
+        ? (data['detail'] ?? data['error'] ?? data['message'])
+              ?.toString()
+              .trim()
+        : null;
+    if (detail != null &&
+        detail.isNotEmpty &&
+        !detail.startsWith('DioException') &&
+        !detail.contains('This exception was thrown because the response')) {
+      return _truncateImportError(detail);
+    }
+    if (error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout ||
+        error.type == DioExceptionType.connectionTimeout) {
+      return 'NAS import timed out';
+    }
+    return switch (status) {
+      504 => 'NAS agent timeout',
+      502 => 'NAS agent unavailable',
+      503 => 'Library import is not configured',
+      413 => 'File is too large',
+      429 => 'Too many import requests',
+      507 => 'Not enough disk space',
+      null => 'Import failed',
+      _ => 'Import failed ($status)',
+    };
+  }
+  var text = error.toString().trim();
+  if (text.startsWith('Exception: ')) text = text.substring(11);
+  if (text.startsWith('StateError: ')) text = text.substring(12);
+  if (text.startsWith('Bad state: ')) text = text.substring(11);
+  if (text.startsWith('DioException') ||
+      text.contains('This exception was thrown because the response')) {
+    return 'Import failed';
+  }
+  return _truncateImportError(text);
+}
+
+String _truncateImportError(String text) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty) return 'Import failed';
+  return trimmed.length <= 160 ? trimmed : '${trimmed.substring(0, 157)}...';
+}
+
+class NasImportProgress {
+  const NasImportProgress({
+    this.active = false,
+    this.filename,
+    this.bytesReceived = 0,
+    this.bytesTotal,
+    this.speedBps = 0,
+    this.stage = 'idle',
+    this.error,
+    this.message,
+  });
+
+  final bool active;
+  final String? filename;
+  final int bytesReceived;
+  final int? bytesTotal;
+  final double speedBps;
+  final String stage;
+  final String? error;
+  final String? message;
+
+  double? get fraction {
+    final total = bytesTotal;
+    if (total == null || total <= 0) return null;
+    return (bytesReceived / total).clamp(0.0, 1.0);
+  }
+
+  factory NasImportProgress.fromJson(Map<dynamic, dynamic> data) {
+    return NasImportProgress(
+      active: data['active'] == true,
+      filename: data['filename']?.toString(),
+      bytesReceived: _asInt(data['bytes_received']) ?? 0,
+      bytesTotal: _asInt(data['bytes_total']),
+      speedBps: _asDouble(data['speed_bps']) ?? 0,
+      stage: data['stage']?.toString() ?? 'idle',
+      error: data['error']?.toString(),
+      message: data['message']?.toString(),
+    );
+  }
+
+  static int? _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  static double? _asDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
+  }
+}
+
 /// Dual-endpoint companion client (ADR-0004):
 /// - cloud: Bearer-authenticated search, media, recommendations, and updates
 /// - nas agent: API-key-authenticated import/delete only
@@ -292,15 +399,21 @@ class BackendClient {
     return itemCount >= count;
   }
 
-  Future<String> getPlaybackUrl(Song song, {int? maxBitRate}) async {
+  Future<String> getPlaybackUrl(
+    Song song, {
+    int? maxBitRate,
+    bool bypassCache = false,
+  }) async {
     final id = song.urlId ?? song.id;
     final source = song.onlineSource ?? 'netease';
     final provider = song.onlineProvider ?? '';
     final bitRate = _qualityFromBitRate(maxBitRate);
     final cacheKey = '$provider:$source:$id:$bitRate';
-    final cached = _playbackUrlCache[cacheKey];
-    if (cached != null && cached.$2.isAfter(DateTime.now())) {
-      return cached.$1;
+    if (!bypassCache) {
+      final cached = _playbackUrlCache[cacheKey];
+      if (cached != null && cached.$2.isAfter(DateTime.now())) {
+        return cached.$1;
+      }
     }
     _playbackUrlCache.remove(cacheKey);
 
@@ -311,6 +424,7 @@ class BackendClient {
         'source': source,
         if (provider.isNotEmpty) 'provider': provider,
         'br': bitRate,
+        if (bypassCache) 'fresh': 'true',
       },
       options: _cloudOptions(),
     );
@@ -469,9 +583,11 @@ class BackendClient {
       if (picUrl != null && picUrl.isNotEmpty) 'picUrl': picUrl,
       if (lyric != null && lyric.isNotEmpty) 'lyric': lyric,
       'force': force,
+      'wait': false,
     };
 
-    // Import waits for NAS to finish downloading; allow long transfers.
+    // Accept returns quickly. Old servers ignore wait and still block;
+    // keep a long POST timeout so those clients do not fail at 20s.
     const importTimeout = Duration(minutes: 5);
     if (isConfigured) {
       return _postImport(
@@ -482,6 +598,7 @@ class BackendClient {
           sendTimeout: importTimeout,
           receiveTimeout: importTimeout,
         ),
+        filename: filename,
       );
     }
 
@@ -491,28 +608,70 @@ class BackendClient {
       _nasOptions(
         contentType: 'application/json',
       ).copyWith(sendTimeout: importTimeout, receiveTimeout: importTimeout),
+      filename: filename,
       legacyPath: '$_nasBaseUrl/api/nas-download',
     );
+  }
+
+  Future<NasImportProgress> getNasImportProgress() async {
+    if (!canMutateNas) {
+      return const NasImportProgress();
+    }
+    try {
+      if (isConfigured) {
+        final response = await _dio.get(
+          '$_cloudBaseUrl/v1/library/import/progress',
+          options: _cloudOptions().copyWith(
+            sendTimeout: const Duration(seconds: 8),
+            receiveTimeout: const Duration(seconds: 8),
+          ),
+        );
+        return _parseImportProgress(response.data);
+      }
+      final response = await _dio.get(
+        '$_nasBaseUrl/v1/nas/import/progress',
+        options: _nasOptions().copyWith(
+          sendTimeout: const Duration(seconds: 8),
+          receiveTimeout: const Duration(seconds: 8),
+        ),
+      );
+      return _parseImportProgress(response.data);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) {
+        return const NasImportProgress();
+      }
+      rethrow;
+    }
+  }
+
+  static NasImportProgress _parseImportProgress(dynamic data) {
+    if (data is! Map) {
+      throw const FormatException('NAS import progress must be an object');
+    }
+    return NasImportProgress.fromJson(data);
   }
 
   Future<String?> _postImport(
     String path,
     Map<String, dynamic> payload,
     Options options, {
+    required String filename,
     String? legacyPath,
   }) async {
     try {
       final response = await _dio.post(path, data: payload, options: options);
-      return _parseImportResponse(response.data);
+      return await _resultFromImportResponse(response, filename);
     } on DioException catch (error) {
       if (error.response?.statusCode == 409) {
         final data = error.response?.data;
         final detail = data is Map ? data['detail']?.toString() : null;
-        throw NasDuplicateException(
-          detail == null || detail.isEmpty
-              ? 'Song already exists in the Navidrome library'
-              : detail,
-        );
+        final message = detail == null || detail.isEmpty
+            ? 'Song already exists in the Navidrome library'
+            : detail;
+        if (message.toLowerCase().contains('already running')) {
+          throw StateError(message);
+        }
+        throw NasDuplicateException(message);
       }
       if (legacyPath != null && error.response?.statusCode == 404) {
         final response = await _dio.post(
@@ -520,13 +679,17 @@ class BackendClient {
           data: payload,
           options: options,
         );
-        return _parseImportResponse(response.data);
+        return await _resultFromImportResponse(response, filename);
       }
-      rethrow;
+      throw StateError(formatNasImportError(error));
     }
   }
 
-  String? _parseImportResponse(dynamic data) {
+  Future<String?> _resultFromImportResponse(
+    Response<dynamic> response,
+    String filename,
+  ) async {
+    final data = response.data;
     if (data is! Map) {
       throw const FormatException('NAS import response must be an object');
     }
@@ -535,11 +698,66 @@ class BackendClient {
       if (message == null || message.isEmpty) return null;
       return message;
     }
+    final stage = data['stage']?.toString();
+    if (stage == 'completed') {
+      final message = data['message']?.toString().trim();
+      return message == null || message.isEmpty ? null : message;
+    }
+    if (stage == 'failed') {
+      final error = data['error']?.toString().trim();
+      throw StateError(
+        error == null || error.isEmpty ? 'NAS download failed' : error,
+      );
+    }
+    if (response.statusCode == 202 ||
+        stage == 'queued' ||
+        stage == 'downloading' ||
+        stage == 'finishing') {
+      return _awaitNasImport(filename);
+    }
     final error =
         data['error']?.toString().trim() ?? data['detail']?.toString().trim();
     throw StateError(
       error == null || error.isEmpty ? 'NAS download failed' : error,
     );
+  }
+
+  Future<String?> _awaitNasImport(String filename) async {
+    final deadline = DateTime.now().add(const Duration(hours: 2));
+    var sawJob = false;
+    var idleStreak = 0;
+    while (DateTime.now().isBefore(deadline)) {
+      final progress = await getNasImportProgress();
+      final sameFile =
+          progress.filename == null || progress.filename == filename;
+      if (sameFile && progress.stage == 'completed') {
+        final message = progress.message?.trim();
+        return message == null || message.isEmpty ? null : message;
+      }
+      if (sameFile && progress.stage == 'failed') {
+        final error = progress.error?.trim();
+        throw StateError(
+          error == null || error.isEmpty ? 'NAS download failed' : error,
+        );
+      }
+      if (progress.active ||
+          progress.stage == 'downloading' ||
+          progress.stage == 'finishing' ||
+          progress.stage == 'queued') {
+        sawJob = true;
+        idleStreak = 0;
+      } else if (progress.stage == 'idle') {
+        idleStreak += 1;
+        if (sawJob && idleStreak >= 3) {
+          throw StateError('NAS import ended without a result');
+        }
+        if (!sawJob && idleStreak >= 8) {
+          throw StateError('NAS import progress unavailable');
+        }
+      }
+      await Future<void>.delayed(const Duration(seconds: 1));
+    }
+    throw StateError('NAS import timed out');
   }
 
   /// 获取歌词的原始 LRC 文本（用于导入/下载时保存）

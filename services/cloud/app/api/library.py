@@ -4,6 +4,7 @@ from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.core.auth import verify_api_key
@@ -24,6 +25,7 @@ class LibraryImportRequest(BaseModel):
     picUrl: str | None = None
     lyric: str | None = None
     force: bool = False
+    wait: bool = True
 
 
 class LibraryDeleteRequest(BaseModel):
@@ -55,7 +57,22 @@ async def import_song(request: Request, body: LibraryImportRequest):
         raise HTTPException(503, "Library import is not configured")
     payload = body.model_dump(exclude_none=True)
     try:
-        return await library.import_song(payload)
+        result = await library.import_song(payload)
+    except Exception as exc:  # noqa: BLE001
+        raise _map_nas_error(exc) from exc
+    if body.wait is False:
+        return JSONResponse(result, status_code=202)
+    return result
+
+
+@router.get("/import/progress")
+@limiter.limit("120/minute")
+async def import_progress(request: Request):
+    library = _library(request)
+    if not library.enabled:
+        raise HTTPException(503, "Library import is not configured")
+    try:
+        return await library.import_progress()
     except Exception as exc:  # noqa: BLE001
         raise _map_nas_error(exc) from exc
 

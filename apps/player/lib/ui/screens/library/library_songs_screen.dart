@@ -367,7 +367,13 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
                     context.push('/player');
                   },
                   onDeleted: () {
-                    setState(() => _songs.removeWhere((s) => s.id == song.id));
+                    setState(() {
+                      _songs.removeWhere((s) => s.id == song.id);
+                      _searchResults?.removeWhere((s) => s.id == song.id);
+                      _cachedSongs = List.of(_songs);
+                      _cachedHasMore = _hasMore;
+                      _cachedServerId = _serverId;
+                    });
                   },
                   child: Container(
                     decoration: BoxDecoration(

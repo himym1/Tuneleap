@@ -84,6 +84,10 @@ build_macos() {
   codesign --verify --strict "$DIST_DIR/$dmg_name" || err "DMG codesign verify failed"
   # Avoid carrying Finder quarantine into installs from this host.
   xattr -cr "$DIST_DIR/$dmg_name" 2>/dev/null || true
+  # Self-use: quit running app so dragging/replacing /Applications/音跃.app works.
+  osascript -e 'tell application "音跃" to quit' >/dev/null 2>&1 || true
+  sleep 1
+  killall "音跃" >/dev/null 2>&1 || true
   log "macOS DMG -> dist/$dmg_name"
 }
 
