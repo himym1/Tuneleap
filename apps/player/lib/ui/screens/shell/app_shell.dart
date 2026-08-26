@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/services/sparkle_updater.dart';
 import 'package:navidrome_player/services/update_checker.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
@@ -88,11 +89,23 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (!mounted) return;
 
     final config = ref.read(serverConfigProvider);
+    final origin = resolveCloudOrigin(config.backendUrl);
+    Future<String?> token({bool forceRefresh = false}) => ref
+        .read(cloudAuthProvider.notifier)
+        .getAccessToken(forceRefresh: forceRefresh);
+    if (isSparkleSupported) {
+      final access = await token();
+      if (!mounted) return;
+      if (access != null && access.isNotEmpty) {
+        await SparkleUpdater.configure(
+          feedURL: sparkleFeedURL(origin),
+          accessToken: access,
+        );
+      }
+    }
     final info = await checkForUpdate(
-      accessTokenProvider: ({bool forceRefresh = false}) => ref
-          .read(cloudAuthProvider.notifier)
-          .getAccessToken(forceRefresh: forceRefresh),
-      updateOrigin: resolveCloudOrigin(config.backendUrl),
+      accessTokenProvider: token,
+      updateOrigin: origin,
     );
     if (!mounted || info == null) return;
 
@@ -107,6 +120,9 @@ class _AppShellState extends ConsumerState<AppShell> {
       return;
     }
 
+    if (isSparkleSupported && await SparkleUpdater.checkForUpdates()) {
+      return;
+    }
     if (!mounted) return;
     UpdateDialog.show(context, info);
   }

@@ -19,6 +19,48 @@ source "$VERSIONS_FILE"
 log()  { echo "==> $*"; }
 err()  { echo "ERROR: $*" >&2; exit 1; }
 
+sign_item() {
+  local identity="$1"
+  local path="$2"
+  shift 2
+  [ -e "$path" ] || return 0
+  codesign --force --options runtime --timestamp --sign "$identity" "$@" "$path"
+}
+
+sign_sparkle_framework() {
+  local identity="$1"
+  local sparkle="$2"
+  [ -d "$sparkle" ] || return 0
+  local version_dir="$sparkle/Versions/B"
+  [ -d "$version_dir" ] || version_dir="$sparkle/Versions/Current"
+  sign_item "$identity" "$version_dir/XPCServices/Installer.xpc"
+  if [ -d "$version_dir/XPCServices/Downloader.xpc" ]; then
+    sign_item "$identity" "$version_dir/XPCServices/Downloader.xpc" \
+      --preserve-metadata=entitlements
+  fi
+  sign_item "$identity" "$version_dir/Autoupdate"
+  sign_item "$identity" "$version_dir/Updater.app"
+  sign_item "$identity" "$sparkle"
+}
+
+sign_macos_app() {
+  local app_path="$1"
+  local identity="$2"
+  local entitlements="$3"
+  local fw
+  sign_sparkle_framework "$identity" "$app_path/Contents/Frameworks/Sparkle.framework"
+  if [ -d "$app_path/Contents/Frameworks" ]; then
+    for fw in "$app_path/Contents/Frameworks"/*.framework; do
+      [ -d "$fw" ] || continue
+      case "$(basename "$fw")" in
+        Sparkle.framework) continue ;;
+      esac
+      sign_item "$identity" "$fw"
+    done
+  fi
+  sign_item "$identity" "$app_path" --entitlements "$entitlements"
+}
+
 ensure_flutter() {
   command -v flutter >/dev/null 2>&1 || err "flutter not found in PATH"
   log "Flutter $(flutter --version --machine 2>/dev/null | grep -o '"frameworkVersion":"[^"]*"' | cut -d'"' -f4 || echo 'unknown')"
@@ -60,16 +102,12 @@ build_macos() {
   local app_path
   app_path="$(find "$PROJECT_ROOT/build/macos/Build/Products/Release" -maxdepth 1 -name '*.app' -print -quit)"
   [ -n "$app_path" ] && [ -d "$app_path" ] || err "macOS app not found in build/macos/Build/Products/Release/"
-  # Sign with Developer ID so Gatekeeper accepts private-update installs.
+  # Sign with Developer ID. Do not use --deep: it breaks Sparkle XPC services.
   local identity="${MACOS_CODESIGN_IDENTITY:-Developer ID Application: Topping Technology Co., Ltd (M336Q22BHF)}"
   local entitlements="$PROJECT_ROOT/macos/Runner/Release.entitlements"
   log "Codesigning macOS app with: $identity"
-  codesign --deep --force --options runtime \
-    --entitlements "$entitlements" \
-    --timestamp \
-    --sign "$identity" \
-    "$app_path"
-  codesign --verify --deep --strict "$app_path" || err "codesign verify failed"
+  sign_macos_app "$app_path" "$identity" "$entitlements"
+  codesign --verify --strict "$app_path" || err "codesign verify failed"
   # Create DMG for distribution
   local dmg_name="${APP_NAME}-${ver}+${build}-macos.dmg"
   local tmp_dmg="$DIST_DIR/${dmg_name}.tmp"

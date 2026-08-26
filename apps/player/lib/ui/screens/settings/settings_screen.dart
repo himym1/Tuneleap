@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/services/sparkle_updater.dart';
 import 'package:navidrome_player/services/update_checker.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
@@ -810,10 +811,21 @@ class _UpdateTileState extends ConsumerState<_UpdateTile> {
       _checking = true;
       _result = null;
     });
+    Future<String?> token({bool forceRefresh = false}) => ref
+        .read(cloudAuthProvider.notifier)
+        .getAccessToken(forceRefresh: forceRefresh);
+    if (isSparkleSupported) {
+      final access = await token();
+      if (!mounted) return;
+      if (access != null && access.isNotEmpty) {
+        await SparkleUpdater.configure(
+          feedURL: sparkleFeedURL(widget.updateOrigin),
+          accessToken: access,
+        );
+      }
+    }
     final info = await checkForUpdate(
-      accessTokenProvider: ({bool forceRefresh = false}) => ref
-          .read(cloudAuthProvider.notifier)
-          .getAccessToken(forceRefresh: forceRefresh),
+      accessTokenProvider: token,
       updateOrigin: widget.updateOrigin,
     );
     if (!mounted) return;
@@ -834,7 +846,12 @@ class _UpdateTileState extends ConsumerState<_UpdateTile> {
       _checking = false;
       _result = hasNew ? info.version : 'latest';
     });
-    if (hasNew) UpdateDialog.show(context, info);
+    if (!hasNew) return;
+    if (isSparkleSupported && await SparkleUpdater.checkForUpdates()) {
+      return;
+    }
+    if (!mounted) return;
+    UpdateDialog.show(context, info);
   }
 
   @override

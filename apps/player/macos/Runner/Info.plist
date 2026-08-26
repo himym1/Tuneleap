@@ -32,6 +32,16 @@
 	<string>NSApplication</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>音跃需要访达把新版本复制到「应用程序」。</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUFeedURL</key>
+	<string>https://player.himym.us.ci/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>ARSLYSRW26MwGRkNnbiJA0oJ2MIg6MxlTEIFr7gNvqg=</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

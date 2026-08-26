@@ -82,7 +82,7 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "macOS 更新由访达自动装进应用程序；封面取色改用 Material 官方算法；导入太慢会连续自动换 CDN。"
+        "从 1.0.50 验证 Sparkle 更新弹窗并安装。"
     )
 }
 if Path(windows_name).is_file():
@@ -100,5 +100,16 @@ Path("version.json").write_text(
     json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
 )
 PY
+
+SPARKLE_BIN="$("$SCRIPT_DIR/ensure-sparkle-tools.sh")"
+sign_output="$("$SPARKLE_BIN/sign_update" "$DIST_DIR/$macos")"
+python3 "$SCRIPT_DIR/write_appcast.py" \
+  --origin "$UPDATE_ORIGIN" \
+  --macos-version "$MACOS_VERSION" \
+  --macos-build "$MACOS_BUILD" \
+  --macos-name "$macos" \
+  --sign-output "$sign_output" \
+  --changelog "从 1.0.50 验证 Sparkle 更新弹窗并安装。" \
+  --output "$DIST_DIR/appcast.xml"
 
 echo "Prepared private update metadata in $DIST_DIR"

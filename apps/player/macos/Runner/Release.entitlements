@@ -18,5 +18,12 @@
 	<array>
 		<string>com.apple.finder</string>
 	</array>
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<string>com.himym.player-spks</string>
+		<string>com.himym.player-spki</string>
+		<string>org.sparkle-project.DownloaderService</string>
+		<string>org.sparkle-project.InstallerLauncher</string>
+	</array>
 </dict>
 </plist>

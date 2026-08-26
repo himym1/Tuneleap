@@ -134,6 +134,10 @@ Success:
 
 Authenticated. Serves `RELEASE_DIR/version.json`.
 
+### `GET /appcast.xml`
+
+Authenticated. Serves `RELEASE_DIR/appcast.xml` for Sparkle on macOS.
+
 ### `GET /releases/{filename}`
 
 Authenticated. Allow-list:
@@ -142,6 +146,7 @@ Authenticated. Allow-list:
 - `navidrome_player-<semver>+<build>-macos.dmg`
 - `navidrome_player-<semver>+<build>-windows.zip`
 - `SHA256SUMS`
+- `appcast.xml`
 
 No symlink escape from `RELEASE_DIR`.
 

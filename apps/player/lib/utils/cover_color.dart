@@ -8,10 +8,29 @@ import 'package:material_color_utilities/material_color_utilities.dart';
 
 /// Album-art seed from Material Color Utilities.
 ///
-/// [QuantizerCelebi] clusters the image; [Score] ranks clusters for theming
-/// and drops low-chroma / low-proportion colors (JPEG specks on grayscale).
+/// [QuantizerCelebi] clusters the image. [Score] ranks clusters, but its
+/// default filter drops low-chroma colors (gray is chroma ≈ 0) and injects a
+/// brand fallback — that is why a black-and-white cover became purple.
+/// Gray is a valid seed: keep it, and theme with
+/// [DynamicSchemeVariant.monochrome].
 const int _maxEdgeSamples = 160;
 const int _maxClusters = 16;
+
+/// HCT chroma below this reads as gray. MCU [Score] itself cuts at 5; 12
+/// also catches JPEG-tinted near-grays so [tonalSpot] cannot invent a hue.
+const double achromaticChromaCutoff = 12;
+
+/// True when [color] has no usable hue and should drive a monochrome scheme.
+bool isAchromaticCoverSeed(Color color) {
+  return Hct.fromInt(color.toARGB32()).chroma < achromaticChromaCutoff;
+}
+
+/// Material scheme for a cover seed: gray stays gray, color stays tonal.
+DynamicSchemeVariant coverSchemeVariant(Color seed) {
+  return isAchromaticCoverSeed(seed)
+      ? DynamicSchemeVariant.monochrome
+      : DynamicSchemeVariant.tonalSpot;
+}
 
 /// Picks a Material seed from raw RGBA album-art pixels.
 Future<Color> extractCoverSeedColor({
@@ -43,14 +62,33 @@ Future<Color> extractCoverSeedColor({
   final quantized = await QuantizerCelebi().quantize(pixels, _maxClusters);
   if (quantized.colorToCount.isEmpty) return fallback;
 
-  final fallbackArgb = fallback.toARGB32();
-  final ranked = Score.score(
+  // Score's default filter drops chroma < 5 and injects [fallbackColorARGB].
+  // A sentinel keeps brand indigo out of grayscale covers.
+  const noColorfulSeed = 0x00000001;
+  final colorful = Score.score(
     quantized.colorToCount,
     desired: 1,
-    fallbackColorARGB: fallbackArgb,
+    fallbackColorARGB: noColorfulSeed,
   );
-  if (ranked.isEmpty) return fallback;
-  return Color(ranked.first);
+  final winner = colorful.isEmpty ? noColorfulSeed : colorful.first;
+  if (winner != noColorfulSeed &&
+      Hct.fromInt(winner).chroma >= achromaticChromaCutoff) {
+    return Color(winner);
+  }
+
+  return Color(_dominantArgb(quantized.colorToCount));
+}
+
+int _dominantArgb(Map<int, int> colorToCount) {
+  var bestArgb = 0xFF6E6E6E;
+  var bestCount = -1;
+  for (final entry in colorToCount.entries) {
+    if (entry.value > bestCount) {
+      bestCount = entry.value;
+      bestArgb = entry.key;
+    }
+  }
+  return bestArgb;
 }
 
 /// Readable icon/text color on a cover-tinted background.

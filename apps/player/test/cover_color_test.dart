@@ -15,14 +15,19 @@ void main() {
 
   setUpAll(initializeAppColors);
 
-  test('true grayscale cover uses the app fallback, not Google Blue', () async {
-    final raster = _Raster(48, 48, const Color(0xFF808080))
-      ..fillRect(0, 0, 24, 48, const Color(0xFF2A2A2A))
-      ..fillRect(24, 0, 24, 48, const Color(0xFFD0D0D0));
+  test(
+    'true grayscale cover keeps gray, not brand indigo or Google Blue',
+    () async {
+      final raster = _Raster(48, 48, const Color(0xFF808080))
+        ..fillRect(0, 0, 24, 48, const Color(0xFF2A2A2A))
+        ..fillRect(24, 0, 24, 48, const Color(0xFFD0D0D0));
 
-    expect(await raster.extract(), _fallback);
-    expect(await raster.extract(), isNot(_googleBlue));
-  });
+      final seed = await raster.extract();
+      expect(isAchromaticCoverSeed(seed), isTrue);
+      expect(seed, isNot(_fallback));
+      expect(seed, isNot(_googleBlue));
+    },
+  );
 
   test('JPEG-like green specks on grayscale do not become the theme', () async {
     final raster = _Raster(96, 96, const Color(0xFF6A6A6A))
@@ -44,14 +49,16 @@ void main() {
       raster.fillRect(speck.$1, speck.$2, 2, 2, const Color(0xFF6B8A68));
     }
 
-    expect(await raster.extract(), _fallback);
+    final seed = await raster.extract();
+    expect(isAchromaticCoverSeed(seed), isTrue);
+    expect(HSLColor.fromColor(seed).hue, isNot(inInclusiveRange(80, 160)));
   });
 
   test('a 1% orange speck is not enough to theme a gray cover', () async {
     final raster = _Raster(80, 80, const Color(0xFF6E6E6E))
       ..fillRect(36, 36, 8, 8, _orangeAccent);
 
-    expect(await raster.extract(), _fallback);
+    expect(isAchromaticCoverSeed(await raster.extract()), isTrue);
   });
 
   test('a substantial orange field stays in the warm family', () async {
@@ -114,6 +121,18 @@ void main() {
     final primary = HSLColor.fromColor(theme.colorScheme.primary);
 
     expect(primary.hue, inInclusiveRange(10, 80));
+  });
+
+  test('grayscale cover themes monochrome, not purple', () async {
+    final raster = _Raster(48, 48, const Color(0xFF808080))
+      ..fillRect(0, 0, 24, 48, const Color(0xFF2A2A2A))
+      ..fillRect(24, 0, 24, 48, const Color(0xFFD0D0D0));
+    final seed = await raster.extract();
+    final theme = AppTheme.light(seedColor: seed);
+    final primary = HSLColor.fromColor(theme.colorScheme.primary);
+
+    expect(coverSchemeVariant(seed), DynamicSchemeVariant.monochrome);
+    expect(primary.saturation, lessThan(0.12));
   });
 }
 

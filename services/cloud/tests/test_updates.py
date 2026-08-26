@@ -40,3 +40,14 @@ def test_private_updates_guards(tmp_path: Path, monkeypatch):
 
         bad = client.get("/releases/secret.txt", headers=headers)
         assert bad.status_code == 404
+
+        assert client.get("/appcast.xml").status_code == 401
+        (release_dir / "appcast.xml").write_text(
+            "<rss><channel><title>音跃</title></channel></rss>\n",
+            encoding="utf-8",
+        )
+        appcast = client.get("/appcast.xml", headers=headers)
+        assert appcast.status_code == 200
+        assert "音跃" in appcast.text
+        assert appcast.headers["cache-control"] == "no-store"
+        assert client.get("/releases/appcast.xml", headers=headers).status_code == 200

@@ -123,9 +123,10 @@ App 最近播放 + feedback
 make publish
   -> cloud-host:/opt/navidrome-cloud/releases
   -> https://player.himym.us.ci/version.json
+  -> https://player.himym.us.ci/appcast.xml
   -> App 下载 /releases/{filename}
-  -> SHA-256 校验
-  -> 系统安装器
+  -> Android: SHA-256 + 系统安装器
+  -> macOS: Sparkle EdDSA + 确认后替换
 ```
 
 完整发布步骤见 [私有更新发布](../apps/player/docs/release.md)。

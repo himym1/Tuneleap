@@ -16,7 +16,7 @@ DIST_DIR="$DIST_DIR" UPDATE_ORIGIN="$UPDATE_ORIGIN" \
 android_file="navidrome_player-${ANDROID_VERSION}+${ANDROID_BUILD}-android.apk"
 macos_file="navidrome_player-${MACOS_VERSION}+${MACOS_BUILD}-macos.dmg"
 windows_file="navidrome_player-${WINDOWS_VERSION}+${WINDOWS_BUILD}-windows.zip"
-files=("$android_file" "$macos_file" "SHA256SUMS" "version.json")
+files=("$android_file" "$macos_file" "SHA256SUMS" "version.json" "appcast.xml")
 install_list="'$android_file' '$macos_file'"
 if [ -f "$DIST_DIR/$windows_file" ]; then
   files+=("$windows_file")
@@ -32,8 +32,9 @@ tar -cf - "${files[@]}" | ssh "$REMOTE_HOST" "set -euo pipefail
 mkdir -p '$REMOTE_DIR'
 staging=\$(mktemp -d '$REMOTE_DIR/.staging.XXXXXX')
 manifest_tmp=''
+appcast_tmp=''
 previous_tmp=''
-trap 'rm -rf \"\$staging\"; test -z \"\$manifest_tmp\" || rm -f \"\$manifest_tmp\"; test -z \"\$previous_tmp\" || rm -f \"\$previous_tmp\"' EXIT
+trap 'rm -rf \"\$staging\"; test -z \"\$manifest_tmp\" || rm -f \"\$manifest_tmp\"; test -z \"\$appcast_tmp\" || rm -f \"\$appcast_tmp\"; test -z \"\$previous_tmp\" || rm -f \"\$previous_tmp\"' EXIT
 tar -xf - -C \"\$staging\"
 cd \"\$staging\"
 sha256sum -c SHA256SUMS
@@ -52,6 +53,10 @@ if test -f '$REMOTE_DIR/version.json'; then
 fi
 mv -f \"\$manifest_tmp\" '$REMOTE_DIR/version.json'
 manifest_tmp=''
+appcast_tmp=\$(mktemp '$REMOTE_DIR/.appcast.xml.XXXXXX')
+install -m 0644 appcast.xml \"\$appcast_tmp\"
+mv -f \"\$appcast_tmp\" '$REMOTE_DIR/appcast.xml'
+appcast_tmp=''
 "
 
 ssh "$REMOTE_HOST" bash -s -- \
@@ -82,13 +87,16 @@ api_key=$(sed -n 's/^API_KEY=//p' "$env_file" | tail -1)
 test -n "$api_key"
 response=$(printf 'header = "X-API-Key: %s"\n' "$api_key" | \
   curl --config - -fsS "$origin/version.json")
-UPDATE_RESPONSE="$response" python3 - \
+appcast=$(printf 'header = "X-API-Key: %s"\n' "$api_key" | \
+  curl --config - -fsS "$origin/appcast.xml")
+UPDATE_RESPONSE="$response" UPDATE_APPCAST="$appcast" python3 - \
   "$expected_version" "$expected_build" "$origin" <<'PY'
 import json
 import os
 import sys
 
 data = json.loads(os.environ["UPDATE_RESPONSE"])
+appcast = os.environ["UPDATE_APPCAST"]
 expected_version, expected_build, origin = sys.argv[1:]
 expected_prefix = f"{origin.rstrip('/')}/releases/"
 for platform in ("android", "macos", "windows"):
@@ -101,6 +109,9 @@ for platform in ("android", "macos", "windows"):
 android = data["android"]
 assert android["version"] == expected_version, android
 assert android["build"] == int(expected_build), android
+macos = data["macos"]
+assert f"<sparkle:shortVersionString>{macos['version']}</sparkle:shortVersionString>" in appcast, appcast[:200]
+assert macos["url"] in appcast, appcast[:200]
 print(f"public update metadata ok: android {android['version']}+{android['build']}")
 PY
 trap - EXIT

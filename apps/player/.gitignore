@@ -49,4 +49,7 @@ app.*.map.json
 .ace-tool/
 .env
 
+# Sparkle CLI (generate_keys / sign_update). Private key stays in Keychain.
+tools/sparkle/
+
 .worktrees/

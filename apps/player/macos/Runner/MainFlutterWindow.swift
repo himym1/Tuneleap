@@ -14,6 +14,9 @@ class MainFlutterWindow: NSWindow {
     self.styleMask.insert(.fullSizeContentView)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    SparkleBridge.register(
+      with: flutterViewController.registrar(forPlugin: "SparkleBridge")
+    )
 
     super.awakeFromNib()
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:navidrome_player/ui/theme/app_color_loader.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
+import 'package:navidrome_player/utils/cover_color.dart';
 
 class AppColors {
   // ── Brand / semantic tokens (from JSON) ──
@@ -47,11 +48,30 @@ class AppColors {
 }
 
 class AppTheme {
+  static ColorScheme _schemeFromSeed({
+    required Color seed,
+    required Brightness brightness,
+    required bool fromCover,
+  }) {
+    return ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: brightness,
+      dynamicSchemeVariant: fromCover
+          ? coverSchemeVariant(seed)
+          : DynamicSchemeVariant.tonalSpot,
+    );
+  }
+
   static ThemeData light({Color? seedColor}) {
     final useSchemeBrand = seedColor != null;
+    final scheme = _schemeFromSeed(
+      seed: seedColor ?? AppColors.secondary,
+      brightness: Brightness.light,
+      fromCover: useSchemeBrand,
+    );
     final base = ThemeData(
       useMaterial3: true,
-      colorSchemeSeed: seedColor ?? AppColors.secondary,
+      colorScheme: scheme,
       brightness: Brightness.light,
       fontFamily: 'Poppins',
     );
@@ -220,9 +240,10 @@ class AppTheme {
 
   static ThemeData dark({Color? seedColor, bool amoled = false}) {
     final useSchemeBrand = seedColor != null;
-    final generated = ColorScheme.fromSeed(
-      seedColor: seedColor ?? AppColors.secondary,
+    final generated = _schemeFromSeed(
+      seed: seedColor ?? AppColors.secondary,
       brightness: Brightness.dark,
+      fromCover: useSchemeBrand,
     );
     final scheme = amoled
         ? generated.copyWith(
