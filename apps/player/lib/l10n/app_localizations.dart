@@ -979,6 +979,132 @@ abstract class S {
   /// **'仍然导入'**
   String get importAnyway;
 
+  /// No description provided for @importDuplicateCompareHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'对照两边音质，再决定替换、另下一份或取消。'**
+  String get importDuplicateCompareHint;
+
+  /// No description provided for @importDuplicateIncoming.
+  ///
+  /// In zh, this message translates to:
+  /// **'将要下载'**
+  String get importDuplicateIncoming;
+
+  /// No description provided for @importDuplicateLocal.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地曲库'**
+  String get importDuplicateLocal;
+
+  /// No description provided for @importDuplicateSameVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'同一版本'**
+  String get importDuplicateSameVersion;
+
+  /// No description provided for @importDuplicateDifferentVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'不同版本'**
+  String get importDuplicateDifferentVersion;
+
+  /// No description provided for @importDuplicateUnknownVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法判断'**
+  String get importDuplicateUnknownVersion;
+
+  /// No description provided for @importDuplicateDownload.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载'**
+  String get importDuplicateDownload;
+
+  /// No description provided for @importDuplicateReplace.
+  ///
+  /// In zh, this message translates to:
+  /// **'替换'**
+  String get importDuplicateReplace;
+
+  /// No description provided for @importDuplicateIncomingOriginal.
+  ///
+  /// In zh, this message translates to:
+  /// **'原始 · 未转码'**
+  String get importDuplicateIncomingOriginal;
+
+  /// No description provided for @importDuplicateBitRateEstimated.
+  ///
+  /// In zh, this message translates to:
+  /// **'约 {kbps} kbps'**
+  String importDuplicateBitRateEstimated(int kbps);
+
+  /// No description provided for @importDuplicateQualityHigher.
+  ///
+  /// In zh, this message translates to:
+  /// **'比选中本地更高'**
+  String get importDuplicateQualityHigher;
+
+  /// No description provided for @importDuplicateQualityHigherBy.
+  ///
+  /// In zh, this message translates to:
+  /// **'比选中本地高 {kbps} kbps'**
+  String importDuplicateQualityHigherBy(int kbps);
+
+  /// No description provided for @importDuplicateQualityLower.
+  ///
+  /// In zh, this message translates to:
+  /// **'比选中本地更低'**
+  String get importDuplicateQualityLower;
+
+  /// No description provided for @importDuplicateQualityLowerBy.
+  ///
+  /// In zh, this message translates to:
+  /// **'比选中本地低 {kbps} kbps'**
+  String importDuplicateQualityLowerBy(int kbps);
+
+  /// No description provided for @importDuplicateQualitySimilar.
+  ///
+  /// In zh, this message translates to:
+  /// **'与选中本地相近'**
+  String get importDuplicateQualitySimilar;
+
+  /// No description provided for @importDuplicateQualityUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法对比具体码率'**
+  String get importDuplicateQualityUnknown;
+
+  /// No description provided for @importDuplicateQualityLocalLossless.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地已是无损，无法对比码率'**
+  String get importDuplicateQualityLocalLossless;
+
+  /// No description provided for @importDuplicateQualityBothLossless.
+  ///
+  /// In zh, this message translates to:
+  /// **'都是无损，待下载码率未知'**
+  String get importDuplicateQualityBothLossless;
+
+  /// No description provided for @importDuplicateQualityOriginalLikelyHigher.
+  ///
+  /// In zh, this message translates to:
+  /// **'原始音质通常高于本地有损'**
+  String get importDuplicateQualityOriginalLikelyHigher;
+
+  /// No description provided for @importDuplicateUnknownAlbum.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知专辑'**
+  String get importDuplicateUnknownAlbum;
+
+  /// No description provided for @importDuplicateUnknownMeta.
+  ///
+  /// In zh, this message translates to:
+  /// **'—'**
+  String get importDuplicateUnknownMeta;
+
   /// No description provided for @importDuplicateCheckFailed.
   ///
   /// In zh, this message translates to:
@@ -1891,6 +2017,12 @@ abstract class S {
   /// **'最新专辑'**
   String get homeNewestAlbums;
 
+  /// No description provided for @homeNewestSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'最新歌曲'**
+  String get homeNewestSongs;
+
   /// No description provided for @homeDailyRecommend.
   ///
   /// In zh, this message translates to:
@@ -2197,11 +2329,41 @@ abstract class S {
   /// **'随机播放'**
   String get playerShuffle;
 
+  /// No description provided for @playerShuffleOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机：关'**
+  String get playerShuffleOff;
+
+  /// No description provided for @playerShuffleOn.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机：开'**
+  String get playerShuffleOn;
+
   /// No description provided for @playerRepeat.
   ///
   /// In zh, this message translates to:
   /// **'循环播放'**
   String get playerRepeat;
+
+  /// No description provided for @playerRepeatOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'循环：关（播完即停）'**
+  String get playerRepeatOff;
+
+  /// No description provided for @playerRepeatAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'循环：列表'**
+  String get playerRepeatAll;
+
+  /// No description provided for @playerRepeatOne.
+  ///
+  /// In zh, this message translates to:
+  /// **'循环：单曲'**
+  String get playerRepeatOne;
 
   /// No description provided for @tooltipUnfavorite.
   ///
@@ -2460,6 +2622,347 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'推荐偏好已重置'**
   String get settingsResetRecommendationsDone;
+
+  /// No description provided for @libraryAuditTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'曲库体检'**
+  String get libraryAuditTitle;
+
+  /// No description provided for @libraryAuditSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'先快扫格式和码率，再可选深扫假无损。结果分成「音质问题」和「不同版本（音质正常）」。不会自动删歌或替换。'**
+  String get libraryAuditSubtitle;
+
+  /// No description provided for @libraryAuditStart.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始体检'**
+  String get libraryAuditStart;
+
+  /// No description provided for @libraryAuditDeepStart.
+  ///
+  /// In zh, this message translates to:
+  /// **'深扫问题项'**
+  String get libraryAuditDeepStart;
+
+  /// No description provided for @libraryAuditCancel.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消'**
+  String get libraryAuditCancel;
+
+  /// No description provided for @libraryAuditScanning.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在扫描 {scanned}/{total}'**
+  String libraryAuditScanning(int scanned, int total);
+
+  /// No description provided for @libraryAuditDeepScanning.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在深扫 {scanned}/{total}'**
+  String libraryAuditDeepScanning(int scanned, int total);
+
+  /// No description provided for @libraryAuditIdle.
+  ///
+  /// In zh, this message translates to:
+  /// **'尚未体检。开始后会列出可疑文件，再由你决定删除或替换。'**
+  String get libraryAuditIdle;
+
+  /// No description provided for @libraryAuditEmptyIssues.
+  ///
+  /// In zh, this message translates to:
+  /// **'这次没有发现问题。'**
+  String get libraryAuditEmptyIssues;
+
+  /// No description provided for @libraryAuditEmptyQuality.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有音质问题。'**
+  String get libraryAuditEmptyQuality;
+
+  /// No description provided for @libraryAuditEmptyVersions.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有不同版本。'**
+  String get libraryAuditEmptyVersions;
+
+  /// No description provided for @libraryAuditPassed.
+  ///
+  /// In zh, this message translates to:
+  /// **'通过'**
+  String get libraryAuditPassed;
+
+  /// No description provided for @libraryAuditIssues.
+  ///
+  /// In zh, this message translates to:
+  /// **'问题'**
+  String get libraryAuditIssues;
+
+  /// No description provided for @libraryAuditQualityIssues.
+  ///
+  /// In zh, this message translates to:
+  /// **'音质问题'**
+  String get libraryAuditQualityIssues;
+
+  /// No description provided for @libraryAuditVersionOnly.
+  ///
+  /// In zh, this message translates to:
+  /// **'不同版本'**
+  String get libraryAuditVersionOnly;
+
+  /// No description provided for @libraryAuditSectionQuality.
+  ///
+  /// In zh, this message translates to:
+  /// **'音质问题'**
+  String get libraryAuditSectionQuality;
+
+  /// No description provided for @libraryAuditSectionVersions.
+  ///
+  /// In zh, this message translates to:
+  /// **'不同版本（音质正常）'**
+  String get libraryAuditSectionVersions;
+
+  /// No description provided for @libraryAuditSectionVersionsHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'同名同歌手但时长不同。频谱正常或未标假无损，可以都留着。'**
+  String get libraryAuditSectionVersionsHint;
+
+  /// No description provided for @libraryAuditQualityOk.
+  ///
+  /// In zh, this message translates to:
+  /// **'音质正常'**
+  String get libraryAuditQualityOk;
+
+  /// No description provided for @libraryAuditScanned.
+  ///
+  /// In zh, this message translates to:
+  /// **'已扫描'**
+  String get libraryAuditScanned;
+
+  /// No description provided for @libraryAuditFilterAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get libraryAuditFilterAll;
+
+  /// No description provided for @libraryAuditCodeMissing.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件缺失'**
+  String get libraryAuditCodeMissing;
+
+  /// No description provided for @libraryAuditCodeLowBitrate.
+  ///
+  /// In zh, this message translates to:
+  /// **'低码率'**
+  String get libraryAuditCodeLowBitrate;
+
+  /// No description provided for @libraryAuditCodeSuspectTranscode.
+  ///
+  /// In zh, this message translates to:
+  /// **'可疑假无损'**
+  String get libraryAuditCodeSuspectTranscode;
+
+  /// No description provided for @libraryAuditCodeDuplicateVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'不同版本'**
+  String get libraryAuditCodeDuplicateVersion;
+
+  /// No description provided for @libraryAuditCodeLossyTranscode.
+  ///
+  /// In zh, this message translates to:
+  /// **'频谱像有损'**
+  String get libraryAuditCodeLossyTranscode;
+
+  /// No description provided for @libraryAuditCodeFakeHires.
+  ///
+  /// In zh, this message translates to:
+  /// **'假 Hi-Res'**
+  String get libraryAuditCodeFakeHires;
+
+  /// No description provided for @libraryAuditCodeDeepFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'深扫失败'**
+  String get libraryAuditCodeDeepFailed;
+
+  /// No description provided for @libraryAuditDeepErrorUnresolved.
+  ///
+  /// In zh, this message translates to:
+  /// **'找不到可解码的文件'**
+  String get libraryAuditDeepErrorUnresolved;
+
+  /// No description provided for @libraryAuditDeepErrorSampleRate.
+  ///
+  /// In zh, this message translates to:
+  /// **'读不到有效采样率，文件可能已损坏或不是音频'**
+  String get libraryAuditDeepErrorSampleRate;
+
+  /// No description provided for @libraryAuditDeepErrorDecode.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法解码这段音频'**
+  String get libraryAuditDeepErrorDecode;
+
+  /// No description provided for @libraryAuditDeepErrorTooShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'音频太短，无法做频谱'**
+  String get libraryAuditDeepErrorTooShort;
+
+  /// No description provided for @libraryAuditDeepErrorUnsupported.
+  ///
+  /// In zh, this message translates to:
+  /// **'格式不受支持'**
+  String get libraryAuditDeepErrorUnsupported;
+
+  /// No description provided for @libraryAuditDeepErrorUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'深扫失败，原因不明'**
+  String get libraryAuditDeepErrorUnknown;
+
+  /// No description provided for @libraryAuditCutoff.
+  ///
+  /// In zh, this message translates to:
+  /// **'高频截止约 {hz} Hz'**
+  String libraryAuditCutoff(int hz);
+
+  /// No description provided for @libraryAuditReplace.
+  ///
+  /// In zh, this message translates to:
+  /// **'替换'**
+  String get libraryAuditReplace;
+
+  /// No description provided for @libraryAuditReplaceHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索后导入即可替换「{title}」'**
+  String libraryAuditReplaceHint(String title);
+
+  /// No description provided for @libraryAuditReplaceBanner.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择一首搜索结果，用来替换「{title}」· {artist}'**
+  String libraryAuditReplaceBanner(String title, String artist);
+
+  /// No description provided for @libraryAuditReplaceWithThis.
+  ///
+  /// In zh, this message translates to:
+  /// **'用这首替换'**
+  String get libraryAuditReplaceWithThis;
+
+  /// No description provided for @libraryAuditNasRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'曲库体检需要能连上 NAS Agent'**
+  String get libraryAuditNasRequired;
+
+  /// No description provided for @libraryAuditFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'体检失败：{reason}'**
+  String libraryAuditFailed(String reason);
+
+  /// No description provided for @libraryAuditQuality.
+  ///
+  /// In zh, this message translates to:
+  /// **'{format} · {kbps} kbps'**
+  String libraryAuditQuality(String format, int kbps);
+
+  /// No description provided for @libraryAuditRulesTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'体检阈值'**
+  String get libraryAuditRulesTitle;
+
+  /// No description provided for @libraryAuditRulesLowBitrate.
+  ///
+  /// In zh, this message translates to:
+  /// **'有损低于 {kbps} kbps 记为低码率'**
+  String libraryAuditRulesLowBitrate(int kbps);
+
+  /// No description provided for @libraryAuditRulesSuspect.
+  ///
+  /// In zh, this message translates to:
+  /// **'无损低于 {kbps} kbps 记为可疑假无损'**
+  String libraryAuditRulesSuspect(int kbps);
+
+  /// No description provided for @libraryAuditRulesDuration.
+  ///
+  /// In zh, this message translates to:
+  /// **'时长相差超过 {seconds} 秒记为不同版本'**
+  String libraryAuditRulesDuration(int seconds);
+
+  /// No description provided for @libraryAuditSelect.
+  ///
+  /// In zh, this message translates to:
+  /// **'多选'**
+  String get libraryAuditSelect;
+
+  /// No description provided for @libraryAuditSelectAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全选'**
+  String get libraryAuditSelectAll;
+
+  /// No description provided for @libraryAuditDoneSelecting.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成'**
+  String get libraryAuditDoneSelecting;
+
+  /// No description provided for @libraryAuditSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'已选 {count} 首'**
+  String libraryAuditSelected(int count);
+
+  /// No description provided for @libraryAuditDeleteSelectedConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'从曲库删除选中的 {count} 首？不会自动替换。'**
+  String libraryAuditDeleteSelectedConfirm(int count);
+
+  /// No description provided for @libraryAuditReplaceSelectedHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'将按顺序搜索并替换选中的 {count} 首，每首仍需确认。'**
+  String libraryAuditReplaceSelectedHint(int count);
+
+  /// No description provided for @libraryAuditBatchDeleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'已删除 {count} 首'**
+  String libraryAuditBatchDeleted(int count);
+
+  /// No description provided for @libraryAuditPlayFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法播放这首歌'**
+  String get libraryAuditPlayFailed;
+
+  /// No description provided for @libraryAuditOpenAlbum.
+  ///
+  /// In zh, this message translates to:
+  /// **'专辑'**
+  String get libraryAuditOpenAlbum;
+
+  /// No description provided for @libraryAuditReplaceBannerQueued.
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {current}/{total} 首：选择结果替换「{title}」· {artist}'**
+  String libraryAuditReplaceBannerQueued(
+    int current,
+    int total,
+    String title,
+    String artist,
+  );
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

@@ -276,6 +276,32 @@ void main() {
     expect(state.hasMore, isFalse);
   });
 
+  test('searchIfAbsent skips a query that already has results', () async {
+    SharedPreferences.setMockInitialValues({
+      'active_server_id': 'server-a',
+      'server_url': 'http://music.local',
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final backend = _PagedBackendClient();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        backendClientProvider.overrideWithValue(backend),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(searchProvider('kugou'), (_, _) {});
+    addTearDown(subscription.close);
+
+    final notifier = container.read(searchProvider('kugou').notifier);
+    await notifier.searchIfAbsent('周杰伦');
+    await notifier.searchIfAbsent('周杰伦');
+    await notifier.searchIfAbsent('林俊杰');
+
+    expect(backend.sources, ['kugou', 'kugou']);
+    expect(container.read(searchProvider('kugou')).songs, hasLength(2));
+  });
+
   test('search asks for the capability page size', () async {
     SharedPreferences.setMockInitialValues({
       'active_server_id': 'server-a',

@@ -82,7 +82,7 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "从 1.0.50 验证 Sparkle 更新弹窗并安装。"
+        "曲库体检分音质与版本；替换可选搜索结果；歌单有详情页；首页改为最新歌曲。"
     )
 }
 if Path(windows_name).is_file():
@@ -109,7 +109,7 @@ python3 "$SCRIPT_DIR/write_appcast.py" \
   --macos-build "$MACOS_BUILD" \
   --macos-name "$macos" \
   --sign-output "$sign_output" \
-  --changelog "从 1.0.50 验证 Sparkle 更新弹窗并安装。" \
+  --changelog "曲库体检分音质与版本；替换可选搜索结果；歌单有详情页；首页改为最新歌曲。" \
   --output "$DIST_DIR/appcast.xml"
 
 echo "Prepared private update metadata in $DIST_DIR"

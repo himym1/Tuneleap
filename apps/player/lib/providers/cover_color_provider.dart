@@ -9,19 +9,28 @@ import 'package:navidrome_player/utils/cover_color.dart';
 // 封面取色 — 从封面 URL 提取主色调
 // ============================================================
 
-/// 从封面图 URL 异步提取主色，供播放器动态主题使用。
-/// 用 FutureProvider.family 以 URL 为 key 自动缓存，切歌时自动失效/重建。
-final coverColorProvider = FutureProvider.family<Color, String>((
+/// Atmosphere + graphic accent from a cover URL. Cached by URL.
+final coverPaletteProvider = FutureProvider.family<CoverPalette, String>((
   ref,
   url,
 ) async {
-  if (url.isEmpty) return AppColors.primary;
+  if (url.isEmpty) {
+    return CoverPalette(seed: AppColors.primary, accent: AppColors.primary);
+  }
   try {
-    return await extractCoverSeedColorFromProvider(
+    return await extractCoverPaletteFromProvider(
       CachedNetworkImageProvider(url, headers: mediaRequestHeaders(url)),
       fallback: AppColors.primary,
     );
   } catch (_) {
-    return AppColors.primary;
+    return CoverPalette(seed: AppColors.primary, accent: AppColors.primary);
   }
+});
+
+/// Cover atmosphere only. Used as the dynamic theme seed.
+final coverColorProvider = FutureProvider.family<Color, String>((
+  ref,
+  url,
+) async {
+  return (await ref.watch(coverPaletteProvider(url).future)).seed;
 });

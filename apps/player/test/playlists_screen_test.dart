@@ -6,6 +6,7 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
+import 'package:navidrome_player/ui/screens/playlist_detail/playlist_detail_screen.dart';
 import 'package:navidrome_player/ui/screens/playlists/playlists_screen.dart';
 import 'package:navidrome_player/ui/theme/app_color_loader.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
@@ -150,6 +151,12 @@ Future<_RecordingPlaylistClient> _pumpPlaylists(WidgetTester tester) async {
         path: '/library/playlists',
         builder: (_, _) => const PlaylistsScreen(),
       ),
+      GoRoute(
+        path: '/playlist/:id',
+        builder: (_, state) => PlaylistDetailScreen(
+          playlistId: Uri.decodeComponent(state.pathParameters['id']!),
+        ),
+      ),
       for (final path in [
         '/library/songs',
         '/library/albums',
@@ -213,7 +220,7 @@ void main() {
     await tester.tap(find.text('Rename'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Morning Focus');
-    await tester.tap(find.text('OK'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     expect(client.renamedId, 'p1');
     expect(client.renamedName, 'Morning Focus');
@@ -229,13 +236,16 @@ void main() {
     expect(find.text('2 playlists'), findsOneWidget);
   });
 
-  testWidgets('empty playlist can add local library songs', (tester) async {
+  testWidgets('empty playlist opens detail and can add local library songs', (
+    tester,
+  ) async {
     final client = await _pumpPlaylists(tester);
 
     await tester.tap(find.text('Morning'));
     // Avoid pumpAndSettle: CoverArt shimmer keeps animating.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
+    expect(find.byType(PlaylistDetailScreen), findsOneWidget);
     expect(
       find.byKey(const Key('playlist-empty-add-songs-button')),
       findsOneWidget,
@@ -256,6 +266,6 @@ void main() {
     expect(client.addedToPlaylistId, 'p1');
     expect(client.addedSongIds, ['s1']);
     expect(find.text('Spring'), findsWidgets);
-    expect(find.text('Added 1 songs'), findsOneWidget);
+    expect(find.text('Added 1 songs'), findsWidgets);
   });
 }

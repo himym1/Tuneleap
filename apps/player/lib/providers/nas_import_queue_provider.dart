@@ -16,6 +16,7 @@ class NasImportTask {
   final String id;
   final Song song;
   final bool force;
+  final List<String> replaceSongIds;
   final bool preferFreshUrl;
   final NasImportStage stage;
   final String? message;
@@ -29,6 +30,7 @@ class NasImportTask {
     required this.id,
     required this.song,
     this.force = false,
+    this.replaceSongIds = const [],
     this.preferFreshUrl = false,
     this.stage = NasImportStage.pending,
     this.message,
@@ -60,11 +62,13 @@ class NasImportTask {
     double? speedBps,
     bool clearProgress = false,
     bool? preferFreshUrl,
+    List<String>? replaceSongIds,
   }) {
     return NasImportTask(
       id: id,
       song: song,
       force: force,
+      replaceSongIds: replaceSongIds ?? this.replaceSongIds,
       preferFreshUrl: preferFreshUrl ?? this.preferFreshUrl,
       stage: stage ?? this.stage,
       message: message ?? this.message,
@@ -153,7 +157,11 @@ class NasImportQueueNotifier extends Notifier<List<NasImportTask>> {
   }
 
   /// Enqueue an online song for serial NAS import. Returns false if already queued.
-  bool enqueue(Song song, {bool force = false}) {
+  bool enqueue(
+    Song song, {
+    bool force = false,
+    List<String> replaceSongIds = const [],
+  }) {
     if (!song.isOnline) {
       throw ArgumentError('Only online songs can be imported');
     }
@@ -169,7 +177,8 @@ class NasImportQueueNotifier extends Notifier<List<NasImportTask>> {
       NasImportTask(
         id: id,
         song: song,
-        force: force,
+        force: force || replaceSongIds.isNotEmpty,
+        replaceSongIds: List<String>.unmodifiable(replaceSongIds),
         createdAt: DateTime.now(),
       ),
       ...state,
@@ -241,6 +250,12 @@ class NasImportQueueNotifier extends Notifier<List<NasImportTask>> {
     );
     final importService = ref.read(navidromeImportServiceProvider);
     try {
+      if (task.replaceSongIds.isNotEmpty) {
+        await ref
+            .read(backendClientProvider)
+            .deleteLibrarySongs(task.replaceSongIds);
+        _update(task.id, replaceSongIds: const []);
+      }
       final result = await importService.importOnlineSong(
         task.song,
         force: task.force,
@@ -298,6 +313,7 @@ class NasImportQueueNotifier extends Notifier<List<NasImportTask>> {
     int? bytesTotal,
     double? speedBps,
     bool clearProgress = false,
+    List<String>? replaceSongIds,
   }) {
     if (!ref.mounted) return;
     state = [
@@ -312,6 +328,7 @@ class NasImportQueueNotifier extends Notifier<List<NasImportTask>> {
             bytesTotal: bytesTotal,
             speedBps: speedBps,
             clearProgress: clearProgress,
+            replaceSongIds: replaceSongIds,
           )
         else
           task,

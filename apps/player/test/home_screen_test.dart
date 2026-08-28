@@ -92,10 +92,10 @@ Future<void> _pumpHome(
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      newestAlbumsProvider.overrideWith((ref) async {
+      newestSongsProvider.overrideWith((ref) async {
         onNewestLoad?.call();
-        return const [
-          Album(id: 'album-1', name: 'Newest Album', artist: 'Album Artist'),
+        return [
+          _localSong('newest-1'),
         ];
       }),
       weatherProvider.overrideWith((ref) async => null),
@@ -180,13 +180,14 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('4:01'), findsOneWidget);
-    expect(find.text('Newest Album'), findsOneWidget);
+    expect(find.text('Latest Songs'), findsOneWidget);
+    expect(find.text('Song newest-1'), findsOneWidget);
 
     final yourMusicY = tester.getTopLeft(find.text('Your Music')).dy;
     final discoveryY = tester.getTopLeft(find.text('Discover New Music')).dy;
-    final latestAlbumsY = tester.getTopLeft(find.text('Latest Albums')).dy;
+    final latestSongsY = tester.getTopLeft(find.text('Latest Songs')).dy;
     expect(yourMusicY, lessThan(discoveryY));
-    expect(discoveryY, lessThan(latestAlbumsY));
+    expect(discoveryY, lessThan(latestSongsY));
   });
 
   testWidgets('mobile local listening actions fit without overflow', (
@@ -246,9 +247,10 @@ void main() {
 
     expect(find.text('Recommended Song 6'), findsOneWidget);
     expect(find.text('Recently Played Song 1'), findsOneWidget);
-    expect(find.text('Newest Album'), findsOneWidget);
+    expect(find.text('Latest Songs'), findsOneWidget);
+    expect(find.text('Song newest-1'), findsOneWidget);
     expect(
-      tester.getBottomRight(find.text('Newest Album')).dy,
+      tester.getBottomRight(find.text('Latest Songs')).dy,
       lessThanOrEqualTo(size.height),
     );
   });

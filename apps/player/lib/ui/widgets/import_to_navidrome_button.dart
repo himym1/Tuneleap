@@ -4,7 +4,9 @@ import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
+import 'package:navidrome_player/ui/widgets/import_duplicate_dialog.dart';
 import 'package:navidrome_player/ui/widgets/nas_import_queue_popup.dart';
+import 'package:navidrome_player/utils/import_duplicate.dart';
 import 'package:navidrome_player/utils/song_identity.dart';
 
 Future<bool> importOnlineSongToNavidrome(
@@ -29,25 +31,60 @@ Future<bool> importOnlineSongToNavidrome(
   }
 
   var force = false;
-  try {
-    final local = await localClient.search3(
-      song.title,
-      songCount: 20,
-      albumCount: 0,
-      artistCount: 0,
-    );
-    final identity = songWeakIdentity(song);
-    final duplicate = local.songs.any(
-      (candidate) => songWeakIdentity(candidate) == identity,
-    );
-    if (duplicate) {
-      if (!context.mounted) return false;
-      force = await _confirmDuplicate(context, l10n, song);
-      if (!force) return false;
+  var replaceSongIds = const <String>[];
+  final replaceSession = ref.read(libraryAuditReplaceTargetProvider);
+  final preferredId = replaceSession?.current.songId;
+  // Library-audit replace: user already picked the online result and the
+  // local song id. Skip the duplicate picker and replace that id directly.
+  if (preferredId != null && preferredId.isNotEmpty) {
+    force = true;
+    replaceSongIds = [preferredId];
+  } else {
+    final List<ImportDuplicateCandidate> candidates;
+    try {
+      final local = await localClient.search3(
+        song.title,
+        songCount: 20,
+        albumCount: 0,
+        artistCount: 0,
+      );
+      candidates = importDuplicateCandidates(
+        incoming: song,
+        locals: local.songs,
+      );
+    } catch (_) {
+      messenger.showSnackBar(_message(l10n.importDuplicateCheckFailed));
+      return false;
     }
-  } catch (_) {
-    messenger.showSnackBar(_message(l10n.importDuplicateCheckFailed));
-    return false;
+    if (candidates.isNotEmpty) {
+      if (!context.mounted) return false;
+      final maxBitRate = ref.read(audioQualityProvider);
+      var incomingQuality = incomingImportQuality(maxBitRate: maxBitRate);
+      try {
+        final playback = await backend.probePlaybackInfo(
+          song,
+          maxBitRate: maxBitRate,
+        );
+        incomingQuality = incomingQualityFromPlayback(
+          maxBitRate: maxBitRate,
+          url: playback.url,
+          cloudBr: playback.br,
+          cloudType: playback.type,
+          cloudSize: playback.size,
+          durationSeconds: song.duration,
+        );
+      } catch (_) {}
+      if (!context.mounted) return false;
+      final decision = await showImportDuplicateDialog(
+        context: context,
+        incoming: song,
+        candidates: candidates,
+        incomingQuality: incomingQuality,
+      );
+      if (!decision.shouldImport) return false;
+      force = true;
+      replaceSongIds = decision.replaceSongIds;
+    }
   }
 
   if (ref.read(serverConfigProvider).serverId != serverId) {
@@ -61,13 +98,21 @@ Future<bool> importOnlineSongToNavidrome(
     return true;
   }
 
-  final enqueued = queue.enqueue(song, force: force);
+  final enqueued = queue.enqueue(
+    song,
+    force: force,
+    replaceSongIds: replaceSongIds,
+  );
   if (!enqueued) {
     messenger.showSnackBar(_message(l10n.nasImportAlreadyQueued));
     return true;
   }
 
   onImported?.call();
+  if (preferredId != null && replaceSongIds.contains(preferredId)) {
+    ref.read(libraryAuditProvider.notifier).removeFinding(preferredId);
+    ref.read(libraryAuditReplaceTargetProvider.notifier).completeCurrent();
+  }
   if (!context.mounted) return true;
   messenger.clearSnackBars();
   messenger.showSnackBar(
@@ -138,27 +183,6 @@ class _ImportToNavidromeButtonState
           : Icon(Icons.library_add_rounded, color: widget.iconColor),
     );
   }
-}
-
-Future<bool> _confirmDuplicate(BuildContext context, S l10n, Song song) async {
-  return await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(l10n.importDuplicateTitle),
-          content: Text(l10n.importDuplicateMessage(song.title, song.artist)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(l10n.commonCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(l10n.importAnyway),
-            ),
-          ],
-        ),
-      ) ??
-      false;
 }
 
 SnackBar _message(String text) => SnackBar(

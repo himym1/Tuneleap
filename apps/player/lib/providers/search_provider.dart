@@ -96,6 +96,16 @@ class SearchNotifier extends Notifier<SearchState> {
     state = state.copyWith(clearResult: true);
   }
 
+  Future<void> searchIfAbsent(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    if (_query == trimmed &&
+        (state.searching || state.songs.isNotEmpty || state.error != null)) {
+      return;
+    }
+    await search(trimmed);
+  }
+
   Future<void> search(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) {

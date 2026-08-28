@@ -84,8 +84,9 @@ async def test_chksz_search_qq_uses_mid_and_skips_later_pages():
 
     assert [song["id"] for song in page1] == ["0039MnYb0qxYhV"]
     assert page1[0]["source"] == "tencent"
+    assert page1[0]["cover_id"] == "0039MnYb0qxYhV"
     assert page2 == []
-    assert calls == ["/api/qq_music"]
+    assert [path for path in calls if path.startswith("/api/")] == ["/api/qq_music"]
 
 
 @pytest.mark.asyncio
@@ -156,7 +157,35 @@ async def test_chksz_url_and_http_cover():
         )
 
     assert url["url"].endswith("a.mp3")
+    assert url["br"] == 320
+    assert url["type"] == "mp3"
     assert cover["url"].endswith("cover.jpg")
+
+
+@pytest.mark.asyncio
+async def test_chksz_url_passes_through_size_and_type():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 200,
+                "data": {
+                    "url": "https://m701.music.126.net/a.flac",
+                    "br": 999000,
+                    "size": 25840123,
+                    "type": "flac",
+                },
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(client, "https://api.chksz.test", "chksz_test")
+        url = await adapter.get_url("93188", source="netease", br=999)
+
+    assert url["br"] == 999
+    assert url["type"] == "flac"
+    assert url["size"] == 25840123
 
 
 @pytest.mark.asyncio
@@ -390,7 +419,7 @@ async def test_chksz_url_keeps_not_found_as_error():
             await adapter.get_url("missing", source="kugou", br=320)
 
 @pytest.mark.asyncio
-async def test_chksz_search_without_real_cover_does_not_invent_cover_id():
+async def test_chksz_search_keeps_song_mid_as_cover_id_without_album_art():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
@@ -418,7 +447,7 @@ async def test_chksz_search_without_real_cover_does_not_invent_cover_id():
             "Bad Boy", source="tencent", count=1, page=1
         )
 
-    assert songs[0]["cover_id"] is None
+    assert songs[0]["cover_id"] == "qq-1"
 
 
 @pytest.mark.asyncio
@@ -501,6 +530,139 @@ async def test_chksz_netease_lyric_does_not_reuse_empty_playback_cache():
         lyric = await adapter.get_lyric("93188", source="netease")
 
     assert playback["url"].endswith("a.flac")
+    assert playback["br"] == 999
+    assert playback["type"] == "flac"
     assert "lyric" not in playback
     assert calls == ["/api/163_music", "/api/163_lyric"]
     assert lyric["lyric"] == "[00:01.00]蝴蝶"
+
+
+@pytest.mark.asyncio
+async def test_chksz_qq_search_uses_album_mid_as_cover():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 200,
+                "list": [
+                    {
+                        "name": "晴天",
+                        "singer": "周杰伦",
+                        "album": "叶惠美",
+                        "mid": "0039MnYb0qxYhV",
+                        "albummid": "000MkMni19ClKG",
+                    }
+                ],
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+        )
+        songs = await adapter.search("晴天", source="tencent", count=1, page=1)
+
+    assert songs[0]["cover_id"] == (
+        "https://y.gtimg.cn/music/photo_new/T002R300x300M000000MkMni19ClKG.jpg"
+    )
+
+
+@pytest.mark.asyncio
+async def test_chksz_get_cover_uses_public_qq_album():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "c.y.qq.com":
+            return httpx.Response(
+                200,
+                json={
+                    "code": 0,
+                    "data": [
+                        {
+                            "mid": "0039MnYb0qxYhV",
+                            "album": {"mid": "000MkMni19ClKG"},
+                        }
+                    ],
+                },
+            )
+        raise AssertionError(request.url.host)
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+        )
+        cover = await adapter.get_cover(
+            "0039MnYb0qxYhV", source="tencent", size=300
+        )
+
+    assert cover["url"].endswith("T002R300x300M000000MkMni19ClKG.jpg")
+
+
+@pytest.mark.asyncio
+async def test_chksz_search_retries_not_found_then_returns_hits():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return httpx.Response(
+                404, json={"code": 404, "msg": "未找到匹配的歌曲"}
+            )
+        return httpx.Response(
+            200,
+            json={
+                "code": 200,
+                "list": [{"name": "晴天", "singer": "周杰伦", "id": "hash-1"}],
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+        )
+        songs = await adapter.search("晴天", source="kugou", count=20, page=1)
+
+    assert calls == 2
+    assert [song["id"] for song in songs] == ["hash-1"]
+
+
+@pytest.mark.asyncio
+async def test_chksz_search_reuses_cached_kugou_window():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(
+            200,
+            json={
+                "code": 200,
+                "list": [{"name": "晴天", "singer": "周杰伦", "id": "hash-1"}],
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(
+            client,
+            "https://api.chksz.test",
+            "chksz_test",
+            request_interval=0,
+        )
+        first = await adapter.search("晴天", source="kugou", count=20, page=1)
+        second = await adapter.search("晴天", source="kugou", count=20, page=1)
+
+    assert calls == 1
+    assert [song["id"] for song in first] == ["hash-1"]
+    assert [song["id"] for song in second] == ["hash-1"]

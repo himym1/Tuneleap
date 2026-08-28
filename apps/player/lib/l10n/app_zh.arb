@@ -216,6 +216,42 @@
         }
     },
     "importAnyway": "仍然导入",
+    "importDuplicateCompareHint": "对照两边音质，再决定替换、另下一份或取消。",
+    "importDuplicateIncoming": "将要下载",
+    "importDuplicateLocal": "本地曲库",
+    "importDuplicateSameVersion": "同一版本",
+    "importDuplicateDifferentVersion": "不同版本",
+    "importDuplicateUnknownVersion": "无法判断",
+    "importDuplicateDownload": "下载",
+    "importDuplicateReplace": "替换",
+    "importDuplicateIncomingOriginal": "原始 · 未转码",
+    "importDuplicateBitRateEstimated": "约 {kbps} kbps",
+    "@importDuplicateBitRateEstimated": {
+        "placeholders": {
+            "kbps": { "type": "int" }
+        }
+    },
+    "importDuplicateQualityHigher": "比选中本地更高",
+    "importDuplicateQualityHigherBy": "比选中本地高 {kbps} kbps",
+    "@importDuplicateQualityHigherBy": {
+        "placeholders": {
+            "kbps": { "type": "int" }
+        }
+    },
+    "importDuplicateQualityLower": "比选中本地更低",
+    "importDuplicateQualityLowerBy": "比选中本地低 {kbps} kbps",
+    "@importDuplicateQualityLowerBy": {
+        "placeholders": {
+            "kbps": { "type": "int" }
+        }
+    },
+    "importDuplicateQualitySimilar": "与选中本地相近",
+    "importDuplicateQualityUnknown": "无法对比具体码率",
+    "importDuplicateQualityLocalLossless": "本地已是无损，无法对比码率",
+    "importDuplicateQualityBothLossless": "都是无损，待下载码率未知",
+    "importDuplicateQualityOriginalLikelyHigher": "原始音质通常高于本地有损",
+    "importDuplicateUnknownAlbum": "未知专辑",
+    "importDuplicateUnknownMeta": "—",
     "importDuplicateCheckFailed": "无法核对 NAS 曲库，已停止导入",
     "nasAgentConfigRequired": "请先登录 Cloud 后再导入或删除",
     "commonContinue": "继续",
@@ -521,6 +557,7 @@
     "libraryBrowse": "浏览音乐库",
 
     "homeNewestAlbums": "最新专辑",
+    "homeNewestSongs": "最新歌曲",
     "homeDailyRecommend": "发现新音乐",
     "homeRecentlyPlayed": "最近播放",
     "homeYourMusic": "我的音乐",
@@ -607,7 +644,12 @@
     "searchSectionOnline": "在线搜索结果",
 
     "playerShuffle": "随机播放",
+    "playerShuffleOff": "随机：关",
+    "playerShuffleOn": "随机：开",
     "playerRepeat": "循环播放",
+    "playerRepeatOff": "循环：关（播完即停）",
+    "playerRepeatAll": "循环：列表",
+    "playerRepeatOne": "循环：单曲",
     "tooltipUnfavorite": "取消收藏",
     "tooltipPlay": "播放",
     "tooltipFavorite": "收藏",
@@ -672,5 +714,144 @@
     "recommendationsRefreshing": "正在刷新推荐",
     "settingsResetRecommendations": "重置推荐偏好",
     "settingsResetRecommendationsConfirm": "重置推荐偏好？歌曲、下载、播放历史和服务器配置不受影响。",
-    "settingsResetRecommendationsDone": "推荐偏好已重置"
+    "settingsResetRecommendationsDone": "推荐偏好已重置",
+
+    "libraryAuditTitle": "曲库体检",
+    "libraryAuditSubtitle": "先快扫格式和码率，再可选深扫假无损。结果分成「音质问题」和「不同版本（音质正常）」。不会自动删歌或替换。",
+    "libraryAuditStart": "开始体检",
+    "libraryAuditDeepStart": "深扫问题项",
+    "libraryAuditCancel": "取消",
+    "libraryAuditScanning": "正在扫描 {scanned}/{total}",
+    "libraryAuditDeepScanning": "正在深扫 {scanned}/{total}",
+    "@libraryAuditDeepScanning": {
+        "placeholders": {
+            "scanned": { "type": "int" },
+            "total": { "type": "int" }
+        }
+    },
+    "@libraryAuditScanning": {
+        "placeholders": {
+            "scanned": { "type": "int" },
+            "total": { "type": "int" }
+        }
+    },
+    "libraryAuditIdle": "尚未体检。开始后会列出可疑文件，再由你决定删除或替换。",
+    "libraryAuditEmptyIssues": "这次没有发现问题。",
+    "libraryAuditEmptyQuality": "没有音质问题。",
+    "libraryAuditEmptyVersions": "没有不同版本。",
+    "libraryAuditPassed": "通过",
+    "libraryAuditIssues": "问题",
+    "libraryAuditQualityIssues": "音质问题",
+    "libraryAuditVersionOnly": "不同版本",
+    "libraryAuditSectionQuality": "音质问题",
+    "libraryAuditSectionVersions": "不同版本（音质正常）",
+    "libraryAuditSectionVersionsHint": "同名同歌手但时长不同。频谱正常或未标假无损，可以都留着。",
+    "libraryAuditQualityOk": "音质正常",
+    "libraryAuditScanned": "已扫描",
+    "libraryAuditFilterAll": "全部",
+    "libraryAuditCodeMissing": "文件缺失",
+    "libraryAuditCodeLowBitrate": "低码率",
+    "libraryAuditCodeSuspectTranscode": "可疑假无损",
+    "libraryAuditCodeDuplicateVersion": "不同版本",
+    "libraryAuditCodeLossyTranscode": "频谱像有损",
+    "libraryAuditCodeFakeHires": "假 Hi-Res",
+    "libraryAuditCodeDeepFailed": "深扫失败",
+    "libraryAuditDeepErrorUnresolved": "找不到可解码的文件",
+    "libraryAuditDeepErrorSampleRate": "读不到有效采样率，文件可能已损坏或不是音频",
+    "libraryAuditDeepErrorDecode": "无法解码这段音频",
+    "libraryAuditDeepErrorTooShort": "音频太短，无法做频谱",
+    "libraryAuditDeepErrorUnsupported": "格式不受支持",
+    "libraryAuditDeepErrorUnknown": "深扫失败，原因不明",
+    "libraryAuditCutoff": "高频截止约 {hz} Hz",
+    "@libraryAuditCutoff": {
+        "placeholders": {
+            "hz": { "type": "int" }
+        }
+    },
+    "libraryAuditReplace": "替换",
+    "libraryAuditReplaceHint": "搜索后导入即可替换「{title}」",
+    "@libraryAuditReplaceHint": {
+        "placeholders": {
+            "title": { "type": "String" }
+        }
+    },
+    "libraryAuditReplaceBanner": "选择一首搜索结果，用来替换「{title}」· {artist}",
+    "@libraryAuditReplaceBanner": {
+        "placeholders": {
+            "title": { "type": "String" },
+            "artist": { "type": "String" }
+        }
+    },
+    "libraryAuditReplaceWithThis": "用这首替换",
+    "libraryAuditNasRequired": "曲库体检需要能连上 NAS Agent",
+    "libraryAuditFailed": "体检失败：{reason}",
+    "@libraryAuditFailed": {
+        "placeholders": {
+            "reason": { "type": "String" }
+        }
+    },
+    "libraryAuditQuality": "{format} · {kbps} kbps",
+    "@libraryAuditQuality": {
+        "placeholders": {
+            "format": { "type": "String" },
+            "kbps": { "type": "int" }
+        }
+    },
+    "libraryAuditRulesTitle": "体检阈值",
+    "libraryAuditRulesLowBitrate": "有损低于 {kbps} kbps 记为低码率",
+    "@libraryAuditRulesLowBitrate": {
+        "placeholders": {
+            "kbps": { "type": "int" }
+        }
+    },
+    "libraryAuditRulesSuspect": "无损低于 {kbps} kbps 记为可疑假无损",
+    "@libraryAuditRulesSuspect": {
+        "placeholders": {
+            "kbps": { "type": "int" }
+        }
+    },
+    "libraryAuditRulesDuration": "时长相差超过 {seconds} 秒记为不同版本",
+    "@libraryAuditRulesDuration": {
+        "placeholders": {
+            "seconds": { "type": "int" }
+        }
+    },
+    "libraryAuditSelect": "多选",
+    "libraryAuditSelectAll": "全选",
+    "libraryAuditDoneSelecting": "完成",
+    "libraryAuditSelected": "已选 {count} 首",
+    "@libraryAuditSelected": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryAuditDeleteSelectedConfirm": "从曲库删除选中的 {count} 首？不会自动替换。",
+    "@libraryAuditDeleteSelectedConfirm": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryAuditReplaceSelectedHint": "将按顺序搜索并替换选中的 {count} 首，每首仍需确认。",
+    "@libraryAuditReplaceSelectedHint": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryAuditBatchDeleted": "已删除 {count} 首",
+    "@libraryAuditBatchDeleted": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryAuditPlayFailed": "无法播放这首歌",
+    "libraryAuditOpenAlbum": "专辑",
+    "libraryAuditReplaceBannerQueued": "第 {current}/{total} 首：选择结果替换「{title}」· {artist}",
+    "@libraryAuditReplaceBannerQueued": {
+        "placeholders": {
+            "current": { "type": "int" },
+            "total": { "type": "int" },
+            "title": { "type": "String" },
+            "artist": { "type": "String" }
+        }
+    }
 }

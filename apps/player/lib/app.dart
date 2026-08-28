@@ -17,9 +17,11 @@ import 'package:navidrome_player/ui/screens/library/library_genres_screen.dart';
 import 'package:navidrome_player/ui/screens/library/library_radio_screen.dart';
 import 'package:navidrome_player/ui/screens/favorites/favorites_screen.dart';
 import 'package:navidrome_player/ui/screens/audio_quality/audio_quality_screen.dart';
+import 'package:navidrome_player/ui/screens/library_audit/library_audit_screen.dart';
 import 'package:navidrome_player/ui/screens/search/search_screen.dart';
 import 'package:navidrome_player/ui/screens/player/player_screen.dart';
 import 'package:navidrome_player/ui/screens/playlists/playlists_screen.dart';
+import 'package:navidrome_player/ui/screens/playlist_detail/playlist_detail_screen.dart';
 import 'package:navidrome_player/ui/screens/settings/settings_screen.dart';
 import 'package:navidrome_player/ui/screens/downloads/downloads_screen.dart';
 import 'package:navidrome_player/ui/screens/scrobble/scrobble_screen.dart';
@@ -307,6 +309,17 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   ),
                 ),
                 GoRoute(
+                  path: '/playlist/:id',
+                  pageBuilder: (context, state) => _detailSlidePage(
+                    key: state.pageKey,
+                    child: PlaylistDetailScreen(
+                      playlistId: Uri.decodeComponent(
+                        state.pathParameters['id']!,
+                      ),
+                    ),
+                  ),
+                ),
+                GoRoute(
                   path: '/artist/:id',
                   pageBuilder: (context, state) => _detailSlidePage(
                     key: state.pageKey,
@@ -324,7 +337,9 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   path: '/search',
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
-                    child: const SearchScreen(),
+                    child: SearchScreen(
+                      initialQuery: state.uri.queryParameters['q'],
+                    ),
                     transitionsBuilder: _fadeThroughTransition,
                     transitionDuration: _kFadeDuration,
                   ),
@@ -386,6 +401,15 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
                     child: const AudioQualityScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/library-audit',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryAuditScreen(),
                     transitionsBuilder: _fadeThroughTransition,
                     transitionDuration: _kFadeDuration,
                   ),

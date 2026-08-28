@@ -54,6 +54,8 @@ class MusicCapabilitiesResponse(BaseModel):
 class UrlResponse(BaseModel):
     url: str
     br: Optional[int] = None
+    type: Optional[str] = None
+    size: Optional[int] = None
     provider: str
     source: str
     cover_url: Optional[str] = None

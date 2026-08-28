@@ -10,6 +10,7 @@ import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
+import 'package:navidrome_player/ui/widgets/playback_mode_listener.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
 import 'package:navidrome_player/utils/player_navigation.dart';
 
@@ -282,24 +283,24 @@ class MiniPlayer extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Transport controls
-                  StatefulBuilder(
-                    builder: (context, setLocalState) => Row(
+                  PlaybackModeListener(
+                    playerService: playerService,
+                    builder: (context, shuffle, repeatMode) => Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.shuffle_rounded,
-                            size: 18,
-                            color: playerService.shuffle
-                                ? context.colors.primary
-                                : context.colors.onSurfaceVariant,
-                          ),
+                        PlaybackModeIconButton(
+                          selected: shuffle,
+                          icon: Icons.shuffle_rounded,
+                          size: 18,
+                          iconColor: Theme.of(context).colorScheme.onSurface,
                           onPressed: () {
                             HapticFeedback.lightImpact();
                             playerService.toggleShuffle();
-                            setLocalState(() {});
                           },
-                          tooltip: S.of(context).playerShuffle,
+                          tooltip: playbackShuffleTooltip(
+                            S.of(context),
+                            shuffle,
+                          ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
                             minWidth: 32,
@@ -342,24 +343,19 @@ class MiniPlayer extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        IconButton(
-                          icon: Icon(
-                            playerService.repeatMode == PlaybackRepeatMode.one
-                                ? Icons.repeat_one_rounded
-                                : Icons.repeat_rounded,
-                            size: 18,
-                            color:
-                                playerService.repeatMode !=
-                                    PlaybackRepeatMode.off
-                                ? context.colors.primary
-                                : context.colors.onSurfaceVariant,
-                          ),
+                        PlaybackModeIconButton(
+                          selected: repeatMode != PlaybackRepeatMode.off,
+                          icon: playbackRepeatIcon(repeatMode),
+                          size: 18,
+                          iconColor: Theme.of(context).colorScheme.onSurface,
                           onPressed: () {
                             HapticFeedback.lightImpact();
                             playerService.cycleRepeatMode();
-                            setLocalState(() {});
                           },
-                          tooltip: S.of(context).playerRepeat,
+                          tooltip: playbackRepeatTooltip(
+                            S.of(context),
+                            repeatMode,
+                          ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
                             minWidth: 32,

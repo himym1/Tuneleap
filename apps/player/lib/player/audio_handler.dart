@@ -40,6 +40,8 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       StreamController<PlaybackOrigin?>.broadcast();
   final StreamController<PlaybackFailure> _playbackFailureController =
       StreamController<PlaybackFailure>.broadcast();
+  final StreamController<(bool, PlaybackRepeatMode)> _playbackModeController =
+      StreamController<(bool, PlaybackRepeatMode)>.broadcast();
   int _currentIndex = -1;
   PlaybackRepeatMode _repeatMode = PlaybackRepeatMode.off;
   bool _shuffle = false;
@@ -175,6 +177,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     mediaItem.add(null);
     _shuffle = false;
     _repeatMode = PlaybackRepeatMode.off;
+    _publishPlaybackMode();
     _loadHistory();
   }
 
@@ -213,6 +216,14 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   int get currentIndex => _currentIndex;
   bool get shuffle => _shuffle;
   PlaybackRepeatMode get repeatMode => _repeatMode;
+  Stream<(bool, PlaybackRepeatMode)> get playbackModeStream =>
+      _playbackModeController.stream;
+
+  void _publishPlaybackMode() {
+    if (_playbackModeController.isClosed) return;
+    _playbackModeController.add((_shuffle, _repeatMode));
+  }
+
   Song? get currentSong => _currentIndex >= 0 && _currentIndex < _queue.length
       ? _queue[_currentIndex]
       : null;
@@ -363,6 +374,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   void setShuffle(bool enabled) {
     _shuffle = enabled;
     if (enabled) shuffleQueue();
+    _publishPlaybackMode();
   }
 
   /// 随机打乱队列（保持当前歌曲在首位）
@@ -403,6 +415,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   /// 设置循环模式
   void setRepeat(PlaybackRepeatMode mode) {
     _repeatMode = mode;
+    _publishPlaybackMode();
     unawaited(
       _enqueuePlayerOperation(
         () => _player.setLoopMode(
@@ -448,6 +461,9 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     }
     if (!_playbackFailureController.isClosed) {
       await _playbackFailureController.close();
+    }
+    if (!_playbackModeController.isClosed) {
+      await _playbackModeController.close();
     }
   }
 

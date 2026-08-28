@@ -15,6 +15,8 @@ class _FakeBackendClient extends BackendClient {
   final Duration delay;
   Object? failWith;
   final List<String> importedIds = [];
+  final List<List<String>> deletedIds = [];
+  Object? deleteFailWith;
 
   @override
   bool get isConfigured => true;
@@ -51,6 +53,13 @@ class _FakeBackendClient extends BackendClient {
     await Future<void>.delayed(delay);
     importedIds.add(song['id']?.toString() ?? filename);
     return 'imported';
+  }
+
+  @override
+  Future<NasDeleteResult> deleteLibrarySongs(List<String> navidromeIds) async {
+    if (deleteFailWith != null) throw deleteFailWith!;
+    deletedIds.add(List<String>.from(navidromeIds));
+    return NasDeleteResult(deleted: navidromeIds.length);
   }
 
   NasImportProgress progress = const NasImportProgress();
@@ -181,6 +190,54 @@ void main() {
     expect(task.bytesReceived, 12 * 1024 * 1024);
     expect(task.bytesTotal, 160 * 1024 * 1024);
     expect(formatNasImportTransfer(task), '12.0 MB / 160.0 MB · 48 KB/s');
+  });
+
+  test('replace deletes the selected song before importing', () async {
+    final backend = _FakeBackendClient();
+    final container = await _container(backend: backend);
+    addTearDown(container.dispose);
+
+    container
+        .read(nasImportQueueProvider.notifier)
+        .enqueue(_song('new'), force: true, replaceSongIds: const ['local-1']);
+
+    await _waitUntil(
+      () =>
+          container.read(nasImportQueueProvider).single.stage ==
+          NasImportStage.completed,
+    );
+
+    expect(backend.deletedIds, [
+      ['local-1'],
+    ]);
+    expect(backend.importedIds, ['new']);
+    expect(
+      container.read(nasImportQueueProvider).single.replaceSongIds,
+      isEmpty,
+    );
+  });
+
+  test('replace does not import when delete fails', () async {
+    final backend = _FakeBackendClient()
+      ..deleteFailWith = const NasDeleteException('song not found');
+    final container = await _container(backend: backend);
+    addTearDown(container.dispose);
+
+    container
+        .read(nasImportQueueProvider.notifier)
+        .enqueue(_song('new'), force: true, replaceSongIds: const ['missing']);
+
+    await _waitUntil(
+      () =>
+          container.read(nasImportQueueProvider).single.stage ==
+          NasImportStage.failed,
+    );
+
+    expect(backend.deletedIds, isEmpty);
+    expect(backend.importedIds, isEmpty);
+    expect(container.read(nasImportQueueProvider).single.replaceSongIds, [
+      'missing',
+    ]);
   });
 
   test('transfer labels format bytes and speed', () {

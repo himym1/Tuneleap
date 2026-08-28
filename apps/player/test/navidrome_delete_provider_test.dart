@@ -4,18 +4,29 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/navidrome_delete_provider.dart';
 
 class _FakeBackendClient extends BackendClient {
-  _FakeBackendClient({this.canMutate = true});
+  _FakeBackendClient({this.canMutate = true, this.missingIds = const {}});
 
   final bool canMutate;
-  List<String>? deletedIds;
+  final Set<String> missingIds;
+  final List<List<String>> chunks = [];
 
   @override
   bool get canMutateNas => canMutate;
 
   @override
   Future<NasDeleteResult> deleteLibrarySongs(List<String> navidromeIds) async {
-    deletedIds = navidromeIds;
-    return NasDeleteResult(deleted: navidromeIds.length);
+    chunks.add(List<String>.from(navidromeIds));
+    if (navidromeIds.every(missingIds.contains)) {
+      throw const NasDeleteException('song not found in the Navidrome library');
+    }
+    final deleted = [
+      for (final id in navidromeIds)
+        if (!missingIds.contains(id)) id,
+    ];
+    return NasDeleteResult(
+      deleted: deleted.length,
+      skipped: navidromeIds.length - deleted.length,
+    );
   }
 }
 
@@ -47,8 +58,32 @@ void main() {
     final result = await service.deleteLibrarySong(librarySong);
 
     expect(result.ok, isTrue);
-    expect(backend.deletedIds, ['local-1']);
+    expect(backend.chunks, [
+      ['local-1'],
+    ]);
   });
+
+  test(
+    'deleteLibrarySongIds posts 50-id chunks and keeps going after skips',
+    () async {
+      final backend = _FakeBackendClient(
+        missingIds: {for (var i = 0; i < 50; i++) 'missing-$i'},
+      );
+      final service = NavidromeDeleteService(backendClient: backend);
+      final ids = [
+        for (var i = 0; i < 50; i++) 'missing-$i',
+        for (var i = 0; i < 12; i++) 'keep-$i',
+      ];
+
+      final result = await service.deleteLibrarySongIds(ids);
+
+      expect(backend.chunks.length, 2);
+      expect(backend.chunks.first.length, 50);
+      expect(backend.chunks.last.length, 12);
+      expect(result.deleted, 12);
+      expect(result.skipped, 50);
+    },
+  );
 
   test('deleteLibrarySong rejects online songs', () async {
     final service = NavidromeDeleteService(backendClient: _FakeBackendClient());

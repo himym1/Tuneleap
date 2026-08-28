@@ -19,7 +19,7 @@ Non-goals remain online search, lyrics lookup, user registration, update hosting
 |---|---|---|
 | P0 import | Complete | Streamed download, path validation, tags, cover, `.lrc` |
 | P0 delete | Complete | DB lookup, reversible file staging, related-row cleanup |
-| P1 APIs | Complete | `/v1/nas/import`, `/v1/songs/delete`, `/v1/nas/scan` |
+| P1 APIs | Complete | `/v1/nas/import`, `/v1/songs/delete`, `/v1/nas/scan`, `/v1/nas/library-audit` |
 | P2 resilience | Complete | Idempotency, size/space limits, JSON audit events |
 | P2 Flutter body | Complete | Accepts `picUrl`, `name`, and `lyric` aliases/fields |
 

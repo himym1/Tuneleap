@@ -115,9 +115,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     setState(() => _refreshingHome = true);
     var succeeded = false;
     try {
-      ref.invalidate(newestAlbumsProvider);
+      ref.invalidate(newestSongsProvider);
       await Future.wait([
-        ref.read(newestAlbumsProvider.future),
+        ref.read(newestSongsProvider.future),
         ref.read(recommendationProvider.notifier).refresh(),
       ]);
       succeeded = ref.read(recommendationProvider).error == null;
@@ -288,7 +288,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final newestAlbums = ref.watch(newestAlbumsProvider);
+    final newestSongs = ref.watch(newestSongsProvider);
     final recommendations = ref.watch(recommendationProvider);
     final cloudAuthenticated =
         ref.watch(cloudAuthProvider).value?.isAuthenticated == true;
@@ -303,7 +303,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: newestAlbums.when(
+      body: newestSongs.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => ErrorState(
           message: S.of(context).commonError,
@@ -417,11 +417,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               const SizedBox(height: 20),
               _buildSectionHeader(
-                S.of(context).homeNewestAlbums,
-                onMore: () => context.go('/library/albums'),
+                S.of(context).homeNewestSongs,
+                onMore: () => context.go('/library/songs'),
               ),
-              const SizedBox(height: 12),
-              _buildAlbumRow(newest),
+              const SizedBox(height: 8),
+              if (newest.isEmpty)
+                EmptyState(
+                  icon: Icons.library_music_outlined,
+                  message: S.of(context).commonNoData,
+                )
+              else
+                _buildNewestSongs(newest),
             ],
           ),
         ),
@@ -533,70 +539,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildAlbumRow(List<Album> albums) {
-    final client = ref.read(subsonicClientProvider);
-    final rowHeight = MediaQuery.textScalerOf(context).scale(36) + 144;
-    return SizedBox(
-      height: rowHeight,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: albums.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 14),
-        itemBuilder: (context, index) {
-          final album = albums[index];
-          return Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            child: Semantics(
-              button: true,
-              label: album.name,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => context.push('/home/album/${album.id}'),
-                child: SizedBox(
-                  width: 130,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CoverArt(
-                        url: client.coverArtUrl(album.coverArt, size: 300),
-                        size: 130,
-                        borderRadius: 12,
-                        hasShadow: true,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        album.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.songTitle.copyWith(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (album.artist != null)
-                        Text(
-                          album.artist!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.songSubtitle
-                              .copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   PlaybackOrigin? _homeOrigin(RecommendationItem item, String? sessionId) {
     if (sessionId == null || sessionId.isEmpty) return null;
     return PlaybackOrigin(
@@ -677,6 +619,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildRecentSongs(List<Song> songs) {
+    return _buildSongRows([
+      for (final entry in songs.asMap().entries)
+        SongContextMenu(
+          song: entry.value,
+          onPlay: () => _playRecentSongs(songs, entry.key),
+          child: _HomeSongTile(
+            song: entry.value,
+            onTap: () => _playRecentSongs(songs, entry.key),
+          ),
+        ),
+    ]);
+  }
+
+  Widget _buildNewestSongs(List<Song> songs) {
     return _buildSongRows([
       for (final entry in songs.asMap().entries)
         SongContextMenu(

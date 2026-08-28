@@ -160,6 +160,42 @@
         }
     },
     "importAnyway": "Import Anyway",
+    "importDuplicateCompareHint": "Compare quality, then replace, download another, or cancel.",
+    "importDuplicateIncoming": "Incoming",
+    "importDuplicateLocal": "In library",
+    "importDuplicateSameVersion": "Same version",
+    "importDuplicateDifferentVersion": "Different version",
+    "importDuplicateUnknownVersion": "Unclear",
+    "importDuplicateDownload": "Download",
+    "importDuplicateReplace": "Replace",
+    "importDuplicateIncomingOriginal": "Original · no transcode",
+    "importDuplicateBitRateEstimated": "≈ {kbps} kbps",
+    "@importDuplicateBitRateEstimated": {
+        "placeholders": {
+            "kbps": { "type": "int" }
+        }
+    },
+    "importDuplicateQualityHigher": "Higher than the selected local copy",
+    "importDuplicateQualityHigherBy": "{kbps} kbps higher than the selected local copy",
+    "@importDuplicateQualityHigherBy": {
+        "placeholders": {
+            "kbps": { "type": "int" }
+        }
+    },
+    "importDuplicateQualityLower": "Lower than the selected local copy",
+    "importDuplicateQualityLowerBy": "{kbps} kbps lower than the selected local copy",
+    "@importDuplicateQualityLowerBy": {
+        "placeholders": {
+            "kbps": { "type": "int" }
+        }
+    },
+    "importDuplicateQualitySimilar": "Similar to the selected local copy",
+    "importDuplicateQualityUnknown": "Exact bitrate cannot be compared",
+    "importDuplicateQualityLocalLossless": "Local copy is already lossless",
+    "importDuplicateQualityBothLossless": "Both lossless; incoming bitrate unknown",
+    "importDuplicateQualityOriginalLikelyHigher": "Original is usually better than local lossy",
+    "importDuplicateUnknownAlbum": "Unknown album",
+    "importDuplicateUnknownMeta": "—",
     "importDuplicateCheckFailed": "Could not verify the NAS library. Import was stopped.",
     "nasAgentConfigRequired": "Sign in to Cloud before importing or deleting",
     "commonContinue": "Continue",
@@ -382,6 +418,7 @@
     "libraryBrowse": "Browse library",
 
     "homeNewestAlbums": "Latest Albums",
+    "homeNewestSongs": "Latest Songs",
     "homeDailyRecommend": "Discover New Music",
     "homeRecentlyPlayed": "Recently Played",
     "homeYourMusic": "Your Music",
@@ -468,7 +505,12 @@
     "searchSectionOnline": "Online Results",
 
     "playerShuffle": "Shuffle",
+    "playerShuffleOff": "Shuffle off",
+    "playerShuffleOn": "Shuffle on",
     "playerRepeat": "Repeat",
+    "playerRepeatOff": "Repeat off (stop at end)",
+    "playerRepeatAll": "Repeat queue",
+    "playerRepeatOne": "Repeat one",
     "tooltipUnfavorite": "Remove from favorites",
     "tooltipPlay": "Play",
     "tooltipFavorite": "Favorite",
@@ -533,5 +575,144 @@
     "recommendationsRefreshing": "Refreshing recommendations",
     "settingsResetRecommendations": "Reset recommendation preferences",
     "settingsResetRecommendationsConfirm": "Reset recommendation preferences? Songs, downloads, play history, and server settings are not affected.",
-    "settingsResetRecommendationsDone": "Recommendation preferences reset"
+    "settingsResetRecommendationsDone": "Recommendation preferences reset",
+
+    "libraryAuditTitle": "Library check",
+    "libraryAuditSubtitle": "A fast check looks at format and bitrate; you can deep-scan for fake lossless. Results split into quality problems and different versions with OK audio. Nothing is deleted or replaced automatically.",
+    "libraryAuditStart": "Start check",
+    "libraryAuditDeepStart": "Deep-scan issues",
+    "libraryAuditCancel": "Cancel",
+    "libraryAuditScanning": "Scanning {scanned}/{total}",
+    "libraryAuditDeepScanning": "Deep-scanning {scanned}/{total}",
+    "@libraryAuditDeepScanning": {
+        "placeholders": {
+            "scanned": { "type": "int" },
+            "total": { "type": "int" }
+        }
+    },
+    "@libraryAuditScanning": {
+        "placeholders": {
+            "scanned": { "type": "int" },
+            "total": { "type": "int" }
+        }
+    },
+    "libraryAuditIdle": "No check yet. Start one to list suspects, then delete or replace them yourself.",
+    "libraryAuditEmptyIssues": "No issues found this time.",
+    "libraryAuditEmptyQuality": "No quality problems.",
+    "libraryAuditEmptyVersions": "No different-version pairs.",
+    "libraryAuditPassed": "Passed",
+    "libraryAuditIssues": "Issues",
+    "libraryAuditQualityIssues": "Quality issues",
+    "libraryAuditVersionOnly": "Versions",
+    "libraryAuditSectionQuality": "Quality issues",
+    "libraryAuditSectionVersions": "Different versions (audio OK)",
+    "libraryAuditSectionVersionsHint": "Same title and artist, different duration. Spectrum looks fine or was not flagged as a fake lossless file—safe to keep both.",
+    "libraryAuditQualityOk": "Audio OK",
+    "libraryAuditScanned": "Scanned",
+    "libraryAuditFilterAll": "All",
+    "libraryAuditCodeMissing": "Missing file",
+    "libraryAuditCodeLowBitrate": "Low bitrate",
+    "libraryAuditCodeSuspectTranscode": "Likely transcode",
+    "libraryAuditCodeDuplicateVersion": "Different version",
+    "libraryAuditCodeLossyTranscode": "Sounds lossy",
+    "libraryAuditCodeFakeHires": "Fake Hi-Res",
+    "libraryAuditCodeDeepFailed": "Deep scan failed",
+    "libraryAuditDeepErrorUnresolved": "No decodable file found",
+    "libraryAuditDeepErrorSampleRate": "No valid sample rate; the file may be damaged or not audio",
+    "libraryAuditDeepErrorDecode": "This audio could not be decoded",
+    "libraryAuditDeepErrorTooShort": "Audio is too short for a spectrum check",
+    "libraryAuditDeepErrorUnsupported": "Unsupported format",
+    "libraryAuditDeepErrorUnknown": "Deep scan failed for an unknown reason",
+    "libraryAuditCutoff": "HF cutoff ≈ {hz} Hz",
+    "@libraryAuditCutoff": {
+        "placeholders": {
+            "hz": { "type": "int" }
+        }
+    },
+    "libraryAuditReplace": "Replace",
+    "libraryAuditReplaceHint": "Search, then import to replace \"{title}\"",
+    "@libraryAuditReplaceHint": {
+        "placeholders": {
+            "title": { "type": "String" }
+        }
+    },
+    "libraryAuditReplaceBanner": "Pick a search result to replace \"{title}\" · {artist}",
+    "@libraryAuditReplaceBanner": {
+        "placeholders": {
+            "title": { "type": "String" },
+            "artist": { "type": "String" }
+        }
+    },
+    "libraryAuditReplaceWithThis": "Replace with this",
+    "libraryAuditNasRequired": "Library check needs a reachable NAS Agent",
+    "libraryAuditFailed": "Library check failed: {reason}",
+    "@libraryAuditFailed": {
+        "placeholders": {
+            "reason": { "type": "String" }
+        }
+    },
+    "libraryAuditQuality": "{format} · {kbps} kbps",
+    "@libraryAuditQuality": {
+        "placeholders": {
+            "format": { "type": "String" },
+            "kbps": { "type": "int" }
+        }
+    },
+    "libraryAuditRulesTitle": "Check thresholds",
+    "libraryAuditRulesLowBitrate": "Flag lossy files below {kbps} kbps",
+    "@libraryAuditRulesLowBitrate": {
+        "placeholders": {
+            "kbps": { "type": "int" }
+        }
+    },
+    "libraryAuditRulesSuspect": "Flag lossless files below {kbps} kbps as likely transcodes",
+    "@libraryAuditRulesSuspect": {
+        "placeholders": {
+            "kbps": { "type": "int" }
+        }
+    },
+    "libraryAuditRulesDuration": "Flag same-title copies when duration differs by more than {seconds}s",
+    "@libraryAuditRulesDuration": {
+        "placeholders": {
+            "seconds": { "type": "int" }
+        }
+    },
+    "libraryAuditSelect": "Select",
+    "libraryAuditSelectAll": "Select all",
+    "libraryAuditDoneSelecting": "Done",
+    "libraryAuditSelected": "{count} selected",
+    "@libraryAuditSelected": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryAuditDeleteSelectedConfirm": "Delete {count} selected songs from the library? Nothing is replaced automatically.",
+    "@libraryAuditDeleteSelectedConfirm": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryAuditReplaceSelectedHint": "Search and replace the {count} selected songs one by one. Each import still needs confirmation.",
+    "@libraryAuditReplaceSelectedHint": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryAuditBatchDeleted": "Deleted {count} songs",
+    "@libraryAuditBatchDeleted": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryAuditPlayFailed": "Could not play this song",
+    "libraryAuditOpenAlbum": "Album",
+    "libraryAuditReplaceBannerQueued": "{current}/{total}: pick a result to replace \"{title}\" · {artist}",
+    "@libraryAuditReplaceBannerQueued": {
+        "placeholders": {
+            "current": { "type": "int" },
+            "total": { "type": "int" },
+            "title": { "type": "String" },
+            "artist": { "type": "String" }
+        }
+    }
 }

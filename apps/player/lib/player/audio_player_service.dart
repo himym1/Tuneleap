@@ -57,13 +57,15 @@ class AudioPlayerService {
 
   Stream<PlaybackFailure> get playbackFailureStream =>
       _handler.playbackFailureStream;
+  Stream<(bool, PlaybackRepeatMode)> get playbackModeStream =>
+      _handler.playbackModeStream;
 
   // === 播放控制 ===
 
   /// 播放单首歌曲
   Future<void> playSong(Song song, {PlaybackOrigin? origin}) async {
-    _handler.setShuffle(false);
     await _handler.setQueue([song], startIndex: 0, origins: [origin]);
+    _reshuffleQueueIfEnabled();
   }
 
   /// 播放单首歌曲，并确认媒体源已成功加载。
@@ -79,8 +81,22 @@ class AudioPlayerService {
     List<PlaybackOrigin?>? origins,
   }) async {
     if (songs.isEmpty) return;
-    _handler.setShuffle(false);
     await _handler.setQueue(songs, startIndex: startIndex, origins: origins);
+    _reshuffleQueueIfEnabled();
+  }
+
+  /// 播放列表并确认当前曲目已成功加载。
+  Future<bool> playAllAndConfirm(
+    List<Song> songs, {
+    int startIndex = 0,
+    List<PlaybackOrigin?>? origins,
+  }) async {
+    await playAll(songs, startIndex: startIndex, origins: origins);
+    return _handler.hasLoadedCurrentSong;
+  }
+
+  void _reshuffleQueueIfEnabled() {
+    if (_handler.shuffle) _handler.shuffleQueue();
   }
 
   /// 添加到队列末尾

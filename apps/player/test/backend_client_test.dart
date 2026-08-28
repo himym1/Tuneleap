@@ -233,6 +233,38 @@ void main() {
       expect(captured.queryParameters['br'], '192');
     });
 
+    test('getPlaybackInfo keeps bitrate type and size from Cloud', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _CaptureAdapter((options, _, _) async {
+          return _jsonBody({
+            'url': 'https://cdn.example.com/song.flac',
+            'br': 999,
+            'type': 'flac',
+            'size': 25840123,
+          });
+        });
+      final client = BackendClient(dio: dio)
+        ..configure(cloudBaseUrl: 'http://cloud:8600');
+      const song = Song(
+        id: '1',
+        title: 'Track',
+        album: '',
+        albumId: '',
+        artist: '',
+        artistId: '',
+        backend: SongBackend.solara,
+        onlineSource: 'netease',
+        onlineProvider: 'chksz',
+      );
+
+      final info = await client.getPlaybackInfo(song);
+
+      expect(info.url, endsWith('.flac'));
+      expect(info.br, 999);
+      expect(info.type, 'flac');
+      expect(info.size, 25840123);
+    });
+
     test(
       'getPlaybackUrl bypassCache skips local cache and asks Cloud again',
       () async {

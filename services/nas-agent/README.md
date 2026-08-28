@@ -12,6 +12,9 @@ Source path in this repo: `services/nas-agent`. Production directory is still `n
 - Idempotent import and reserved free-space enforcement
 - Reversible file staging before SQLite row deletion
 - Optional Subsonic `startScan` using token authentication
+- Fast library audit of format, bitrate, missing files, and duration-mismatched duplicates
+- Optional spectral deep scan for fake lossless and fake Hi-Res
+- Last completed audit report persisted beside `navidrome.db`
 - Header-only `X-API-Key` auth and structured JSON audit events
 
 ## Architecture (ADR-0004)

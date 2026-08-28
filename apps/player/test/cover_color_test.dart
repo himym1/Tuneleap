@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:navidrome_player/ui/theme/app_color_loader.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/utils/cover_color.dart';
@@ -123,6 +124,37 @@ void main() {
     expect(primary.hue, inInclusiveRange(10, 80));
   });
 
+  test('a 6% red sticker does not paint a dark portrait pink', () async {
+    const portrait = Color(0xFF2A2420);
+    const sticker = Color(0xFFE53935);
+    final raster = _Raster(80, 80, portrait)..fillRect(58, 4, 20, 20, sticker);
+    final palette = await raster.extractPalette();
+    final seed = Hct.fromInt(palette.seed.toARGB32());
+    final accent = Hct.fromInt(palette.accent.toARGB32());
+    final seedIsVividRed =
+        seed.chroma >= 40 && (seed.hue < 20 || seed.hue > 340);
+
+    expect(seedIsVividRed, isFalse);
+    expect(accent.chroma, greaterThan(achromaticChromaCutoff));
+    expect(accent.hue < 25 || accent.hue > 335, isTrue);
+  });
+
+  test('a large red field still themes the cover red', () async {
+    const portrait = Color(0xFF2A2420);
+    const red = Color(0xFFE53935);
+    final raster = _Raster(80, 80, portrait)..fillRect(0, 0, 80, 28, red);
+    final palette = await raster.extractPalette();
+
+    expect(
+      HSLColor.fromColor(palette.seed).hue,
+      anyOf(lessThan(20), greaterThan(340)),
+    );
+    expect(
+      HSLColor.fromColor(palette.accent).hue,
+      anyOf(lessThan(20), greaterThan(340)),
+    );
+  });
+
   test('grayscale cover themes monochrome, not purple', () async {
     final raster = _Raster(48, 48, const Color(0xFF808080))
       ..fillRect(0, 0, 24, 48, const Color(0xFF2A2A2A))
@@ -164,6 +196,13 @@ class _Raster {
   }
 
   Future<Color> extract() => extractCoverSeedColor(
+    rgba: bytes,
+    width: width,
+    height: height,
+    fallback: _fallback,
+  );
+
+  Future<CoverPalette> extractPalette() => extractCoverPalette(
     rgba: bytes,
     width: width,
     height: height,

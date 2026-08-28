@@ -470,6 +470,75 @@ class SZh extends S {
   String get importAnyway => '仍然导入';
 
   @override
+  String get importDuplicateCompareHint => '对照两边音质，再决定替换、另下一份或取消。';
+
+  @override
+  String get importDuplicateIncoming => '将要下载';
+
+  @override
+  String get importDuplicateLocal => '本地曲库';
+
+  @override
+  String get importDuplicateSameVersion => '同一版本';
+
+  @override
+  String get importDuplicateDifferentVersion => '不同版本';
+
+  @override
+  String get importDuplicateUnknownVersion => '无法判断';
+
+  @override
+  String get importDuplicateDownload => '下载';
+
+  @override
+  String get importDuplicateReplace => '替换';
+
+  @override
+  String get importDuplicateIncomingOriginal => '原始 · 未转码';
+
+  @override
+  String importDuplicateBitRateEstimated(int kbps) {
+    return '约 $kbps kbps';
+  }
+
+  @override
+  String get importDuplicateQualityHigher => '比选中本地更高';
+
+  @override
+  String importDuplicateQualityHigherBy(int kbps) {
+    return '比选中本地高 $kbps kbps';
+  }
+
+  @override
+  String get importDuplicateQualityLower => '比选中本地更低';
+
+  @override
+  String importDuplicateQualityLowerBy(int kbps) {
+    return '比选中本地低 $kbps kbps';
+  }
+
+  @override
+  String get importDuplicateQualitySimilar => '与选中本地相近';
+
+  @override
+  String get importDuplicateQualityUnknown => '无法对比具体码率';
+
+  @override
+  String get importDuplicateQualityLocalLossless => '本地已是无损，无法对比码率';
+
+  @override
+  String get importDuplicateQualityBothLossless => '都是无损，待下载码率未知';
+
+  @override
+  String get importDuplicateQualityOriginalLikelyHigher => '原始音质通常高于本地有损';
+
+  @override
+  String get importDuplicateUnknownAlbum => '未知专辑';
+
+  @override
+  String get importDuplicateUnknownMeta => '—';
+
+  @override
   String get importDuplicateCheckFailed => '无法核对 NAS 曲库，已停止导入';
 
   @override
@@ -971,6 +1040,9 @@ class SZh extends S {
   String get homeNewestAlbums => '最新专辑';
 
   @override
+  String get homeNewestSongs => '最新歌曲';
+
+  @override
   String get homeDailyRecommend => '发现新音乐';
 
   @override
@@ -1132,7 +1204,22 @@ class SZh extends S {
   String get playerShuffle => '随机播放';
 
   @override
+  String get playerShuffleOff => '随机：关';
+
+  @override
+  String get playerShuffleOn => '随机：开';
+
+  @override
   String get playerRepeat => '循环播放';
+
+  @override
+  String get playerRepeatOff => '循环：关（播完即停）';
+
+  @override
+  String get playerRepeatAll => '循环：列表';
+
+  @override
+  String get playerRepeatOne => '循环：单曲';
 
   @override
   String get tooltipUnfavorite => '取消收藏';
@@ -1268,4 +1355,208 @@ class SZh extends S {
 
   @override
   String get settingsResetRecommendationsDone => '推荐偏好已重置';
+
+  @override
+  String get libraryAuditTitle => '曲库体检';
+
+  @override
+  String get libraryAuditSubtitle =>
+      '先快扫格式和码率，再可选深扫假无损。结果分成「音质问题」和「不同版本（音质正常）」。不会自动删歌或替换。';
+
+  @override
+  String get libraryAuditStart => '开始体检';
+
+  @override
+  String get libraryAuditDeepStart => '深扫问题项';
+
+  @override
+  String get libraryAuditCancel => '取消';
+
+  @override
+  String libraryAuditScanning(int scanned, int total) {
+    return '正在扫描 $scanned/$total';
+  }
+
+  @override
+  String libraryAuditDeepScanning(int scanned, int total) {
+    return '正在深扫 $scanned/$total';
+  }
+
+  @override
+  String get libraryAuditIdle => '尚未体检。开始后会列出可疑文件，再由你决定删除或替换。';
+
+  @override
+  String get libraryAuditEmptyIssues => '这次没有发现问题。';
+
+  @override
+  String get libraryAuditEmptyQuality => '没有音质问题。';
+
+  @override
+  String get libraryAuditEmptyVersions => '没有不同版本。';
+
+  @override
+  String get libraryAuditPassed => '通过';
+
+  @override
+  String get libraryAuditIssues => '问题';
+
+  @override
+  String get libraryAuditQualityIssues => '音质问题';
+
+  @override
+  String get libraryAuditVersionOnly => '不同版本';
+
+  @override
+  String get libraryAuditSectionQuality => '音质问题';
+
+  @override
+  String get libraryAuditSectionVersions => '不同版本（音质正常）';
+
+  @override
+  String get libraryAuditSectionVersionsHint => '同名同歌手但时长不同。频谱正常或未标假无损，可以都留着。';
+
+  @override
+  String get libraryAuditQualityOk => '音质正常';
+
+  @override
+  String get libraryAuditScanned => '已扫描';
+
+  @override
+  String get libraryAuditFilterAll => '全部';
+
+  @override
+  String get libraryAuditCodeMissing => '文件缺失';
+
+  @override
+  String get libraryAuditCodeLowBitrate => '低码率';
+
+  @override
+  String get libraryAuditCodeSuspectTranscode => '可疑假无损';
+
+  @override
+  String get libraryAuditCodeDuplicateVersion => '不同版本';
+
+  @override
+  String get libraryAuditCodeLossyTranscode => '频谱像有损';
+
+  @override
+  String get libraryAuditCodeFakeHires => '假 Hi-Res';
+
+  @override
+  String get libraryAuditCodeDeepFailed => '深扫失败';
+
+  @override
+  String get libraryAuditDeepErrorUnresolved => '找不到可解码的文件';
+
+  @override
+  String get libraryAuditDeepErrorSampleRate => '读不到有效采样率，文件可能已损坏或不是音频';
+
+  @override
+  String get libraryAuditDeepErrorDecode => '无法解码这段音频';
+
+  @override
+  String get libraryAuditDeepErrorTooShort => '音频太短，无法做频谱';
+
+  @override
+  String get libraryAuditDeepErrorUnsupported => '格式不受支持';
+
+  @override
+  String get libraryAuditDeepErrorUnknown => '深扫失败，原因不明';
+
+  @override
+  String libraryAuditCutoff(int hz) {
+    return '高频截止约 $hz Hz';
+  }
+
+  @override
+  String get libraryAuditReplace => '替换';
+
+  @override
+  String libraryAuditReplaceHint(String title) {
+    return '搜索后导入即可替换「$title」';
+  }
+
+  @override
+  String libraryAuditReplaceBanner(String title, String artist) {
+    return '选择一首搜索结果，用来替换「$title」· $artist';
+  }
+
+  @override
+  String get libraryAuditReplaceWithThis => '用这首替换';
+
+  @override
+  String get libraryAuditNasRequired => '曲库体检需要能连上 NAS Agent';
+
+  @override
+  String libraryAuditFailed(String reason) {
+    return '体检失败：$reason';
+  }
+
+  @override
+  String libraryAuditQuality(String format, int kbps) {
+    return '$format · $kbps kbps';
+  }
+
+  @override
+  String get libraryAuditRulesTitle => '体检阈值';
+
+  @override
+  String libraryAuditRulesLowBitrate(int kbps) {
+    return '有损低于 $kbps kbps 记为低码率';
+  }
+
+  @override
+  String libraryAuditRulesSuspect(int kbps) {
+    return '无损低于 $kbps kbps 记为可疑假无损';
+  }
+
+  @override
+  String libraryAuditRulesDuration(int seconds) {
+    return '时长相差超过 $seconds 秒记为不同版本';
+  }
+
+  @override
+  String get libraryAuditSelect => '多选';
+
+  @override
+  String get libraryAuditSelectAll => '全选';
+
+  @override
+  String get libraryAuditDoneSelecting => '完成';
+
+  @override
+  String libraryAuditSelected(int count) {
+    return '已选 $count 首';
+  }
+
+  @override
+  String libraryAuditDeleteSelectedConfirm(int count) {
+    return '从曲库删除选中的 $count 首？不会自动替换。';
+  }
+
+  @override
+  String libraryAuditReplaceSelectedHint(int count) {
+    return '将按顺序搜索并替换选中的 $count 首，每首仍需确认。';
+  }
+
+  @override
+  String libraryAuditBatchDeleted(int count) {
+    return '已删除 $count 首';
+  }
+
+  @override
+  String get libraryAuditPlayFailed => '无法播放这首歌';
+
+  @override
+  String get libraryAuditOpenAlbum => '专辑';
+
+  @override
+  String libraryAuditReplaceBannerQueued(
+    int current,
+    int total,
+    String title,
+    String artist,
+  ) {
+    return '第 $current/$total 首：选择结果替换「$title」· $artist';
+  }
 }

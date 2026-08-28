@@ -10,7 +10,7 @@ Navidrome 只是曲库后端，不是本仓的名字。
 |---|---|---|---|
 | [`apps/player`](apps/player) | Flutter 客户端 | 用户设备 | 播放、曲库、搜索 UI、推荐展示、更新安装 |
 | [`services/cloud`](services/cloud) | FastAPI 控制面 | DMIT 公网 | 搜索、播放 URL/封面/歌词、推荐、账号、私有更新 |
-| [`services/nas-agent`](services/nas-agent) | FastAPI Agent | himym NAS 局域网 | 导入、删除、扫描、曲库身份 |
+| [`services/nas-agent`](services/nas-agent) | FastAPI Agent | himym NAS 局域网 | 导入、删除、扫描、曲库体检、曲库身份 |
 
 生产部署名暂时沿用 `navidrome-cloud`、`navidrome-nas-agent`。这一轮只合源码，不改镜像、compose 服务名、SSH 路径和 `https://player.himym.us.ci`。
 

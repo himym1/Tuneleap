@@ -164,6 +164,7 @@ class FakeImportService extends NavidromeImportService {
   Future<NavidromeImportResult> importOnlineSong(
     Song song, {
     bool force = false,
+    bool preferFreshUrl = false,
     void Function(NasImportStage stage)? onStage,
   }) async {
     calls++;

@@ -126,6 +126,105 @@ IDs must be unique; 1–50 are accepted. The service stages regular audio and `.
 
 Missing database/table configuration returns 503. Unknown IDs are skipped. Unsafe DB paths or per-song file/DB failures appear in `details` and increment `errors`.
 
+## `POST /v1/nas/library-audit`
+
+Starts a single in-flight fast library audit. The agent reads active `media_file` rows and checks file presence plus format/bitrate/duration rules. It does not decode audio or run a spectral analysis.
+
+Optional JSON body overrides the default thresholds. Defaults stay `320` / `500` / `3`. Out-of-range values return 422.
+
+```json
+{
+  "low_bitrate_kbps": 320,
+  "suspect_lossless_kbps": 500,
+  "duration_tolerance_seconds": 3
+}
+```
+
+| Field | Default | Allowed |
+|---|---|---|
+| `low_bitrate_kbps` | 320 | 64–320 |
+| `suspect_lossless_kbps` | 500 | 200–800 |
+| `duration_tolerance_seconds` | 3 | 1–15 |
+
+A running audit returns HTTP 409. Missing `navidrome.db` returns 503. A successful accept is HTTP 202.
+
+The last completed or cancelled report is written next to `navidrome.db` as `library-audit.json` so a restart can restore findings. In-flight scans are not persisted. Findings never include host paths.
+
+```json
+{
+  "active": true,
+  "stage": "scanning",
+  "scanned": 0,
+  "total": 0,
+  "error": null,
+  "message": "started",
+  "summary": {
+    "scanned": 0,
+    "passed": 0,
+    "issues": 0,
+    "missing": 0,
+    "low_bitrate": 0,
+    "suspect_transcode": 0,
+    "duplicate_version": 0
+  }
+}
+```
+
+`stage` is `idle`, `scanning`, `deep_scanning`, `completed`, `failed`, or `cancelled`. Findings never include host paths.
+
+## `GET /v1/nas/library-audit`
+
+Live snapshot of the current or last audit. When nothing has run yet, `active` is `false` and `stage` is `idle`. After a restart this is the last persisted report, if one exists.
+
+## `GET /v1/nas/library-audit/findings`
+
+Paginated findings from the last audit. `offset` defaults to 0; `limit` defaults to 50 and is capped at 200. Optional `code` filters to `missing`, `low_bitrate`, `suspect_transcode`, `duplicate_version`, `lossy_transcode`, `fake_hires`, or `deep_failed`.
+
+```json
+{
+  "items": [
+    {
+      "song_id": "id1",
+      "title": "Track",
+      "artist": "Artist",
+      "album": "Album",
+      "album_id": "al1",
+      "suffix": "mp3",
+      "bit_rate": 128,
+      "duration": 210,
+      "sample_rate": 44100,
+      "codes": ["low_bitrate"],
+      "severity": "warn",
+      "deep_error": null
+    }
+  ],
+  "offset": 0,
+  "limit": 50,
+  "total": 1
+}
+```
+
+`deep_error` is set only when a finding includes `deep_failed`. Values are `unresolved_path`, `invalid_sample_rate`, `decode_failed`, `too_short`, `unsupported_format`, or `unknown`. Host paths are never returned.
+
+## `POST /v1/nas/library-audit/deep`
+
+Starts a spectral deep scan. The default `scope` is `findings`: only lossless files already listed by a fast audit. `scope=lossless` checks every lossless file. `song_ids` limits the run to those Navidrome ids.
+
+Each target is decoded at a few positions and FFT-analyzed. The agent looks for a lossy high-frequency cutoff and for Hi-Res containers whose energy stops near the CD wall. Fast-scan `suspect_transcode` is dropped when the spectrum looks genuine. Host paths are never returned.
+
+A running audit returns HTTP 409. `scope=findings` with no prior fast audit returns 400.
+
+```json
+{
+  "scope": "findings",
+  "song_ids": []
+}
+```
+
+## `POST /v1/nas/library-audit/cancel`
+
+Requests cancellation of the in-flight fast or deep audit. The next snapshot uses `stage=cancelled` and keeps any findings already produced.
+
 ## `POST /v1/nas/scan`
 
 Triggers Subsonic `startScan` when `NAVIDROME_URL`, `NAVIDROME_USER`, and `NAVIDROME_PASSWORD` are configured. Passwords are converted to the Subsonic salt/token form and are not sent as plaintext.

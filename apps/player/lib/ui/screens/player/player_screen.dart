@@ -12,6 +12,7 @@ import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/theme/app_glass.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
+import 'package:navidrome_player/ui/widgets/playback_mode_listener.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/api/subsonic_client.dart' show LyricsLine;
@@ -679,10 +680,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               future: resolver.coverArtUrl(currentSong, size: 300),
               builder: (context, coverSnapshot) {
                 final coverUrl = coverSnapshot.data ?? '';
-                final accentColor = coverUrl.isEmpty
-                    ? context.colors.primary
-                    : (ref.watch(coverColorProvider(coverUrl)).value ??
-                          context.colors.primary);
+                final palette = coverUrl.isEmpty
+                    ? null
+                    : ref.watch(coverPaletteProvider(coverUrl)).value;
+                final atmosphereColor = palette?.seed ?? context.colors.primary;
+                final accentColor = palette?.accent ?? context.colors.primary;
                 final isMobile = AppBreakpoints.isMobile(
                   MediaQuery.of(context).size.width,
                 );
@@ -691,8 +693,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
                 // High-contrast atmospheric gradient
                 final gradientTop = isDark
-                    ? Color.lerp(const Color(0xFF131316), accentColor, 0.35)!
-                    : Color.lerp(const Color(0xFFEFF0F4), accentColor, 0.16)!;
+                    ? Color.lerp(
+                        const Color(0xFF131316),
+                        atmosphereColor,
+                        0.35,
+                      )!
+                    : Color.lerp(
+                        const Color(0xFFEFF0F4),
+                        atmosphereColor,
+                        0.16,
+                      )!;
                 final gradientBottom = isDark
                     ? const Color(0xFF0C0C0E)
                     : const Color(0xFFFAFAFC);
@@ -758,7 +768,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                   colors: [
                                     Color.lerp(
                                       surfaceColor,
-                                      accentColor,
+                                      atmosphereColor,
                                       0.40,
                                     )!.withValues(alpha: 0.85),
                                     surfaceColor.withValues(alpha: 0.92),
@@ -1693,12 +1703,10 @@ class _PlaybackControlsState extends State<_PlaybackControls>
   late AnimationController _playPauseController;
   StreamSubscription<bool>? _playingSub;
   bool _playing = false;
-  PlaybackRepeatMode _repeatMode = PlaybackRepeatMode.off;
 
   @override
   void initState() {
     super.initState();
-    _repeatMode = widget.playerService.repeatMode;
     _playPauseController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -1729,94 +1737,89 @@ class _PlaybackControlsState extends State<_PlaybackControls>
     final btnFg = foregroundOn(btnColor);
     final controlColor =
         widget.iconColor ?? Theme.of(context).colorScheme.onSurface;
+    final l10n = S.of(context);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: Icon(
-            Icons.shuffle_rounded,
-            size: 22,
-            color: widget.playerService.shuffle ? btnColor : controlColor,
-          ),
-          tooltip: S.of(context).playerShuffle,
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            widget.playerService.toggleShuffle();
-          },
-        ),
-        const SizedBox(width: 12),
-        IconButton(
-          icon: const Icon(Icons.skip_previous_rounded, size: 32),
-          color: controlColor,
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            widget.playerService.previous();
-          },
-          tooltip: S.of(context).playerPrevious,
-        ),
-        const SizedBox(width: 8),
-        Container(
-          width: 62,
-          height: 62,
-          decoration: BoxDecoration(
-            color: btnColor,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: btnColor.withValues(alpha: 0.42),
-                blurRadius: 18,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: IconButton(
-            icon: AnimatedIcon(
-              icon: AnimatedIcons.play_pause,
-              progress: _playPauseController,
-              size: 34,
-              color: btnFg,
-            ),
+    return PlaybackModeListener(
+      playerService: widget.playerService,
+      builder: (context, shuffle, repeatMode) => Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          PlaybackModeIconButton(
+            selected: shuffle,
+            icon: Icons.shuffle_rounded,
+            iconColor: controlColor,
+            tooltip: playbackShuffleTooltip(l10n, shuffle),
             onPressed: () {
               HapticFeedback.lightImpact();
-              if (_playing) {
-                widget.playerService.pause();
-              } else {
-                widget.playerService.play();
-              }
+              widget.playerService.toggleShuffle();
             },
-            tooltip: S.of(context).playerPlayPause,
           ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          icon: const Icon(Icons.skip_next_rounded, size: 32),
-          color: controlColor,
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            widget.playerService.next();
-          },
-          tooltip: S.of(context).playerNext,
-        ),
-        const SizedBox(width: 12),
-        IconButton(
-          icon: Icon(
-            _repeatMode == PlaybackRepeatMode.one
-                ? Icons.repeat_one_rounded
-                : Icons.repeat_rounded,
-            size: 22,
-            color: _repeatMode != PlaybackRepeatMode.off
-                ? btnColor
-                : controlColor,
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.skip_previous_rounded, size: 32),
+            color: controlColor,
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              widget.playerService.previous();
+            },
+            tooltip: S.of(context).playerPrevious,
           ),
-          tooltip: S.of(context).playerRepeat,
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            widget.playerService.cycleRepeatMode();
-            setState(() => _repeatMode = widget.playerService.repeatMode);
-          },
-        ),
-      ],
+          const SizedBox(width: 8),
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              color: btnColor,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: btnColor.withValues(alpha: 0.42),
+                  blurRadius: 18,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: AnimatedIcon(
+                icon: AnimatedIcons.play_pause,
+                progress: _playPauseController,
+                size: 34,
+                color: btnFg,
+              ),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                if (_playing) {
+                  widget.playerService.pause();
+                } else {
+                  widget.playerService.play();
+                }
+              },
+              tooltip: S.of(context).playerPlayPause,
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.skip_next_rounded, size: 32),
+            color: controlColor,
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              widget.playerService.next();
+            },
+            tooltip: S.of(context).playerNext,
+          ),
+          const SizedBox(width: 12),
+          PlaybackModeIconButton(
+            selected: repeatMode != PlaybackRepeatMode.off,
+            icon: playbackRepeatIcon(repeatMode),
+            iconColor: controlColor,
+            tooltip: playbackRepeatTooltip(l10n, repeatMode),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              widget.playerService.cycleRepeatMode();
+            },
+          ),
+        ],
+      ),
     );
   }
 }

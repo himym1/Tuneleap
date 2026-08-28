@@ -11,12 +11,16 @@ import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
 import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
+import 'package:navidrome_player/ui/widgets/import_to_navidrome_button.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/player_navigation.dart';
+import 'package:navidrome_player/utils/song_identity.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.initialQuery});
+
+  final String? initialQuery;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -30,6 +34,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String? _selectedSource;
   String? _lastProvider;
   List<String> _history = [];
+  String? _appliedQuery;
 
   Future<void> _loadMore() async {
     final source = _currentSource(ref.read(effectiveOnlineSourcesProvider));
@@ -71,6 +76,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _resultsScrollController.addListener(_onResultsScrolled);
     _lastProvider = ref.read(effectiveOnlineSearchAdapterProvider);
     _loadHistory();
+    final query = widget.initialQuery?.trim();
+    if (query != null && query.isNotEmpty) {
+      _appliedQuery = query;
+      _searchController.text = query;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _doSearch();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(SearchScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final query = widget.initialQuery?.trim();
+    if (query != null && query.isNotEmpty && query != _appliedQuery) {
+      _appliedQuery = query;
+      _searchController.text = query;
+      _doSearch();
+    }
   }
 
   Future<void> _loadHistory() async {
@@ -122,8 +146,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _searchAll(String query) {
-    for (final source in ref.read(effectiveOnlineSourcesProvider)) {
-      ref.read(searchProvider(source).notifier).search(query);
+    final sources = ref.read(effectiveOnlineSourcesProvider);
+    final selected = _currentSource(sources);
+    for (final source in sources) {
+      final notifier = ref.read(searchProvider(source).notifier);
+      if (source == selected) {
+        notifier.search(query);
+      } else {
+        notifier.clearResult();
+      }
+    }
+  }
+
+  void _onSourceSelected(String source) {
+    setState(() => _selectedSource = source);
+    if (_resultsScrollController.hasClients) {
+      _resultsScrollController.jumpTo(0);
+    }
+    final query = _searchController.text.trim();
+    if (query.isNotEmpty) {
+      unawaited(
+        ref.read(searchProvider(source).notifier).searchIfAbsent(query),
+      );
     }
   }
 
@@ -164,6 +208,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final searchState = selected == null
         ? const SearchState()
         : ref.watch(searchProvider(selected));
+    ref.listen<LibraryAuditReplaceSession?>(libraryAuditReplaceTargetProvider, (
+      previous,
+      next,
+    ) {
+      final query = next?.current.searchQuery.trim();
+      if (query == null || query.isEmpty || query == _appliedQuery) return;
+      _appliedQuery = query;
+      _searchController.text = query;
+      _doSearch();
+    });
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
     final h = isMobile
         ? AppDimensions.paddingMobile
@@ -184,6 +238,41 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ),
           const SizedBox(height: 20),
+          if (ref.watch(libraryAuditReplaceTargetProvider)
+              case final replaceSession?)
+            Padding(
+              padding: EdgeInsets.fromLTRB(h, 0, h, 12),
+              child: Material(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(12),
+                child: ListTile(
+                  dense: true,
+                  title: Text(
+                    replaceSession.total > 1
+                        ? S
+                              .of(context)
+                              .libraryAuditReplaceBannerQueued(
+                                replaceSession.currentNumber,
+                                replaceSession.total,
+                                replaceSession.current.title,
+                                replaceSession.current.artist,
+                              )
+                        : S
+                              .of(context)
+                              .libraryAuditReplaceBanner(
+                                replaceSession.current.title,
+                                replaceSession.current.artist,
+                              ),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => ref
+                        .read(libraryAuditReplaceTargetProvider.notifier)
+                        .clear(),
+                  ),
+                ),
+              ),
+            ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: h),
             child: ValueListenableBuilder<TextEditingValue>(
@@ -285,12 +374,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: _SourceTabs(
                 sources: sources,
                 selected: selected,
-                onSelected: (source) {
-                  setState(() => _selectedSource = source);
-                  if (_resultsScrollController.hasClients) {
-                    _resultsScrollController.jumpTo(0);
-                  }
-                },
+                onSelected: _onSourceSelected,
               ),
             ),
           ],
@@ -491,14 +575,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             );
           }
           final song = searchState.songs[index];
+          final replacing =
+              ref.watch(libraryAuditReplaceTargetProvider) != null;
           return _SongResultTile(
             song: song,
             hideSourceChip: song.onlineSource == source,
+            replaceMode: replacing,
             onTap: () async {
               try {
                 final loaded = await ref
                     .read(audioPlayerServiceProvider)
-                    .playSongAndConfirm(song);
+                    .playAllAndConfirm(searchState.songs, startIndex: index);
                 if (!context.mounted) return;
                 if (loaded) {
                   openPlayer(context);
@@ -647,11 +734,13 @@ class _SourceTabs extends StatelessWidget {
 class _SongResultTile extends ConsumerWidget {
   final Song song;
   final bool hideSourceChip;
+  final bool replaceMode;
   final VoidCallback onTap;
   const _SongResultTile({
     required this.song,
     required this.onTap,
     this.hideSourceChip = false,
+    this.replaceMode = false,
   });
 
   @override
@@ -694,7 +783,12 @@ class _SongResultTile extends ConsumerWidget {
                 ),
               ),
               subtitle: Text(
-                '${song.artist} · ${song.album}',
+                [
+                  song.artist,
+                  song.album,
+                  if (song.duration != null && replaceMode)
+                    song.formattedDuration,
+                ].where((part) => part.trim().isNotEmpty).join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.songSubtitle.copyWith(
@@ -719,7 +813,8 @@ class _SongResultTile extends ConsumerWidget {
                   ],
                   if (song.isOnline &&
                       !hideSourceChip &&
-                      song.onlineSource != null)
+                      song.onlineSource != null &&
+                      !replaceMode)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -743,7 +838,9 @@ class _SongResultTile extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  if (song.duration != null)
+                  if (replaceMode && song.isOnline)
+                    _ReplaceWithResultButton(song: song)
+                  else if (song.duration != null)
                     Text(
                       song.formattedDuration,
                       style: Theme.of(context).textTheme.songSubtitle.copyWith(
@@ -761,6 +858,50 @@ class _SongResultTile extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _ReplaceWithResultButton extends ConsumerStatefulWidget {
+  const _ReplaceWithResultButton({required this.song});
+
+  final Song song;
+
+  @override
+  ConsumerState<_ReplaceWithResultButton> createState() =>
+      _ReplaceWithResultButtonState();
+}
+
+class _ReplaceWithResultButtonState
+    extends ConsumerState<_ReplaceWithResultButton> {
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = S.of(context);
+    final active = ref.watch(
+      nasImportQueueProvider.select(
+        (tasks) => tasks.any(
+          (task) =>
+              task.isActive &&
+              songWeakIdentity(task.song) == songWeakIdentity(widget.song),
+        ),
+      ),
+    );
+    return TextButton(
+      onPressed: (_loading || active)
+          ? null
+          : () async {
+              setState(() => _loading = true);
+              await importOnlineSongToNavidrome(context, ref, widget.song);
+              if (mounted) setState(() => _loading = false);
+            },
+      child: (_loading || active)
+          ? const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(l10n.libraryAuditReplaceWithThis),
     );
   }
 }

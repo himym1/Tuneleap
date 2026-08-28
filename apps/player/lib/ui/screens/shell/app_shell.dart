@@ -237,12 +237,15 @@ class _AppShellState extends ConsumerState<AppShell> {
       GoRouterState.of(context).uri.toString();
 
   bool _isPlaylistsPath(String path) =>
-      path == '/playlists' || path.startsWith('/library/playlists');
+      path == '/playlists' ||
+      path.startsWith('/library/playlists') ||
+      path.startsWith('/playlist/');
 
   bool _isLibraryPath(String path) =>
-      ((path.startsWith('/library') && !_isPlaylistsPath(path)) ||
+      ((path.startsWith('/library/') || path == '/library') &&
+          !_isPlaylistsPath(path)) ||
       path.startsWith('/album/') ||
-      path.startsWith('/artist/'));
+      path.startsWith('/artist/');
 
   bool _isPathSelected(String itemPath, String currentPath) {
     if (itemPath == '/library' || itemPath == '/library/songs') {
@@ -264,7 +267,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         path == '/servers' ||
         path == '/scrobble' ||
         path == '/favorites' ||
-        path == '/audio-quality') {
+        path == '/audio-quality' ||
+        path == '/library-audit') {
       return 4;
     }
     return 0;
@@ -280,6 +284,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
     if (uri.startsWith('/library') ||
         uri.startsWith('/album/') ||
+        uri.startsWith('/playlist/') ||
         uri.startsWith('/artist/')) {
       return 1;
     }
@@ -289,7 +294,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         uri == '/servers' ||
         uri == '/scrobble' ||
         uri == '/favorites' ||
-        uri == '/audio-quality') {
+        uri == '/audio-quality' ||
+        uri == '/library-audit') {
       return 3;
     }
     return null;
@@ -895,6 +901,7 @@ class _RefreshButtonState extends ConsumerState<_RefreshButton>
     if (!mounted) return;
     // 刷新所有缓存 provider
     ref.invalidate(newestAlbumsProvider);
+    ref.invalidate(newestSongsProvider);
     ref.invalidate(recentAlbumsProvider);
     ref.invalidate(artistsProvider);
     ref.invalidate(genresProvider);
@@ -906,6 +913,7 @@ class _RefreshButtonState extends ConsumerState<_RefreshButton>
     try {
       await Future.wait([
         ref.read(newestAlbumsProvider.future),
+        ref.read(newestSongsProvider.future),
         ref.read(artistsProvider.future),
       ]);
     } catch (_) {

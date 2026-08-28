@@ -8,6 +8,7 @@ from app.api import health, nas, songs
 from app.core.config import Settings, get_settings
 from app.services.importer import ImporterService
 from app.services.library import LibraryService
+from app.services.library_audit_job import LibraryAuditService
 
 
 @asynccontextmanager
@@ -21,9 +22,11 @@ async def lifespan(app: FastAPI):
     app.state.http_client = client
     app.state.importer = ImporterService(client, settings)
     app.state.library = LibraryService(client, settings)
+    app.state.library_audit = LibraryAuditService(settings, app.state.library)
     try:
         yield
     finally:
+        await app.state.library_audit.aclose()
         await app.state.importer.aclose()
         await client.aclose()
 

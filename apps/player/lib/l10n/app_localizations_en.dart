@@ -477,6 +477,83 @@ class SEn extends S {
   String get importAnyway => 'Import Anyway';
 
   @override
+  String get importDuplicateCompareHint =>
+      'Compare quality, then replace, download another, or cancel.';
+
+  @override
+  String get importDuplicateIncoming => 'Incoming';
+
+  @override
+  String get importDuplicateLocal => 'In library';
+
+  @override
+  String get importDuplicateSameVersion => 'Same version';
+
+  @override
+  String get importDuplicateDifferentVersion => 'Different version';
+
+  @override
+  String get importDuplicateUnknownVersion => 'Unclear';
+
+  @override
+  String get importDuplicateDownload => 'Download';
+
+  @override
+  String get importDuplicateReplace => 'Replace';
+
+  @override
+  String get importDuplicateIncomingOriginal => 'Original · no transcode';
+
+  @override
+  String importDuplicateBitRateEstimated(int kbps) {
+    return '≈ $kbps kbps';
+  }
+
+  @override
+  String get importDuplicateQualityHigher =>
+      'Higher than the selected local copy';
+
+  @override
+  String importDuplicateQualityHigherBy(int kbps) {
+    return '$kbps kbps higher than the selected local copy';
+  }
+
+  @override
+  String get importDuplicateQualityLower =>
+      'Lower than the selected local copy';
+
+  @override
+  String importDuplicateQualityLowerBy(int kbps) {
+    return '$kbps kbps lower than the selected local copy';
+  }
+
+  @override
+  String get importDuplicateQualitySimilar =>
+      'Similar to the selected local copy';
+
+  @override
+  String get importDuplicateQualityUnknown =>
+      'Exact bitrate cannot be compared';
+
+  @override
+  String get importDuplicateQualityLocalLossless =>
+      'Local copy is already lossless';
+
+  @override
+  String get importDuplicateQualityBothLossless =>
+      'Both lossless; incoming bitrate unknown';
+
+  @override
+  String get importDuplicateQualityOriginalLikelyHigher =>
+      'Original is usually better than local lossy';
+
+  @override
+  String get importDuplicateUnknownAlbum => 'Unknown album';
+
+  @override
+  String get importDuplicateUnknownMeta => '—';
+
+  @override
   String get importDuplicateCheckFailed =>
       'Could not verify the NAS library. Import was stopped.';
 
@@ -996,6 +1073,9 @@ class SEn extends S {
   String get homeNewestAlbums => 'Latest Albums';
 
   @override
+  String get homeNewestSongs => 'Latest Songs';
+
+  @override
   String get homeDailyRecommend => 'Discover New Music';
 
   @override
@@ -1159,7 +1239,22 @@ class SEn extends S {
   String get playerShuffle => 'Shuffle';
 
   @override
+  String get playerShuffleOff => 'Shuffle off';
+
+  @override
+  String get playerShuffleOn => 'Shuffle on';
+
+  @override
   String get playerRepeat => 'Repeat';
+
+  @override
+  String get playerRepeatOff => 'Repeat off (stop at end)';
+
+  @override
+  String get playerRepeatAll => 'Repeat queue';
+
+  @override
+  String get playerRepeatOne => 'Repeat one';
 
   @override
   String get tooltipUnfavorite => 'Remove from favorites';
@@ -1301,4 +1396,214 @@ class SEn extends S {
   @override
   String get settingsResetRecommendationsDone =>
       'Recommendation preferences reset';
+
+  @override
+  String get libraryAuditTitle => 'Library check';
+
+  @override
+  String get libraryAuditSubtitle =>
+      'A fast check looks at format and bitrate; you can deep-scan for fake lossless. Results split into quality problems and different versions with OK audio. Nothing is deleted or replaced automatically.';
+
+  @override
+  String get libraryAuditStart => 'Start check';
+
+  @override
+  String get libraryAuditDeepStart => 'Deep-scan issues';
+
+  @override
+  String get libraryAuditCancel => 'Cancel';
+
+  @override
+  String libraryAuditScanning(int scanned, int total) {
+    return 'Scanning $scanned/$total';
+  }
+
+  @override
+  String libraryAuditDeepScanning(int scanned, int total) {
+    return 'Deep-scanning $scanned/$total';
+  }
+
+  @override
+  String get libraryAuditIdle =>
+      'No check yet. Start one to list suspects, then delete or replace them yourself.';
+
+  @override
+  String get libraryAuditEmptyIssues => 'No issues found this time.';
+
+  @override
+  String get libraryAuditEmptyQuality => 'No quality problems.';
+
+  @override
+  String get libraryAuditEmptyVersions => 'No different-version pairs.';
+
+  @override
+  String get libraryAuditPassed => 'Passed';
+
+  @override
+  String get libraryAuditIssues => 'Issues';
+
+  @override
+  String get libraryAuditQualityIssues => 'Quality issues';
+
+  @override
+  String get libraryAuditVersionOnly => 'Versions';
+
+  @override
+  String get libraryAuditSectionQuality => 'Quality issues';
+
+  @override
+  String get libraryAuditSectionVersions => 'Different versions (audio OK)';
+
+  @override
+  String get libraryAuditSectionVersionsHint =>
+      'Same title and artist, different duration. Spectrum looks fine or was not flagged as a fake lossless file—safe to keep both.';
+
+  @override
+  String get libraryAuditQualityOk => 'Audio OK';
+
+  @override
+  String get libraryAuditScanned => 'Scanned';
+
+  @override
+  String get libraryAuditFilterAll => 'All';
+
+  @override
+  String get libraryAuditCodeMissing => 'Missing file';
+
+  @override
+  String get libraryAuditCodeLowBitrate => 'Low bitrate';
+
+  @override
+  String get libraryAuditCodeSuspectTranscode => 'Likely transcode';
+
+  @override
+  String get libraryAuditCodeDuplicateVersion => 'Different version';
+
+  @override
+  String get libraryAuditCodeLossyTranscode => 'Sounds lossy';
+
+  @override
+  String get libraryAuditCodeFakeHires => 'Fake Hi-Res';
+
+  @override
+  String get libraryAuditCodeDeepFailed => 'Deep scan failed';
+
+  @override
+  String get libraryAuditDeepErrorUnresolved => 'No decodable file found';
+
+  @override
+  String get libraryAuditDeepErrorSampleRate =>
+      'No valid sample rate; the file may be damaged or not audio';
+
+  @override
+  String get libraryAuditDeepErrorDecode => 'This audio could not be decoded';
+
+  @override
+  String get libraryAuditDeepErrorTooShort =>
+      'Audio is too short for a spectrum check';
+
+  @override
+  String get libraryAuditDeepErrorUnsupported => 'Unsupported format';
+
+  @override
+  String get libraryAuditDeepErrorUnknown =>
+      'Deep scan failed for an unknown reason';
+
+  @override
+  String libraryAuditCutoff(int hz) {
+    return 'HF cutoff ≈ $hz Hz';
+  }
+
+  @override
+  String get libraryAuditReplace => 'Replace';
+
+  @override
+  String libraryAuditReplaceHint(String title) {
+    return 'Search, then import to replace \"$title\"';
+  }
+
+  @override
+  String libraryAuditReplaceBanner(String title, String artist) {
+    return 'Pick a search result to replace \"$title\" · $artist';
+  }
+
+  @override
+  String get libraryAuditReplaceWithThis => 'Replace with this';
+
+  @override
+  String get libraryAuditNasRequired =>
+      'Library check needs a reachable NAS Agent';
+
+  @override
+  String libraryAuditFailed(String reason) {
+    return 'Library check failed: $reason';
+  }
+
+  @override
+  String libraryAuditQuality(String format, int kbps) {
+    return '$format · $kbps kbps';
+  }
+
+  @override
+  String get libraryAuditRulesTitle => 'Check thresholds';
+
+  @override
+  String libraryAuditRulesLowBitrate(int kbps) {
+    return 'Flag lossy files below $kbps kbps';
+  }
+
+  @override
+  String libraryAuditRulesSuspect(int kbps) {
+    return 'Flag lossless files below $kbps kbps as likely transcodes';
+  }
+
+  @override
+  String libraryAuditRulesDuration(int seconds) {
+    return 'Flag same-title copies when duration differs by more than ${seconds}s';
+  }
+
+  @override
+  String get libraryAuditSelect => 'Select';
+
+  @override
+  String get libraryAuditSelectAll => 'Select all';
+
+  @override
+  String get libraryAuditDoneSelecting => 'Done';
+
+  @override
+  String libraryAuditSelected(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String libraryAuditDeleteSelectedConfirm(int count) {
+    return 'Delete $count selected songs from the library? Nothing is replaced automatically.';
+  }
+
+  @override
+  String libraryAuditReplaceSelectedHint(int count) {
+    return 'Search and replace the $count selected songs one by one. Each import still needs confirmation.';
+  }
+
+  @override
+  String libraryAuditBatchDeleted(int count) {
+    return 'Deleted $count songs';
+  }
+
+  @override
+  String get libraryAuditPlayFailed => 'Could not play this song';
+
+  @override
+  String get libraryAuditOpenAlbum => 'Album';
+
+  @override
+  String libraryAuditReplaceBannerQueued(
+    int current,
+    int total,
+    String title,
+    String artist,
+  ) {
+    return '$current/$total: pick a result to replace \"$title\" · $artist';
+  }
 }

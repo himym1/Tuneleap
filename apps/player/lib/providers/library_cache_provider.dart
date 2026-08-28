@@ -7,13 +7,26 @@ import 'audio_providers.dart';
 // 音乐库数据缓存层 — 用 Riverpod keepAlive 实现内存缓存
 // ============================================================
 
-/// 最新专辑列表（首页 + 专辑页）
+/// 最新专辑列表（专辑页）
 final newestAlbumsProvider = FutureProvider.autoDispose<List<Album>>((
   ref,
 ) async {
   ref.keepAlive(); // 保持缓存直到手动失效
   final client = ref.watch(subsonicClientProvider);
   return await client.getAlbumList2(type: 'newest', size: 50);
+});
+
+/// 最新入库歌曲（首页）。Navidrome 的空 query search3 按最近添加排序。
+final newestSongsProvider = FutureProvider.autoDispose<List<Song>>((ref) async {
+  ref.keepAlive();
+  final client = ref.watch(subsonicClientProvider);
+  final result = await client.search3(
+    '',
+    songCount: 12,
+    artistCount: 0,
+    albumCount: 0,
+  );
+  return result.songs;
 });
 
 /// 最近播放专辑（首页）

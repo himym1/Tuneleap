@@ -522,6 +522,32 @@ void main() {
       });
     });
 
+    group('getSong', () {
+      test('parses a single local song', () async {
+        final client = _createClient(
+          (endpoint) => {
+            'subsonic-response': {
+              'status': 'ok',
+              'song': {
+                'id': 's1',
+                'title': '晴天',
+                'album': '叶惠美',
+                'albumId': 'a1',
+                'artist': '周杰伦',
+                'artistId': 'ar1',
+              },
+            },
+          },
+        );
+
+        final song = await client.getSong('s1');
+
+        expect(song.id, 's1');
+        expect(song.title, '晴天');
+        expect(song.albumId, 'a1');
+      });
+    });
+
     group('search3', () {
       test('parses search results', () async {
         final client = _createClient(

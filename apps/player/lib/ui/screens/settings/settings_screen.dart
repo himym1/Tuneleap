@@ -293,6 +293,13 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                       const Divider(height: 1, indent: 54),
                       _SettingsTile(
+                        icon: Icons.health_and_safety_outlined,
+                        title: S.of(context).libraryAuditTitle,
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => context.go('/library-audit'),
+                      ),
+                      const Divider(height: 1, indent: 54),
+                      _SettingsTile(
                         icon: Icons.download_rounded,
                         title: S.of(context).navDownloads,
                         trailing: const Icon(Icons.chevron_right_rounded),

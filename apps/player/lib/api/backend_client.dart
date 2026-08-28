@@ -24,6 +24,24 @@ class NasDeleteException implements Exception {
   String toString() => message;
 }
 
+class PlaybackInfo {
+  const PlaybackInfo({required this.url, this.br, this.type, this.size});
+
+  final String url;
+  final int? br;
+  final String? type;
+  final int? size;
+
+  PlaybackInfo copyWith({int? br, String? type, int? size}) {
+    return PlaybackInfo(
+      url: url,
+      br: br ?? this.br,
+      type: type ?? this.type,
+      size: size ?? this.size,
+    );
+  }
+}
+
 class NasDeleteResult {
   const NasDeleteResult({
     required this.deleted,
@@ -149,7 +167,7 @@ class NasImportProgress {
 
 /// Dual-endpoint companion client (ADR-0004):
 /// - cloud: Bearer-authenticated search, media, recommendations, and updates
-/// - nas agent: API-key-authenticated import/delete only
+/// - nas agent: API-key-authenticated import/delete/library-audit only
 class BackendClient {
   static const _playbackUrlCacheTtl = Duration(seconds: 60);
   static const _missingMediaCacheTtl = Duration(minutes: 5);
@@ -161,7 +179,15 @@ class BackendClient {
   String _nasBaseUrl = '';
   String _nasAgentKey = '';
   final Map<String, String> _coverArtCache = {};
-  final Map<String, (String, DateTime)> _playbackUrlCache = {};
+  final Map<String, (PlaybackInfo, DateTime)> _playbackUrlCache = {};
+  static final Dio _mediaProbeDio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 4),
+      receiveTimeout: const Duration(seconds: 4),
+      followRedirects: true,
+      validateStatus: (status) => status != null && status < 500,
+    ),
+  );
   final Map<String, String> _lyricsCache = {};
   final Map<String, DateTime> _missingCoverCache = {};
   final Map<String, DateTime> _missingLyricsCache = {};
@@ -177,6 +203,7 @@ class BackendClient {
   bool get isConfigured => _cloudBaseUrl.isNotEmpty;
   bool get isNasConfigured => _nasBaseUrl.isNotEmpty;
   bool get canMutateNas => isConfigured || _hasDirectNasAgent;
+  bool get canAuditLibrary => _hasDirectNasAgent;
 
   bool get _hasDirectNasAgent {
     final uri = Uri.tryParse(_nasBaseUrl);
@@ -404,6 +431,19 @@ class BackendClient {
     int? maxBitRate,
     bool bypassCache = false,
   }) async {
+    final info = await getPlaybackInfo(
+      song,
+      maxBitRate: maxBitRate,
+      bypassCache: bypassCache,
+    );
+    return info.url;
+  }
+
+  Future<PlaybackInfo> getPlaybackInfo(
+    Song song, {
+    int? maxBitRate,
+    bool bypassCache = false,
+  }) async {
     final id = song.urlId ?? song.id;
     final source = song.onlineSource ?? 'netease';
     final provider = song.onlineProvider ?? '';
@@ -437,8 +477,14 @@ class BackendClient {
     if (url.isEmpty) {
       throw const FormatException('Cloud url response missing url');
     }
+    final info = PlaybackInfo(
+      url: url,
+      br: _asPositiveInt(data['br']),
+      type: data['type']?.toString(),
+      size: _asPositiveInt(data['size']),
+    );
     _playbackUrlCache[cacheKey] = (
-      url,
+      info,
       DateTime.now().add(_playbackUrlCacheTtl),
     );
 
@@ -450,7 +496,23 @@ class BackendClient {
     if (lyric.isNotEmpty) {
       _lyricsCache[_mediaCacheKey(song, id)] = lyric;
     }
-    return url;
+    return info;
+  }
+
+  Future<PlaybackInfo> probePlaybackInfo(Song song, {int? maxBitRate}) async {
+    final info = await getPlaybackInfo(song, maxBitRate: maxBitRate);
+    if (info.size != null && info.size! > 0) return info;
+    final size = await _probeContentLength(info.url);
+    if (size == null) return info;
+    final filled = info.copyWith(size: size);
+    final id = song.urlId ?? song.id;
+    final cacheKey =
+        '${song.onlineProvider ?? ''}:${song.onlineSource ?? 'netease'}:$id:${_qualityFromBitRate(maxBitRate)}';
+    final cached = _playbackUrlCache[cacheKey];
+    if (cached != null) {
+      _playbackUrlCache[cacheKey] = (filled, cached.$2);
+    }
+    return filled;
   }
 
   String _mediaCacheKey(Song song, String id) =>
@@ -857,6 +919,127 @@ class BackendClient {
     return _parseDeleteResponse(response.data);
   }
 
+  void _ensureDirectNasAgent() {
+    if (!canAuditLibrary) {
+      throw StateError('NAS agent is not configured');
+    }
+  }
+
+  Map<String, dynamic> _requireObject(dynamic data, String name) {
+    if (data is! Map) {
+      throw FormatException('$name must be an object');
+    }
+    return Map<String, dynamic>.from(data);
+  }
+
+  Future<LibraryAuditSnapshot> getLibraryAudit() async {
+    _ensureDirectNasAgent();
+    final response = await _dio.get(
+      '$_nasBaseUrl/v1/nas/library-audit',
+      options: _nasOptions().copyWith(
+        sendTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 8),
+      ),
+    );
+    return LibraryAuditSnapshot.fromJson(
+      _requireObject(response.data, 'Library audit'),
+    );
+  }
+
+  Future<LibraryAuditSnapshot> startLibraryAudit({
+    LibraryAuditRules rules = const LibraryAuditRules(),
+  }) async {
+    _ensureDirectNasAgent();
+    try {
+      final response = await _dio.post(
+        '$_nasBaseUrl/v1/nas/library-audit',
+        data: rules.toJson(),
+        options: _nasOptions(contentType: 'application/json').copyWith(
+          sendTimeout: const Duration(seconds: 8),
+          receiveTimeout: const Duration(seconds: 8),
+        ),
+      );
+      return LibraryAuditSnapshot.fromJson(
+        _requireObject(response.data, 'Library audit'),
+      );
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 409) {
+        return getLibraryAudit();
+      }
+      throw StateError(formatNasImportError(error));
+    }
+  }
+
+  Future<LibraryAuditSnapshot> startLibraryAuditDeep({
+    String scope = 'findings',
+    List<String> songIds = const [],
+  }) async {
+    _ensureDirectNasAgent();
+    try {
+      final response = await _dio.post(
+        '$_nasBaseUrl/v1/nas/library-audit/deep',
+        data: {'scope': scope, if (songIds.isNotEmpty) 'song_ids': songIds},
+        options: _nasOptions(contentType: 'application/json').copyWith(
+          sendTimeout: const Duration(seconds: 8),
+          receiveTimeout: const Duration(seconds: 8),
+        ),
+      );
+      return LibraryAuditSnapshot.fromJson(
+        _requireObject(response.data, 'Library audit'),
+      );
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 409) {
+        return getLibraryAudit();
+      }
+      throw StateError(formatNasImportError(error));
+    }
+  }
+
+  Future<LibraryAuditSnapshot> cancelLibraryAudit() async {
+    _ensureDirectNasAgent();
+    final response = await _dio.post(
+      '$_nasBaseUrl/v1/nas/library-audit/cancel',
+      options: _nasOptions(contentType: 'application/json').copyWith(
+        sendTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 8),
+      ),
+    );
+    return LibraryAuditSnapshot.fromJson(
+      _requireObject(response.data, 'Library audit'),
+    );
+  }
+
+  Future<List<LibraryAuditFinding>> getLibraryAuditFindings({
+    String? code,
+  }) async {
+    _ensureDirectNasAgent();
+    final items = <LibraryAuditFinding>[];
+    var offset = 0;
+    const limit = 200;
+    while (true) {
+      final response = await _dio.get(
+        '$_nasBaseUrl/v1/nas/library-audit/findings',
+        queryParameters: {
+          'offset': offset,
+          'limit': limit,
+          if (code != null && code.isNotEmpty) 'code': code,
+        },
+        options: _nasOptions().copyWith(
+          sendTimeout: const Duration(seconds: 8),
+          receiveTimeout: const Duration(seconds: 8),
+        ),
+      );
+      final page = LibraryAuditFindingsPage.fromJson(
+        _requireObject(response.data, 'Library audit findings'),
+      );
+      items.addAll(page.items);
+      if (items.length >= page.total || page.items.isEmpty) {
+        return items;
+      }
+      offset += page.items.length;
+    }
+  }
+
   NasDeleteResult _parseDeleteResponse(dynamic data) {
     if (data is! Map) {
       throw const FormatException('NAS delete response must be an object');
@@ -1052,6 +1235,26 @@ class BackendClient {
   static String _normalizeBaseUrl(String raw) {
     if (raw.isEmpty) return '';
     return raw.endsWith('/') ? raw.substring(0, raw.length - 1) : raw;
+  }
+
+  static int? _asPositiveInt(Object? value) {
+    final parsed = switch (value) {
+      final int number => number,
+      final num number => number.toInt(),
+      _ => int.tryParse(value?.toString() ?? ''),
+    };
+    if (parsed == null || parsed <= 0) return null;
+    return parsed;
+  }
+
+  static Future<int?> _probeContentLength(String url) async {
+    if (url.isEmpty) return null;
+    try {
+      final response = await _mediaProbeDio.head(url);
+      final length = _asPositiveInt(response.headers.value('content-length'));
+      if (length != null) return length;
+    } catch (_) {}
+    return null;
   }
 
   static String _qualityFromBitRate(int? maxBitRate) {

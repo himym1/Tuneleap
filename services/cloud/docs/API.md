@@ -102,6 +102,8 @@ Success:
 {
   "url": "https://cdn.example.com/song.mp3",
   "br": 320,
+  "type": "mp3",
+  "size": 9843201,
   "provider": "chksz",
   "source": "tencent",
   "cover_url": "https://cdn.example.com/cover.jpg",
@@ -109,7 +111,7 @@ Success:
 }
 ```
 
-`cover_url` and `lyric` are optional. An adapter may return them when resolving the playback URL already produced that metadata; clients must tolerate either field being absent.
+`cover_url`, `lyric`, `type`, and `size` are optional. `br` is kbps when the adapter could read it; NetEase often reports lossless as `999`. `size` is bytes. Clients must tolerate any of these fields being absent.
 
 ### `GET /v1/music/cover`
 

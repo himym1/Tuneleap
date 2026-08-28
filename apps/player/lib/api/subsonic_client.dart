@@ -123,6 +123,12 @@ class SubsonicClient {
     return ArtistDetail(artist: artist, albums: albums);
   }
 
+  /// 按 Navidrome / Subsonic id 取一首本地歌
+  Future<Song> getSong(String id) async {
+    final response = await _request('getSong', params: {'id': id});
+    return Song.fromJson(response['song'] as Map<String, dynamic>);
+  }
+
   /// 获取专辑详情（含歌曲列表）
   Future<Album> getAlbum(String id) async {
     final response = await _request('getAlbum', params: {'id': id});

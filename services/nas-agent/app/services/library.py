@@ -316,3 +316,26 @@ class LibraryService:
             count=scan_status.get("count"),
         )
         return scan_status
+
+    def inspect_media_file(self, navidrome_path: str) -> tuple[bool, int | None]:
+        """Return whether the stored path is a non-empty regular file, plus size."""
+        try:
+            target = self._resolve_host_path(navidrome_path)
+        except ValueError:
+            return False, None
+        if target.is_symlink() or not target.is_file():
+            return False, None
+        try:
+            size = target.stat().st_size
+        except OSError:
+            return False, None
+        return size > 0, size
+
+    def resolve_media_path(self, navidrome_path: str) -> Path | None:
+        try:
+            target = self._resolve_host_path(navidrome_path)
+        except ValueError:
+            return None
+        if target.is_symlink() or not target.is_file():
+            return None
+        return target

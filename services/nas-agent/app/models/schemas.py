@@ -89,3 +89,97 @@ class ScanResult(BaseModel):
 class LibraryIdentitiesResponse(BaseModel):
     count: int
     identities: list[str] = Field(default_factory=list)
+
+
+class LibraryAuditFinding(BaseModel):
+    song_id: str
+    title: str = ""
+    artist: str = ""
+    album: str = ""
+    album_id: str = ""
+    suffix: str = ""
+    bit_rate: int | None = None
+    duration: int | None = None
+    sample_rate: int | None = None
+    codes: list[str] = Field(default_factory=list)
+    severity: str = "info"
+    cutoff_hz: float | None = None
+    hf_extension_db: float | None = None
+    deep_error: str | None = None
+
+
+class LibraryAuditSummary(BaseModel):
+    scanned: int = 0
+    passed: int = 0
+    issues: int = 0
+    missing: int = 0
+    low_bitrate: int = 0
+    suspect_transcode: int = 0
+    duplicate_version: int = 0
+    lossy_transcode: int = 0
+    fake_hires: int = 0
+    deep_failed: int = 0
+
+
+class LibraryAuditStartRequest(BaseModel):
+    low_bitrate_kbps: int = 320
+    suspect_lossless_kbps: int = 500
+    duration_tolerance_seconds: int = 3
+
+    @field_validator("low_bitrate_kbps")
+    @classmethod
+    def _validate_low_bitrate(cls, value: int) -> int:
+        if value < 64 or value > 320:
+            raise ValueError("low_bitrate_kbps must be between 64 and 320")
+        return value
+
+    @field_validator("suspect_lossless_kbps")
+    @classmethod
+    def _validate_suspect(cls, value: int) -> int:
+        if value < 200 or value > 800:
+            raise ValueError("suspect_lossless_kbps must be between 200 and 800")
+        return value
+
+    @field_validator("duration_tolerance_seconds")
+    @classmethod
+    def _validate_duration(cls, value: int) -> int:
+        if value < 1 or value > 15:
+            raise ValueError("duration_tolerance_seconds must be between 1 and 15")
+        return value
+
+
+class LibraryAuditDeepRequest(BaseModel):
+    scope: str = "findings"
+    song_ids: list[str] = Field(default_factory=list)
+
+    @field_validator("scope")
+    @classmethod
+    def _validate_scope(cls, value: str) -> str:
+        if value not in {"findings", "lossless"}:
+            raise ValueError("scope must be findings or lossless")
+        return value
+
+    @field_validator("song_ids")
+    @classmethod
+    def _validate_song_ids(cls, value: list[str]) -> list[str]:
+        cleaned = [song_id.strip() for song_id in value if song_id.strip()]
+        if len(set(cleaned)) != len(cleaned):
+            raise ValueError("song ids must be unique")
+        return cleaned
+
+
+class LibraryAuditSnapshot(BaseModel):
+    active: bool = False
+    stage: str = "idle"
+    scanned: int = 0
+    total: int = 0
+    error: str | None = None
+    message: str | None = None
+    summary: LibraryAuditSummary = Field(default_factory=LibraryAuditSummary)
+
+
+class LibraryAuditFindingsResponse(BaseModel):
+    items: list[LibraryAuditFinding] = Field(default_factory=list)
+    offset: int = 0
+    limit: int = 50
+    total: int = 0

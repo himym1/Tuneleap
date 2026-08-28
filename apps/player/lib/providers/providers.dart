@@ -19,6 +19,7 @@ export 'navidrome_delete_provider.dart';
 export 'cover_color_provider.dart';
 export 'library_cache_provider.dart';
 export 'playlist_provider.dart';
+export 'playlist_detail_provider.dart';
 export 'search_provider.dart';
 export 'online_source_preferences.dart';
 export 'library_provider.dart';
@@ -26,6 +27,7 @@ export 'library_search_provider.dart';
 export 'album_detail_provider.dart';
 export 'weather_provider.dart';
 export 'recommendation_provider.dart';
+export 'library_audit_provider.dart';
 
 final appVersionProvider = Provider<String>(
   (ref) => throw UnimplementedError('Must be overridden in ProviderScope'),

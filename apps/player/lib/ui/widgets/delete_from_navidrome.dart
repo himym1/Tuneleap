@@ -11,8 +11,23 @@ Future<bool> deleteLibrarySongFromNavidrome(
   WidgetRef ref,
   Song song, {
   VoidCallback? onDeleted,
+}) {
+  return deleteLibrarySongsFromNavidrome(context, ref, [
+    song,
+  ], onDeleted: onDeleted);
+}
+
+Future<bool> deleteLibrarySongsFromNavidrome(
+  BuildContext context,
+  WidgetRef ref,
+  List<Song> songs, {
+  VoidCallback? onDeleted,
 }) async {
-  if (song.isOnline || song.isRadio) return false;
+  final targets = [
+    for (final song in songs)
+      if (!song.isOnline && !song.isRadio && song.id.isNotEmpty) song,
+  ];
+  if (targets.isEmpty) return false;
   final l10n = S.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final serverId = ref.read(serverConfigProvider).serverId;
@@ -27,11 +42,16 @@ Future<bool> deleteLibrarySongFromNavidrome(
     return false;
   }
 
+  final first = targets.first;
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: Text(l10n.contextMenuDeleteTitle),
-      content: Text(l10n.contextMenuDeleteConfirm(song.title, song.artist)),
+      content: Text(
+        targets.length == 1
+            ? l10n.contextMenuDeleteConfirm(first.title, first.artist)
+            : l10n.libraryAuditDeleteSelectedConfirm(targets.length),
+      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogContext, false),
@@ -76,7 +96,13 @@ Future<bool> deleteLibrarySongFromNavidrome(
   var deleted = false;
   Object? deleteError;
   try {
-    await deleteService.deleteLibrarySong(song);
+    if (targets.length == 1) {
+      await deleteService.deleteLibrarySong(targets.single);
+    } else {
+      await deleteService.deleteLibrarySongIds([
+        for (final song in targets) song.id,
+      ]);
+    }
     deleted = true;
   } catch (error) {
     deleteError = error;
@@ -98,22 +124,31 @@ Future<bool> deleteLibrarySongFromNavidrome(
   }
 
   final playerService = ref.read(audioPlayerServiceProvider);
-  final index = playerService.queue.indexWhere(
-    (candidate) => candidate.storageKey == song.storageKey,
-  );
-  if (index >= 0) playerService.removeFromQueue(index);
+  final keys = {for (final song in targets) song.storageKey};
+  for (var index = playerService.queue.length - 1; index >= 0; index--) {
+    if (keys.contains(playerService.queue[index].storageKey)) {
+      playerService.removeFromQueue(index);
+    }
+  }
 
   try {
     await ref.read(subsonicClientProvider).startScan();
   } catch (_) {}
   try {
     ref.invalidate(newestAlbumsProvider);
+    ref.invalidate(newestSongsProvider);
     ref.invalidate(recentAlbumsProvider);
     await ref.read(libraryProvider.notifier).refresh();
   } catch (_) {}
   onDeleted?.call();
   if (context.mounted) {
-    messenger.showSnackBar(_message(l10n.contextMenuDeleted));
+    messenger.showSnackBar(
+      _message(
+        targets.length == 1
+            ? l10n.contextMenuDeleted
+            : l10n.libraryAuditBatchDeleted(targets.length),
+      ),
+    );
   }
   return true;
 }
