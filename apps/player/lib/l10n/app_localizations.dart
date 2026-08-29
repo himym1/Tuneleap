@@ -2494,7 +2494,7 @@ abstract class S {
   /// No description provided for @updateWindowsInstallHint.
   ///
   /// In zh, this message translates to:
-  /// **'正在退出并自动覆盖安装。若未自动重启，请重新运行 navidrome_player.exe。若自动安装失败，请手动解压安装包覆盖当前目录。'**
+  /// **'正在退出并自动覆盖安装。若未自动重启，请重新运行 Tuneleap.exe。若自动安装失败，请手动解压安装包覆盖当前目录。'**
   String get updateWindowsInstallHint;
 
   /// No description provided for @contextMenuDeleteTitle.

@@ -540,7 +540,7 @@
     "updateLatest": "You're up to date",
     "updateFailed": "Update check failed, please try again",
     "updateMacInstallHint": "The disk image is open. Drag YinYue into Applications to replace the current app, then reopen it.",
-    "updateWindowsInstallHint": "Tuneleap will quit and apply the update. If it does not relaunch, run navidrome_player.exe again. If auto-install fails, extract the zip over the current folder manually.",
+    "updateWindowsInstallHint": "Tuneleap will quit and apply the update. If it does not relaunch, run Tuneleap.exe again. If auto-install fails, extract the zip over the current folder manually.",
 
     "contextMenuDelete": "Delete Song",
     "contextMenuDeleteTitle": "Confirm Delete",

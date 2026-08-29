@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "Tuneleap" "\0"
             VALUE "FileDescription", "音跃" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "navidrome_player" "\0"
+            VALUE "InternalName", "Tuneleap" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 Tuneleap. All rights reserved." "\0"
-            VALUE "OriginalFilename", "navidrome_player.exe" "\0"
+            VALUE "OriginalFilename", "Tuneleap.exe" "\0"
             VALUE "ProductName", "音跃" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END

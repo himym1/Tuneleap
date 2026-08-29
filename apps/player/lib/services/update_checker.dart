@@ -298,24 +298,15 @@ Future<bool> _installAndroid(String apkPath) async {
   }
 }
 
-Future<bool> _installWindows(String zipPath) async {
-  try {
-    if (await _applyWindowsZipUpdate(zipPath)) {
-      // Process exits inside a successful auto-apply path.
-      return true;
-    }
-    await Process.start('explorer.exe', [zipPath]);
-    return true;
-  } catch (error) {
-    debugPrint('Open Windows update zip failed: ${error.runtimeType}');
-    return false;
-  }
+bool _windowsPayloadHasExe(String dir) {
+  return File('$dir\\Tuneleap.exe').existsSync() ||
+      File('$dir\\navidrome_player.exe').existsSync();
 }
 
 /// Extract the release zip beside the running exe via a detached cmd script
 /// that waits for this process to exit, then relaunches.
 ///
-/// Returns `true` only by terminating the process after starting the updater.
+/// Returns by terminating the process after starting the updater on success.
 Future<bool> _applyWindowsZipUpdate(String zipPath) async {
   if (!Platform.isWindows) return false;
   final exePath = Platform.resolvedExecutable;
@@ -349,11 +340,14 @@ Future<bool> _applyWindowsZipUpdate(String zipPath) async {
     } else {
       final children = stagingRoot.listSync().whereType<Directory>().toList();
       if (children.length == 1 &&
-          File('${children.single.path}\\navidrome_player.exe').existsSync()) {
+          _windowsPayloadHasExe(children.single.path)) {
         payloadDir = children.single.path;
       }
     }
 
+    final exeName = File(exePath).uri.pathSegments.isNotEmpty
+        ? File(exePath).uri.pathSegments.last
+        : 'Tuneleap.exe';
     final bat = StringBuffer()
       ..writeln('@echo off')
       ..writeln('set "APPDIR=$appDir"')
@@ -363,12 +357,21 @@ Future<bool> _applyWindowsZipUpdate(String zipPath) async {
       ..writeln(':wait')
       ..writeln('timeout /t 1 /nobreak >nul')
       ..writeln(
-        'tasklist /FI "IMAGENAME eq navidrome_player.exe" 2>nul | '
-        'find /I "navidrome_player.exe" >nul',
+        'tasklist /FI "IMAGENAME eq $exeName" 2>nul | '
+        'find /I "$exeName" >nul',
       )
       ..writeln('if not errorlevel 1 goto wait')
       ..writeln('xcopy /E /Y /Q "%STAGE%\\*" "%APPDIR%\\" >nul')
-      ..writeln('start "" "%EXE%"')
+      // New packages ship Tuneleap.exe; older installs still run
+      // navidrome_player.exe. Prefer the branded binary after copy.
+      ..writeln('set "LAUNCH=%APPDIR%\\Tuneleap.exe"')
+      ..writeln('if not exist "%LAUNCH%" set "LAUNCH=%EXE%"')
+      ..writeln(
+        'if exist "%APPDIR%\\Tuneleap.exe" if exist '
+        '"%APPDIR%\\navidrome_player.exe" del '
+        '"%APPDIR%\\navidrome_player.exe"',
+      )
+      ..writeln('start "" "%LAUNCH%"')
       ..writeln('rmdir /S /Q "%ROOT%"')
       ..writeln('del "%~f0"');
     await File(batPath).writeAsString(bat.toString());

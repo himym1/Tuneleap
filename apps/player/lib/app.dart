@@ -493,6 +493,7 @@ Widget _desktopChrome(BuildContext context, Widget? child) {
         child: WindowCaption(
           brightness: Theme.of(context).brightness,
           backgroundColor: Theme.of(context).colorScheme.surface,
+          title: Text(S.of(context).appName),
         ),
       ),
       Expanded(child: child ?? const SizedBox.shrink()),

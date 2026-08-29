@@ -1288,7 +1288,7 @@ class SZh extends S {
 
   @override
   String get updateWindowsInstallHint =>
-      '正在退出并自动覆盖安装。若未自动重启，请重新运行 navidrome_player.exe。若自动安装失败，请手动解压安装包覆盖当前目录。';
+      '正在退出并自动覆盖安装。若未自动重启，请重新运行 Tuneleap.exe。若自动安装失败，请手动解压安装包覆盖当前目录。';
 
   @override
   String get contextMenuDeleteTitle => '确认删除';

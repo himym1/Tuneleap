@@ -1326,7 +1326,7 @@ class SEn extends S {
 
   @override
   String get updateWindowsInstallHint =>
-      'Tuneleap will quit and apply the update. If it does not relaunch, run navidrome_player.exe again. If auto-install fails, extract the zip over the current folder manually.';
+      'Tuneleap will quit and apply the update. If it does not relaunch, run Tuneleap.exe again. If auto-install fails, extract the zip over the current folder manually.';
 
   @override
   String get contextMenuDeleteTitle => 'Confirm Delete';
