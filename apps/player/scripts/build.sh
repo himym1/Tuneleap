@@ -129,15 +129,38 @@ build_macos() {
   log "macOS DMG -> dist/$dmg_name"
 }
 
+is_windows_host() {
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*|Windows_NT) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 build_windows() {
   local ver="$WINDOWS_VERSION" build="$WINDOWS_BUILD"
+  is_windows_host || err "Windows builds require Windows. Use GitHub Actions: gh workflow run \"Windows player\""
   log "Building Windows executable (v${ver}+${build})..."
   cd "$PROJECT_ROOT"
   flutter build windows --release --build-name="$ver" --build-number="$build"
   local win_dir="$PROJECT_ROOT/build/windows/x64/runner/Release"
   [ -d "$win_dir" ] || win_dir="$PROJECT_ROOT/build/windows/runner/Release"
   [ -d "$win_dir" ] || err "Windows build output not found"
-  (cd "$win_dir" && zip -r -q "$DIST_DIR/${APP_NAME}-${ver}+${build}-windows.zip" .)
+  local out="$DIST_DIR/${APP_NAME}-${ver}+${build}-windows.zip"
+  rm -f "$out"
+  if command -v zip >/dev/null 2>&1; then
+    (cd "$win_dir" && zip -r -q "$out" .)
+  else
+    # windows-latest Git Bash has no zip(1); use Python stdlib.
+    python - "$win_dir" "$out" <<'PY'
+import pathlib, sys, zipfile
+src, dest = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as zf:
+    for path in src.rglob("*"):
+        if path.is_file():
+            zf.write(path, path.relative_to(src).as_posix())
+PY
+  fi
+  [ -f "$out" ] || err "Windows zip not created at $out"
   log "Windows app -> dist/${APP_NAME}-${ver}+${build}-windows.zip"
 }
 
@@ -165,7 +188,11 @@ case "$PLATFORM" in
     build_android
     [[ "$(uname)" == "Darwin" ]] && build_ios
     [[ "$(uname)" == "Darwin" ]] && build_macos
-    build_windows
+    if is_windows_host; then
+      build_windows
+    else
+      log "Skipping Windows (this host is not Windows)"
+    fi
     ;;
   clean)   do_clean ;;
   *)       err "Unknown platform: $PLATFORM. Use android|ios|macos|windows|all|clean" ;;
