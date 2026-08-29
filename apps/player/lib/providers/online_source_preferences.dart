@@ -159,8 +159,12 @@ final effectiveOnlineSearchAdapterProvider = Provider<String?>((ref) {
 
 final supportedOnlineSourcesProvider = Provider<List<String>>((ref) {
   final capabilities = ref.watch(musicCapabilitiesProvider);
-  final selected = ref.watch(onlineSearchAdapterProvider);
-  if (selected != null && capabilities.isLoading) return const [];
+  // Keep defaults available while capabilities load. Returning [] made the
+  // search tab swallow Enter/clicks until sources appeared — and the UI never
+  // retried automatically when the adapter preference stayed unchanged.
+  if (capabilities.isLoading) {
+    return List<String>.of(kDefaultOnlineSources);
+  }
   final provider = ref.watch(effectiveOnlineSearchAdapterProvider);
   return catalogSourcesSupportedBy(capabilities.value, provider);
 });

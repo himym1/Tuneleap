@@ -33,6 +33,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Timer? _debounce;
   String? _selectedSource;
   String? _lastProvider;
+  List<String> _lastSources = const [];
   List<String> _history = [];
   String? _appliedQuery;
 
@@ -82,6 +83,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       _searchController.text = query;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _doSearch();
+      });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _searchFocusNode.requestFocus();
       });
     }
   }
@@ -139,7 +144,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (query.isEmpty) {
       _clearAllResults();
     } else {
-      HapticFeedback.lightImpact();
+      try {
+        HapticFeedback.lightImpact();
+      } catch (_) {}
       _saveHistory(query);
       _searchAll(query);
     }
@@ -148,6 +155,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _searchAll(String query) {
     final sources = ref.read(effectiveOnlineSourcesProvider);
     final selected = _currentSource(sources);
+    if (sources.isEmpty) return;
     for (final source in sources) {
       final notifier = ref.read(searchProvider(source).notifier);
       if (source == selected) {
@@ -185,9 +193,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _syncProviderSelection(String? provider, List<String> sources) {
-    if (_lastProvider == provider) return;
+    final providerChanged = _lastProvider != provider;
+    final sourcesAppeared = _lastSources.isEmpty && sources.isNotEmpty;
     _lastProvider = provider;
-    _selectedSource = sources.isEmpty ? null : sources.first;
+    _lastSources = sources;
+    if (!providerChanged && !sourcesAppeared) return;
+    if (providerChanged) {
+      _selectedSource = sources.isEmpty ? null : sources.first;
+    }
     if (_resultsScrollController.hasClients) {
       _resultsScrollController.jumpTo(0);
     }
@@ -316,12 +329,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         horizontal: 14,
                         vertical: 12,
                       ),
-                      prefixIcon: Icon(
-                        Icons.search_rounded,
-                        size: 20,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      prefixIcon: IconButton(
+                        icon: Icon(
+                          Icons.search_rounded,
+                          size: 20,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                        tooltip: S.of(context).navSearch,
+                        onPressed: _doSearch,
+                      ),
+                      suffixIconConstraints: const BoxConstraints(
+                        minHeight: 48,
+                        minWidth: 48,
                       ),
                       suffixIcon: value.text.isNotEmpty
                           ? Row(
@@ -367,19 +388,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               },
             ),
           ),
-          if (sources.length > 1) ...[
-            const SizedBox(height: 12),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: h),
-              child: _SourceTabs(
-                sources: sources,
-                selected: selected,
-                onSelected: _onSourceSelected,
+          if (sources.isEmpty)
+            Expanded(
+              child: Center(
+                child: ref.watch(musicCapabilitiesProvider).isLoading
+                    ? const CircularProgressIndicator()
+                    : EmptyState(
+                        icon: Icons.travel_explore_rounded,
+                        message: S.of(context).searchSourcesUnavailable,
+                      ),
               ),
-            ),
+            )
+          else ...[
+            if (sources.length > 1) ...[
+              const SizedBox(height: 12),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: h),
+                child: _SourceTabs(
+                  sources: sources,
+                  selected: selected,
+                  onSelected: _onSourceSelected,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Expanded(child: _buildResults(searchState, selected)),
           ],
-          const SizedBox(height: 12),
-          Expanded(child: _buildResults(searchState, selected)),
         ],
       ),
     );

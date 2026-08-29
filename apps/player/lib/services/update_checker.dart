@@ -273,8 +273,17 @@ Future<UpdateInstallOutcome> installUpdate(String filePath) async {
   }
   if (Platform.isMacOS) return _installMacOS(filePath);
   if (Platform.isWindows) {
-    final ok = await _installWindows(filePath);
-    return UpdateInstallOutcome(ok: ok, manualDesktopHint: ok);
+    if (await _applyWindowsZipUpdate(filePath)) {
+      // Successful path terminates the process after launching the updater.
+      return const UpdateInstallOutcome(ok: true);
+    }
+    try {
+      await Process.start('explorer.exe', [filePath]);
+      return const UpdateInstallOutcome(ok: true, manualDesktopHint: true);
+    } catch (error) {
+      debugPrint('Open Windows update zip failed: ${error.runtimeType}');
+      return const UpdateInstallOutcome(ok: false);
+    }
   }
   return const UpdateInstallOutcome(ok: false);
 }
@@ -291,10 +300,87 @@ Future<bool> _installAndroid(String apkPath) async {
 
 Future<bool> _installWindows(String zipPath) async {
   try {
+    if (await _applyWindowsZipUpdate(zipPath)) {
+      // Process exits inside a successful auto-apply path.
+      return true;
+    }
     await Process.start('explorer.exe', [zipPath]);
     return true;
   } catch (error) {
     debugPrint('Open Windows update zip failed: ${error.runtimeType}');
+    return false;
+  }
+}
+
+/// Extract the release zip beside the running exe via a detached cmd script
+/// that waits for this process to exit, then relaunches.
+///
+/// Returns `true` only by terminating the process after starting the updater.
+Future<bool> _applyWindowsZipUpdate(String zipPath) async {
+  if (!Platform.isWindows) return false;
+  final exePath = Platform.resolvedExecutable;
+  final appDir = File(exePath).parent.path;
+  final stagingRoot = Directory(
+    '${Directory.systemTemp.path}\\tuneleap_update_staging',
+  );
+  final batPath = '${Directory.systemTemp.path}\\tuneleap_apply_update.bat';
+
+  try {
+    if (stagingRoot.existsSync()) {
+      stagingRoot.deleteSync(recursive: true);
+    }
+    stagingRoot.createSync(recursive: true);
+
+    final expand = await Process.run('powershell.exe', [
+      '-NoProfile',
+      '-Command',
+      "Expand-Archive -LiteralPath '${zipPath.replaceAll("'", "''")}' "
+          "-DestinationPath '${stagingRoot.path.replaceAll("'", "''")}' -Force",
+    ]);
+    if (expand.exitCode != 0) {
+      debugPrint('Expand Windows update failed: ${expand.stderr}');
+      return false;
+    }
+
+    var payloadDir = stagingRoot.path;
+    final nested = Directory('${stagingRoot.path}\\Release');
+    if (nested.existsSync()) {
+      payloadDir = nested.path;
+    } else {
+      final children = stagingRoot.listSync().whereType<Directory>().toList();
+      if (children.length == 1 &&
+          File('${children.single.path}\\navidrome_player.exe').existsSync()) {
+        payloadDir = children.single.path;
+      }
+    }
+
+    final bat = StringBuffer()
+      ..writeln('@echo off')
+      ..writeln('set "APPDIR=$appDir"')
+      ..writeln('set "STAGE=$payloadDir"')
+      ..writeln('set "EXE=$exePath"')
+      ..writeln('set "ROOT=${stagingRoot.path}"')
+      ..writeln(':wait')
+      ..writeln('timeout /t 1 /nobreak >nul')
+      ..writeln(
+        'tasklist /FI "IMAGENAME eq navidrome_player.exe" 2>nul | '
+        'find /I "navidrome_player.exe" >nul',
+      )
+      ..writeln('if not errorlevel 1 goto wait')
+      ..writeln('xcopy /E /Y /Q "%STAGE%\\*" "%APPDIR%\\" >nul')
+      ..writeln('start "" "%EXE%"')
+      ..writeln('rmdir /S /Q "%ROOT%"')
+      ..writeln('del "%~f0"');
+    await File(batPath).writeAsString(bat.toString());
+
+    await Process.start('cmd.exe', [
+      '/c',
+      batPath,
+    ], mode: ProcessStartMode.detached);
+    // Free file locks so the updater can overwrite the running binary.
+    exit(0);
+  } catch (error) {
+    debugPrint('Apply Windows update failed: ${error.runtimeType}');
     return false;
   }
 }

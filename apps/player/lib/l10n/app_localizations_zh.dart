@@ -867,6 +867,9 @@ class SZh extends S {
   String get searchFailedTryAgain => '搜索失败，请重试。';
 
   @override
+  String get searchSourcesUnavailable => '暂无可用搜索音源，请检查 Cloud 登录或设置里的在线音源开关。';
+
+  @override
   String get searchResults => '搜索结果';
 
   @override
@@ -1285,7 +1288,7 @@ class SZh extends S {
 
   @override
   String get updateWindowsInstallHint =>
-      '安装包已打开。请解压后覆盖当前音跃目录，然后重新运行 navidrome_player.exe。';
+      '正在退出并自动覆盖安装。若未自动重启，请重新运行 navidrome_player.exe。若自动安装失败，请手动解压安装包覆盖当前目录。';
 
   @override
   String get contextMenuDeleteTitle => '确认删除';

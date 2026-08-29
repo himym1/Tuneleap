@@ -439,6 +439,7 @@
     }
   },
   "searchFailedTryAgain": "搜索失败，请重试。",
+  "searchSourcesUnavailable": "暂无可用搜索音源，请检查 Cloud 登录或设置里的在线音源开关。",
     "searchResults": "搜索结果",
     "searchLoadMore": "加载更多",
     "searchLoadingMore": "加载中…",
@@ -678,7 +679,7 @@
     "updateLatest": "已是最新版本",
     "updateFailed": "检查更新失败，请稍后重试",
     "updateMacInstallHint": "安装包已打开。请把「音跃」拖进「应用程序」替换当前版本，然后重新打开。",
-    "updateWindowsInstallHint": "安装包已打开。请解压后覆盖当前音跃目录，然后重新运行 navidrome_player.exe。",
+    "updateWindowsInstallHint": "正在退出并自动覆盖安装。若未自动重启，请重新运行 navidrome_player.exe。若自动安装失败，请手动解压安装包覆盖当前目录。",
 
     "contextMenuDelete": "删除歌曲",
     "contextMenuDeleteTitle": "确认删除",

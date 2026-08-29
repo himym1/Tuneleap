@@ -898,6 +898,10 @@ class SEn extends S {
   String get searchFailedTryAgain => 'Search failed. Please try again.';
 
   @override
+  String get searchSourcesUnavailable =>
+      'No search sources are available. Sign in to Cloud or enable online sources in Settings.';
+
+  @override
   String get searchResults => 'Search Results';
 
   @override
@@ -1322,7 +1326,7 @@ class SEn extends S {
 
   @override
   String get updateWindowsInstallHint =>
-      'The zip is open. Extract it over the current Tuneleap folder, then run navidrome_player.exe again.';
+      'Tuneleap will quit and apply the update. If it does not relaunch, run navidrome_player.exe again. If auto-install fails, extract the zip over the current folder manually.';
 
   @override
   String get contextMenuDeleteTitle => 'Confirm Delete';

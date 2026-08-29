@@ -38,6 +38,70 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   static bool _lastShowQueue = false;
 
   bool _showQueue = _lastShowQueue;
+
+  void _openArtistOrAlbum(Song song, {required bool artist}) {
+    final id = artist ? song.artistId.trim() : song.albumId.trim();
+    final label = artist ? song.artist.trim() : song.album.trim();
+    if (id.isNotEmpty && !song.isOnline) {
+      final path = artist
+          ? '/artist/${Uri.encodeComponent(id)}'
+          : '/album/${Uri.encodeComponent(id)}';
+      if (context.canPop()) context.pop();
+      context.go(path);
+      return;
+    }
+    if (label.isEmpty) return;
+    // Online tracks (or missing IDs) fall back to search.
+    if (context.canPop()) context.pop();
+    context.go('/search?q=${Uri.encodeComponent(label)}');
+  }
+
+  Widget _buildSongMetaLine(
+    Song song, {
+    required Color color,
+    double? fontSize,
+  }) {
+    final style = Theme.of(
+      context,
+    ).textTheme.playerSubtitle.copyWith(color: color, fontSize: fontSize);
+    final linkStyle = style.copyWith(
+      decoration: TextDecoration.underline,
+      decorationColor: color.withValues(alpha: 0.45),
+    );
+    final artist = song.artist.trim();
+    final album = song.album.trim();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (artist.isNotEmpty)
+          Flexible(
+            child: InkWell(
+              onTap: () => _openArtistOrAlbum(song, artist: true),
+              child: Text(
+                artist,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: linkStyle,
+              ),
+            ),
+          ),
+        if (artist.isNotEmpty && album.isNotEmpty) Text(' · ', style: style),
+        if (album.isNotEmpty)
+          Flexible(
+            child: InkWell(
+              onTap: () => _openArtistOrAlbum(song, artist: false),
+              child: Text(
+                album,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: linkStyle,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   bool _showLyrics = _lastShowLyrics;
   List<LyricsLine>? _lyrics;
   String? _lyricsForSongId;
@@ -951,16 +1015,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              '${currentSong.artist} · ${currentSong.album}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.playerSubtitle.copyWith(
-                color: playerFgMuted,
-                fontSize: 14,
-              ),
-            ),
+            _buildSongMetaLine(currentSong, color: playerFgMuted, fontSize: 14),
             if (currentSong.suffix != null ||
                 currentSong.bitRate != null ||
                 currentSong.isOnline) ...[
@@ -1204,16 +1259,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      '${currentSong.artist} · ${currentSong.album}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.playerSubtitle
-                          .copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
+                    _buildSongMetaLine(
+                      currentSong,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     if (currentSong.suffix != null ||
                         currentSong.bitRate != null ||

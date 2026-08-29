@@ -82,7 +82,7 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "修复「分析全部」：会重查已有流派标签（不再只查未标的约一百多首）。请更新后用分析全部再写入，然后重做歌单整理。"
+        "Windows：修复搜索无响应；播放页可点击歌手/专辑跳转；支持检查更新并自动覆盖安装。请用设置里的检查更新升级。"
     )
 }
 if Path(windows_name).is_file():
@@ -109,7 +109,7 @@ python3 "$SCRIPT_DIR/write_appcast.py" \
   --macos-build "$MACOS_BUILD" \
   --macos-name "$macos" \
   --sign-output "$sign_output" \
-  --changelog "修复「分析全部」：会重查已有流派标签（不再只查未标的约一百多首）。请更新后用分析全部再写入，然后重做歌单整理。" \
+  --changelog "Windows：修复搜索无响应；播放页可点击歌手/专辑跳转；支持检查更新并自动覆盖安装。请用设置里的检查更新升级。" \
   --output "$DIST_DIR/appcast.xml"
 
 echo "Prepared private update metadata in $DIST_DIR"

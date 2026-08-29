@@ -1711,6 +1711,12 @@ abstract class S {
   /// **'搜索失败，请重试。'**
   String get searchFailedTryAgain;
 
+  /// No description provided for @searchSourcesUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无可用搜索音源，请检查 Cloud 登录或设置里的在线音源开关。'**
+  String get searchSourcesUnavailable;
+
   /// No description provided for @searchResults.
   ///
   /// In zh, this message translates to:
@@ -2488,7 +2494,7 @@ abstract class S {
   /// No description provided for @updateWindowsInstallHint.
   ///
   /// In zh, this message translates to:
-  /// **'安装包已打开。请解压后覆盖当前音跃目录，然后重新运行 navidrome_player.exe。'**
+  /// **'正在退出并自动覆盖安装。若未自动重启，请重新运行 navidrome_player.exe。若自动安装失败，请手动解压安装包覆盖当前目录。'**
   String get updateWindowsInstallHint;
 
   /// No description provided for @contextMenuDeleteTitle.
