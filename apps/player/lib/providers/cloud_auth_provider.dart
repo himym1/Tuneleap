@@ -10,8 +10,9 @@ import 'server_scope.dart';
 /// Product Cloud origin. Empty prefs fall back here so login stays simple.
 const defaultCloudOrigin = 'https://player.himym.us.ci';
 
-/// Subsonic URL is user-configured. Do not ship a personal NAS/public IP here.
-const defaultNavidromeOrigin = '';
+/// Personal-deploy Subsonic origin. Login only asks for username/password, so
+/// empty prefs must still resolve to the reachable public Navidrome endpoint.
+const defaultNavidromeOrigin = 'http://154.21.95.143:54533';
 
 String resolveCloudOrigin(String configured) {
   final value = configured.trim();
@@ -27,8 +28,11 @@ String resolveNavidromeOrigin(String configured) {
   final value = configured.trim();
   if (value.isEmpty) return defaultNavidromeOrigin;
   final uri = Uri.tryParse(value);
-  // Drop loopback leftovers from older local builds; real LAN hosts stay as-is.
-  if (uri != null && (uri.host == 'localhost' || uri.host == '127.0.0.1')) {
+  // Rewrite stale LAN-only / loopback hosts left in prefs from older builds.
+  if (uri != null &&
+      (uri.host == '192.168.8.146' ||
+          uri.host == 'localhost' ||
+          uri.host == '127.0.0.1')) {
     return defaultNavidromeOrigin;
   }
   return value.endsWith('/') ? value.substring(0, value.length - 1) : value;

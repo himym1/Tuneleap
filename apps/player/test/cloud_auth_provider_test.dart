@@ -83,7 +83,7 @@ void main() {
     );
   });
 
-  test('loopback Navidrome host clears; real hosts are kept', () {
+  test('empty or stale LAN Navidrome host resolves to public Subsonic origin', () {
     expect(resolveNavidromeOrigin(''), defaultNavidromeOrigin);
     expect(
       resolveNavidromeOrigin('http://localhost:54533'),
@@ -91,6 +91,10 @@ void main() {
     );
     expect(
       resolveNavidromeOrigin('http://127.0.0.1:54533'),
+      defaultNavidromeOrigin,
+    );
+    expect(
+      resolveNavidromeOrigin('http://192.168.8.146:54533'),
       defaultNavidromeOrigin,
     );
     expect(
