@@ -189,6 +189,26 @@ class SubsonicClient {
     );
   }
 
+  /// Pages the empty `search3` song list used by the Songs tab.
+  Future<List<Song>> getLibrarySongs({int pageSize = 200}) async {
+    final songs = <Song>[];
+    var offset = 0;
+    while (offset <= 20000) {
+      final page = await search3(
+        '',
+        artistCount: 0,
+        albumCount: 0,
+        songCount: pageSize,
+        songOffset: offset,
+      );
+      if (page.songs.isEmpty) return songs;
+      songs.addAll(page.songs);
+      if (page.songs.length < pageSize) return songs;
+      offset += page.songs.length;
+    }
+    return songs;
+  }
+
   // === 媒体 ===
 
   /// 获取音频流 URL

@@ -7,11 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'server_config_provider.dart';
 import 'server_scope.dart';
 
-/// Personal-deploy defaults. Empty prefs fall back here so login stays simple.
+/// Product Cloud origin. Empty prefs fall back here so login stays simple.
 const defaultCloudOrigin = 'https://player.himym.us.ci';
 
-/// Public Subsonic endpoint (LAN `192.168.1.10:54533` is unreachable off-home).
-const defaultNavidromeOrigin = 'http://navidrome.example:54533';
+/// Subsonic URL is user-configured. Do not ship a personal NAS/public IP here.
+const defaultNavidromeOrigin = '';
 
 String resolveCloudOrigin(String configured) {
   final value = configured.trim();
@@ -27,8 +27,8 @@ String resolveNavidromeOrigin(String configured) {
   final value = configured.trim();
   if (value.isEmpty) return defaultNavidromeOrigin;
   final uri = Uri.tryParse(value);
-  // Rewrite stale LAN-only hosts left in prefs from older builds.
-  if (uri != null && (uri.host == '192.168.1.10' || uri.host == 'localhost')) {
+  // Drop loopback leftovers from older local builds; real LAN hosts stay as-is.
+  if (uri != null && (uri.host == 'localhost' || uri.host == '127.0.0.1')) {
     return defaultNavidromeOrigin;
   }
   return value.endsWith('/') ? value.substring(0, value.length - 1) : value;

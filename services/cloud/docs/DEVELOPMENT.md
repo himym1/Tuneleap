@@ -6,7 +6,7 @@ Authority: [`apps/player/docs/adr/0004-cloud-control-plane-and-nas-agent.md`](..
 
 ## Boundaries
 
-1. Flutter online features (search / url / cover / lyric / updates / auth / recommendations) live here.
+1. Flutter online features (search / url / cover / lyric / style-lookup / updates / auth / recommendations) live here.
 2. Third-party music APIs are accessed only through adapters.
 3. Search is first-success: one query → one non-empty result list.
 4. Cloud never mounts music volumes or opens `navidrome.db`.

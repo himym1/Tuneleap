@@ -24,6 +24,7 @@ from app.core.recommendation_http import (
 from app.db.database import Database
 from app.services.auth_service import AuthService
 from app.services.music_facade import MusicFacade
+from app.services.style_lookup import StyleLookupService
 from app.services.nas_library_client import NasLibraryClient
 from app.services.recommendation_service import RecommendationService
 from app.services.recommendation_store import RecommendationStore
@@ -65,6 +66,7 @@ async def lifespan(app: FastAPI):
         app.state.auth_service = AuthService(database.pool, settings)
         app.state.http_client = client
         app.state.music_facade = facade
+        app.state.style_lookup = StyleLookupService(client)
         app.state.nas_library = library
         app.state.recommendation_store = store
         app.state.recommendation_service = service

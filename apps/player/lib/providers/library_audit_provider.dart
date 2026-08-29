@@ -74,13 +74,21 @@ class LibraryAuditState {
       if (finding.hasQualityIssue) finding,
   ];
 
-  /// Version-only rows (no quality defect) when the "all" filter is active.
+  /// Metadata-only rows (no quality defect) when the "all" filter is active.
+  List<LibraryAuditFinding> get metadataFindings => [
+    for (final finding in findings)
+      if (finding.isMetadataOnly) finding,
+  ];
+
+  /// Version-only rows (no quality or metadata defect) when the "all" filter is active.
   List<LibraryAuditFinding> get versionOnlyFindings => [
     for (final finding in findings)
       if (finding.isVersionOnly) finding,
   ];
 
   int get qualityIssueCount => qualityFindings.length;
+
+  int get metadataIssueCount => metadataFindings.length;
 
   int get versionOnlyCount => versionOnlyFindings.length;
 
@@ -369,6 +377,47 @@ class LibraryAuditNotifier extends Notifier<LibraryAuditState> {
               .length,
           deepFailed: remaining
               .where((item) => item.codes.contains(libraryAuditCodeDeepFailed))
+              .length,
+          missingTitle: remaining
+              .where(
+                (item) => item.codes.contains(libraryAuditCodeMissingTitle),
+              )
+              .length,
+          missingArtist: remaining
+              .where(
+                (item) => item.codes.contains(libraryAuditCodeMissingArtist),
+              )
+              .length,
+          missingAlbum: remaining
+              .where(
+                (item) => item.codes.contains(libraryAuditCodeMissingAlbum),
+              )
+              .length,
+          suspiciousText: remaining
+              .where(
+                (item) => item.codes.contains(libraryAuditCodeSuspiciousText),
+              )
+              .length,
+          missingCover: remaining
+              .where(
+                (item) => item.codes.contains(libraryAuditCodeMissingCover),
+              )
+              .length,
+          missingTrack: remaining
+              .where(
+                (item) => item.codes.contains(libraryAuditCodeMissingTrack),
+              )
+              .length,
+          missingYear: remaining
+              .where((item) => item.codes.contains(libraryAuditCodeMissingYear))
+              .length,
+          missingLyrics: remaining
+              .where(
+                (item) => item.codes.contains(libraryAuditCodeMissingLyrics),
+              )
+              .length,
+          tagMismatch: remaining
+              .where((item) => item.codes.contains(libraryAuditCodeTagMismatch))
               .length,
         ),
       ),

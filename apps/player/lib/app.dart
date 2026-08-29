@@ -18,6 +18,8 @@ import 'package:navidrome_player/ui/screens/library/library_radio_screen.dart';
 import 'package:navidrome_player/ui/screens/favorites/favorites_screen.dart';
 import 'package:navidrome_player/ui/screens/audio_quality/audio_quality_screen.dart';
 import 'package:navidrome_player/ui/screens/library_audit/library_audit_screen.dart';
+import 'package:navidrome_player/ui/screens/library_style/library_style_screen.dart';
+import 'package:navidrome_player/ui/screens/library_playlist_organize/library_playlist_organize_screen.dart';
 import 'package:navidrome_player/ui/screens/search/search_screen.dart';
 import 'package:navidrome_player/ui/screens/player/player_screen.dart';
 import 'package:navidrome_player/ui/screens/playlists/playlists_screen.dart';
@@ -410,6 +412,24 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
                     child: const LibraryAuditScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/library-styles',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryStyleScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/library-playlists',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const LibraryPlaylistOrganizeScreen(),
                     transitionsBuilder: _fadeThroughTransition,
                     transitionDuration: _kFadeDuration,
                   ),

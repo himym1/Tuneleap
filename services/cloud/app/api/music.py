@@ -10,8 +10,11 @@ from app.models.schemas import (
     LyricResponse,
     MusicCapabilitiesResponse,
     SearchResponse,
+    StyleLookupRequest,
+    StyleLookupResponse,
     UrlResponse,
 )
+from app.services.style_lookup import StyleLookupService
 from app.services.music_facade import MusicSearchSelectionError
 
 router = APIRouter(
@@ -26,6 +29,13 @@ def _facade(request: Request):
     if facade is None:
         raise HTTPException(503, "Music facade not initialized")
     return facade
+
+
+def _style_lookup(request: Request) -> StyleLookupService:
+    service = getattr(request.app.state, "style_lookup", None)
+    if service is None:
+        raise HTTPException(503, "Style lookup not initialized")
+    return service
 
 
 def _map_upstream(exc: Exception) -> HTTPException:
@@ -79,6 +89,28 @@ async def search(
         raise HTTPException(400, str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         raise _map_upstream(exc) from exc
+
+
+@router.post(
+    "/style-lookup",
+    response_model=StyleLookupResponse,
+    summary="Look up closed styles from search and MusicBrainz",
+)
+@limiter.limit("60/minute")
+async def style_lookup(request: Request, body: StyleLookupRequest):
+    if not body.tracks:
+        raise HTTPException(400, "tracks must not be empty")
+    if len(body.tracks) > 20:
+        raise HTTPException(400, "at most 20 tracks per lookup")
+    try:
+        hits = await _style_lookup(request).lookup_many(
+            [track.model_dump() for track in body.tracks]
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise _map_upstream(exc) from exc
+    return StyleLookupResponse(items=[hit.as_dict() for hit in hits])
 
 
 @router.get("/url", response_model=UrlResponse)

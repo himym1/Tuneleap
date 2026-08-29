@@ -2,7 +2,7 @@
 
 Public **control plane** for [音跃 player](../../apps/player): online music search, playback URL/lyric/cover resolution, private app updates, product auth, and recommendations.
 
-Source path in this repo: `services/cloud`. Production directory is still `cloud-host:/opt/navidrome-cloud`.
+Source path in this repo: `services/cloud`. Production directory is typically `/opt/navidrome-cloud` on the Cloud VPS.
 
 ## Architecture (ADR-0004)
 

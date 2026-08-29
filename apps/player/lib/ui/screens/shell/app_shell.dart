@@ -268,7 +268,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         path == '/scrobble' ||
         path == '/favorites' ||
         path == '/audio-quality' ||
-        path == '/library-audit') {
+        path == '/library-audit' ||
+        path == '/library-styles' ||
+        path == '/library-playlists') {
       return 4;
     }
     return 0;
@@ -295,7 +297,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         uri == '/scrobble' ||
         uri == '/favorites' ||
         uri == '/audio-quality' ||
-        uri == '/library-audit') {
+        uri == '/library-audit' ||
+        uri == '/library-styles' ||
+        uri == '/library-playlists') {
       return 3;
     }
     return null;

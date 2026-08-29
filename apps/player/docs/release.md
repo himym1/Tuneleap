@@ -7,8 +7,8 @@ Android 与 macOS 使用同一套私有更新目录。发布者把安装包和�
 | 项目 | 值 |
 |---|---|
 | 公网 Origin | `https://player.himym.us.ci` |
-| 发布主机 | SSH alias `dmit` |
-| 主机目录 | `/opt/navidrome-cloud/releases` |
+| 发布主机 | SSH host（环境变量 `REMOTE_HOST`，本机可设默认） |
+| 主机目录 | `/opt/navidrome-cloud/releases`（可用 `REMOTE_DIR` 覆盖） |
 | 容器目录 | `/app/releases`（只读挂载） |
 | 元数据 | `/version.json`、`/appcast.xml` |
 | 安装包 | `/releases/{filename}` |
@@ -28,7 +28,18 @@ flutter analyze
 flutter test
 make android   # 仅 Android 发版时
 make macos     # 仅 macOS 发版时
+make windows   # 仅 Windows 发版时，必须在 Windows 上跑
 ```
+
+Windows 不能在 macOS 上交叉编译。本机打 Windows 包用 GitHub Actions：
+
+```bash
+gh workflow run "Windows player"
+# 跑完后把 artifact 放到 apps/player/dist/
+gh run download --name windows-player --dir apps/player/dist
+```
+
+Actions 的 `windows-latest` runner 需要 GitHub 账单可用。额度或付款失败时 job 不会启动。
 
 5. 发布：
 
@@ -41,7 +52,7 @@ make publish
 1. 生成 `dist/version.json`、`dist/appcast.xml` 和 `dist/SHA256SUMS`。
 2. 用本机钥匙串里的 Sparkle EdDSA 私钥签名 macOS DMG（`scripts/ensure-sparkle-tools.sh`）。私钥不要进仓库。
 3. 检查当前版本的 APK、DMG、校验文件和元数据是否齐全。
-4. 上传到 `cloud-host:/opt/navidrome-cloud/releases` 的临时目录。
+4. 上传到 `$REMOTE_HOST:$REMOTE_DIR` 的临时目录。
 5. 在服务器执行 `sha256sum -c`。
 6. 先发布 APK/DMG/SHA，再原子替换 `version.json` 和 `appcast.xml`。
 7. 仅在服务器内部读取 Cloud 运维 API Key，请求公网 `/version.json` 和 `/appcast.xml`；该 Key 不进入 App 或本机命令行。

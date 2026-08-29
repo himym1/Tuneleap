@@ -42,7 +42,7 @@ make cloud-up
 make nas-agent-test
 ```
 
-发布 App：`make android`、`make macos`、`make publish`。步骤见 [`apps/player/docs/release.md`](apps/player/docs/release.md)。
+发布 App：`make android`、`make macos`、`make windows`、`make publish`。Windows zip 必须在 Windows 或 GitHub Actions 上构建。步骤见 [`apps/player/docs/release.md`](apps/player/docs/release.md)。
 
 ## 克隆
 

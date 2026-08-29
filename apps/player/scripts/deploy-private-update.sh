@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_DIR="${DIST_DIR:-$PROJECT_ROOT/dist}"
+# Override with REMOTE_HOST / REMOTE_DIR for non-default publish targets.
 REMOTE_HOST="${REMOTE_HOST:-dmit}"
 REMOTE_DIR="${REMOTE_DIR:-/opt/navidrome-cloud/releases}"
 REMOTE_ENV_FILE="${REMOTE_ENV_FILE:-/opt/navidrome-cloud/.env}"

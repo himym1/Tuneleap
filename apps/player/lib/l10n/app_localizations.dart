@@ -2632,7 +2632,7 @@ abstract class S {
   /// No description provided for @libraryAuditSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'先快扫格式和码率，再可选深扫假无损。结果分成「音质问题」和「不同版本（音质正常）」。不会自动删歌或替换。'**
+  /// **'先快扫格式、码率和标签，再可选深扫假无损。结果分成「音质问题」「元数据」和「不同版本」。不会自动删歌或替换。'**
   String get libraryAuditSubtitle;
 
   /// No description provided for @libraryAuditStart.
@@ -2689,6 +2689,12 @@ abstract class S {
   /// **'没有不同版本。'**
   String get libraryAuditEmptyVersions;
 
+  /// No description provided for @libraryAuditEmptyMetadata.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有元数据问题。'**
+  String get libraryAuditEmptyMetadata;
+
   /// No description provided for @libraryAuditPassed.
   ///
   /// In zh, this message translates to:
@@ -2707,6 +2713,12 @@ abstract class S {
   /// **'音质问题'**
   String get libraryAuditQualityIssues;
 
+  /// No description provided for @libraryAuditMetadataIssues.
+  ///
+  /// In zh, this message translates to:
+  /// **'元数据'**
+  String get libraryAuditMetadataIssues;
+
   /// No description provided for @libraryAuditVersionOnly.
   ///
   /// In zh, this message translates to:
@@ -2718,6 +2730,18 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'音质问题'**
   String get libraryAuditSectionQuality;
+
+  /// No description provided for @libraryAuditSectionMetadata.
+  ///
+  /// In zh, this message translates to:
+  /// **'元数据'**
+  String get libraryAuditSectionMetadata;
+
+  /// No description provided for @libraryAuditSectionMetadataHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'空标签、乱码、缺封面/曲序/年份/歌词，或文件内嵌标签和曲库不一致。单曲没有曲序不算问题。'**
+  String get libraryAuditSectionMetadataHint;
 
   /// No description provided for @libraryAuditSectionVersions.
   ///
@@ -2790,6 +2814,60 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'深扫失败'**
   String get libraryAuditCodeDeepFailed;
+
+  /// No description provided for @libraryAuditCodeMissingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'缺歌名'**
+  String get libraryAuditCodeMissingTitle;
+
+  /// No description provided for @libraryAuditCodeMissingArtist.
+  ///
+  /// In zh, this message translates to:
+  /// **'缺歌手'**
+  String get libraryAuditCodeMissingArtist;
+
+  /// No description provided for @libraryAuditCodeMissingAlbum.
+  ///
+  /// In zh, this message translates to:
+  /// **'缺专辑'**
+  String get libraryAuditCodeMissingAlbum;
+
+  /// No description provided for @libraryAuditCodeSuspiciousText.
+  ///
+  /// In zh, this message translates to:
+  /// **'疑似乱码'**
+  String get libraryAuditCodeSuspiciousText;
+
+  /// No description provided for @libraryAuditCodeMissingCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'缺封面'**
+  String get libraryAuditCodeMissingCover;
+
+  /// No description provided for @libraryAuditCodeMissingTrack.
+  ///
+  /// In zh, this message translates to:
+  /// **'缺曲序'**
+  String get libraryAuditCodeMissingTrack;
+
+  /// No description provided for @libraryAuditCodeMissingYear.
+  ///
+  /// In zh, this message translates to:
+  /// **'缺年份'**
+  String get libraryAuditCodeMissingYear;
+
+  /// No description provided for @libraryAuditCodeMissingLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'缺歌词'**
+  String get libraryAuditCodeMissingLyrics;
+
+  /// No description provided for @libraryAuditCodeTagMismatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签不一致'**
+  String get libraryAuditCodeTagMismatch;
 
   /// No description provided for @libraryAuditDeepErrorUnresolved.
   ///
@@ -2952,6 +3030,234 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'专辑'**
   String get libraryAuditOpenAlbum;
+
+  /// No description provided for @libraryStyleTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'流派整理'**
+  String get libraryStyleTitle;
+
+  /// No description provided for @libraryStyleSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Cloud 用 iTunes 和 MusicBrainz 查流派，预览后再写入 14 个封闭风格。「未标」只查没有流派的歌；「全部」会重查已有标签（含华语流行），较慢。与是否在歌单无关。不会自动建歌单。'**
+  String get libraryStyleSubtitle;
+
+  /// No description provided for @libraryStyleAnalyzeMissing.
+  ///
+  /// In zh, this message translates to:
+  /// **'分析未标流派'**
+  String get libraryStyleAnalyzeMissing;
+
+  /// No description provided for @libraryStyleAnalyzeAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'分析全部'**
+  String get libraryStyleAnalyzeAll;
+
+  /// No description provided for @libraryStyleApply.
+  ///
+  /// In zh, this message translates to:
+  /// **'写入 {count} 首'**
+  String libraryStyleApply(int count);
+
+  /// No description provided for @libraryStyleCancel.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消'**
+  String get libraryStyleCancel;
+
+  /// No description provided for @libraryStyleDone.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成'**
+  String get libraryStyleDone;
+
+  /// No description provided for @libraryStyleNasRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'流派整理需要能连上 NAS Agent'**
+  String get libraryStyleNasRequired;
+
+  /// No description provided for @libraryStyleCloudRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'查流派需要已登录的 Cloud。没有 Cloud 时只会用标题规则，欧美歌多半会进待审。'**
+  String get libraryStyleCloudRequired;
+
+  /// No description provided for @libraryStyleFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'整理失败：{reason}'**
+  String libraryStyleFailed(String reason);
+
+  /// No description provided for @libraryStyleAnalyzing.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在分析曲库…'**
+  String get libraryStyleAnalyzing;
+
+  /// No description provided for @libraryStyleLookingUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在查询流派 {progress}/{total}'**
+  String libraryStyleLookingUp(int progress, int total);
+
+  /// No description provided for @libraryStyleApplying.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在写入 {progress}/{total}'**
+  String libraryStyleApplying(int progress, int total);
+
+  /// No description provided for @libraryStyleSuggested.
+  ///
+  /// In zh, this message translates to:
+  /// **'建议'**
+  String get libraryStyleSuggested;
+
+  /// No description provided for @libraryStyleReview.
+  ///
+  /// In zh, this message translates to:
+  /// **'待审'**
+  String get libraryStyleReview;
+
+  /// No description provided for @libraryStyleApplied.
+  ///
+  /// In zh, this message translates to:
+  /// **'已写入'**
+  String get libraryStyleApplied;
+
+  /// No description provided for @libraryStyleFailedLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'失败'**
+  String get libraryStyleFailedLabel;
+
+  /// No description provided for @libraryStyleEmptySuggested.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有可写入的建议。'**
+  String get libraryStyleEmptySuggested;
+
+  /// No description provided for @libraryStyleEmptyReview.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有待审歌曲。'**
+  String get libraryStyleEmptyReview;
+
+  /// No description provided for @libraryStyleIdle.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择分析范围。标题里很明确的先用本地规则，其余走 Cloud 查询。指定流派只是覆盖，不是来源。'**
+  String get libraryStyleIdle;
+
+  /// No description provided for @libraryStylePlay.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放'**
+  String get libraryStylePlay;
+
+  /// No description provided for @libraryStyleAssign.
+  ///
+  /// In zh, this message translates to:
+  /// **'指定流派'**
+  String get libraryStyleAssign;
+
+  /// No description provided for @libraryStyleDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'从曲库删除'**
+  String get libraryStyleDelete;
+
+  /// No description provided for @libraryStyleOpenPlaylists.
+  ///
+  /// In zh, this message translates to:
+  /// **'去生成风格歌单'**
+  String get libraryStyleOpenPlaylists;
+
+  /// No description provided for @libraryPlaylistTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌单整理'**
+  String get libraryPlaylistTitle;
+
+  /// No description provided for @libraryPlaylistSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'按已经写入的流派标签生成 14 个风格歌单。没有标签的进待审。同名歌单只追加，不覆盖。'**
+  String get libraryPlaylistSubtitle;
+
+  /// No description provided for @libraryPlaylistAnalyzeMissing.
+  ///
+  /// In zh, this message translates to:
+  /// **'分析未入歌单'**
+  String get libraryPlaylistAnalyzeMissing;
+
+  /// No description provided for @libraryPlaylistAnalyzeAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'按流派重算'**
+  String get libraryPlaylistAnalyzeAll;
+
+  /// No description provided for @libraryPlaylistApply.
+  ///
+  /// In zh, this message translates to:
+  /// **'写入 {count} 首到歌单'**
+  String libraryPlaylistApply(int count);
+
+  /// No description provided for @libraryPlaylistFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌单整理失败：{reason}'**
+  String libraryPlaylistFailed(String reason);
+
+  /// No description provided for @libraryPlaylistApplying.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在写入歌单 {progress}/{total}'**
+  String libraryPlaylistApplying(int progress, int total);
+
+  /// No description provided for @libraryPlaylistLists.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌单'**
+  String get libraryPlaylistLists;
+
+  /// No description provided for @libraryPlaylistEmptyLists.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有可写入的风格歌单。先做流派整理，或处理待审。'**
+  String get libraryPlaylistEmptyLists;
+
+  /// No description provided for @libraryPlaylistIdle.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌单只认已经写进文件的流派。先做流派整理并扫库，再来生成列表。'**
+  String get libraryPlaylistIdle;
+
+  /// No description provided for @libraryPlaylistNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建'**
+  String get libraryPlaylistNew;
+
+  /// No description provided for @libraryPlaylistExisting.
+  ///
+  /// In zh, this message translates to:
+  /// **'已有 {count} 首'**
+  String libraryPlaylistExisting(int count);
+
+  /// No description provided for @libraryPlaylistAddCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'将加入 {count} 首'**
+  String libraryPlaylistAddCount(int count);
+
+  /// No description provided for @libraryPlaylistAssign.
+  ///
+  /// In zh, this message translates to:
+  /// **'指定到歌单'**
+  String get libraryPlaylistAssign;
 
   /// No description provided for @libraryAuditReplaceBannerQueued.
   ///

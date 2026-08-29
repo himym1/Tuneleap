@@ -1361,7 +1361,7 @@ class SZh extends S {
 
   @override
   String get libraryAuditSubtitle =>
-      '先快扫格式和码率，再可选深扫假无损。结果分成「音质问题」和「不同版本（音质正常）」。不会自动删歌或替换。';
+      '先快扫格式、码率和标签，再可选深扫假无损。结果分成「音质问题」「元数据」和「不同版本」。不会自动删歌或替换。';
 
   @override
   String get libraryAuditStart => '开始体检';
@@ -1395,6 +1395,9 @@ class SZh extends S {
   String get libraryAuditEmptyVersions => '没有不同版本。';
 
   @override
+  String get libraryAuditEmptyMetadata => '没有元数据问题。';
+
+  @override
   String get libraryAuditPassed => '通过';
 
   @override
@@ -1404,10 +1407,20 @@ class SZh extends S {
   String get libraryAuditQualityIssues => '音质问题';
 
   @override
+  String get libraryAuditMetadataIssues => '元数据';
+
+  @override
   String get libraryAuditVersionOnly => '不同版本';
 
   @override
   String get libraryAuditSectionQuality => '音质问题';
+
+  @override
+  String get libraryAuditSectionMetadata => '元数据';
+
+  @override
+  String get libraryAuditSectionMetadataHint =>
+      '空标签、乱码、缺封面/曲序/年份/歌词，或文件内嵌标签和曲库不一致。单曲没有曲序不算问题。';
 
   @override
   String get libraryAuditSectionVersions => '不同版本（音质正常）';
@@ -1444,6 +1457,33 @@ class SZh extends S {
 
   @override
   String get libraryAuditCodeDeepFailed => '深扫失败';
+
+  @override
+  String get libraryAuditCodeMissingTitle => '缺歌名';
+
+  @override
+  String get libraryAuditCodeMissingArtist => '缺歌手';
+
+  @override
+  String get libraryAuditCodeMissingAlbum => '缺专辑';
+
+  @override
+  String get libraryAuditCodeSuspiciousText => '疑似乱码';
+
+  @override
+  String get libraryAuditCodeMissingCover => '缺封面';
+
+  @override
+  String get libraryAuditCodeMissingTrack => '缺曲序';
+
+  @override
+  String get libraryAuditCodeMissingYear => '缺年份';
+
+  @override
+  String get libraryAuditCodeMissingLyrics => '缺歌词';
+
+  @override
+  String get libraryAuditCodeTagMismatch => '标签不一致';
 
   @override
   String get libraryAuditDeepErrorUnresolved => '找不到可解码的文件';
@@ -1549,6 +1589,142 @@ class SZh extends S {
 
   @override
   String get libraryAuditOpenAlbum => '专辑';
+
+  @override
+  String get libraryStyleTitle => '流派整理';
+
+  @override
+  String get libraryStyleSubtitle =>
+      'Cloud 用 iTunes 和 MusicBrainz 查流派，预览后再写入 14 个封闭风格。「未标」只查没有流派的歌；「全部」会重查已有标签（含华语流行），较慢。与是否在歌单无关。不会自动建歌单。';
+
+  @override
+  String get libraryStyleAnalyzeMissing => '分析未标流派';
+
+  @override
+  String get libraryStyleAnalyzeAll => '分析全部';
+
+  @override
+  String libraryStyleApply(int count) {
+    return '写入 $count 首';
+  }
+
+  @override
+  String get libraryStyleCancel => '取消';
+
+  @override
+  String get libraryStyleDone => '完成';
+
+  @override
+  String get libraryStyleNasRequired => '流派整理需要能连上 NAS Agent';
+
+  @override
+  String get libraryStyleCloudRequired =>
+      '查流派需要已登录的 Cloud。没有 Cloud 时只会用标题规则，欧美歌多半会进待审。';
+
+  @override
+  String libraryStyleFailed(String reason) {
+    return '整理失败：$reason';
+  }
+
+  @override
+  String get libraryStyleAnalyzing => '正在分析曲库…';
+
+  @override
+  String libraryStyleLookingUp(int progress, int total) {
+    return '正在查询流派 $progress/$total';
+  }
+
+  @override
+  String libraryStyleApplying(int progress, int total) {
+    return '正在写入 $progress/$total';
+  }
+
+  @override
+  String get libraryStyleSuggested => '建议';
+
+  @override
+  String get libraryStyleReview => '待审';
+
+  @override
+  String get libraryStyleApplied => '已写入';
+
+  @override
+  String get libraryStyleFailedLabel => '失败';
+
+  @override
+  String get libraryStyleEmptySuggested => '没有可写入的建议。';
+
+  @override
+  String get libraryStyleEmptyReview => '没有待审歌曲。';
+
+  @override
+  String get libraryStyleIdle =>
+      '选择分析范围。标题里很明确的先用本地规则，其余走 Cloud 查询。指定流派只是覆盖，不是来源。';
+
+  @override
+  String get libraryStylePlay => '播放';
+
+  @override
+  String get libraryStyleAssign => '指定流派';
+
+  @override
+  String get libraryStyleDelete => '从曲库删除';
+
+  @override
+  String get libraryStyleOpenPlaylists => '去生成风格歌单';
+
+  @override
+  String get libraryPlaylistTitle => '歌单整理';
+
+  @override
+  String get libraryPlaylistSubtitle =>
+      '按已经写入的流派标签生成 14 个风格歌单。没有标签的进待审。同名歌单只追加，不覆盖。';
+
+  @override
+  String get libraryPlaylistAnalyzeMissing => '分析未入歌单';
+
+  @override
+  String get libraryPlaylistAnalyzeAll => '按流派重算';
+
+  @override
+  String libraryPlaylistApply(int count) {
+    return '写入 $count 首到歌单';
+  }
+
+  @override
+  String libraryPlaylistFailed(String reason) {
+    return '歌单整理失败：$reason';
+  }
+
+  @override
+  String libraryPlaylistApplying(int progress, int total) {
+    return '正在写入歌单 $progress/$total';
+  }
+
+  @override
+  String get libraryPlaylistLists => '歌单';
+
+  @override
+  String get libraryPlaylistEmptyLists => '没有可写入的风格歌单。先做流派整理，或处理待审。';
+
+  @override
+  String get libraryPlaylistIdle => '歌单只认已经写进文件的流派。先做流派整理并扫库，再来生成列表。';
+
+  @override
+  String get libraryPlaylistNew => '新建';
+
+  @override
+  String libraryPlaylistExisting(int count) {
+    return '已有 $count 首';
+  }
+
+  @override
+  String libraryPlaylistAddCount(int count) {
+    return '将加入 $count 首';
+  }
+
+  @override
+  String get libraryPlaylistAssign => '指定到歌单';
 
   @override
   String libraryAuditReplaceBannerQueued(

@@ -8,8 +8,13 @@ from app.main import create_app
 from app.services.library_audit import (
     LibraryAuditRules,
     LibraryTrack,
+    classify_metadata,
     classify_track,
     duplicate_version_ids,
+    is_placeholder_tag,
+    is_suspicious_text,
+    lyrics_have_text,
+    tags_mismatch,
 )
 from app.services.library_audit_store import audit_state_path
 from app.services.library_audit_job import LibraryAuditService
@@ -85,6 +90,93 @@ def test_duplicate_version_respects_duration_tolerance():
         duplicate_version_ids(tracks, LibraryAuditRules(duration_tolerance_seconds=40))
         == set()
     )
+
+
+def test_placeholder_and_garbled_tags():
+    assert is_placeholder_tag("")
+    assert is_placeholder_tag("Unknown")
+    assert is_placeholder_tag("未知艺术家")
+    assert not is_placeholder_tag("周杰伦")
+    assert is_suspicious_text("歌名\ufffd")
+    assert is_suspicious_text("锟斤拷专辑")
+    assert not is_suspicious_text("勇")
+    assert not is_suspicious_text("？")
+
+
+def test_lyrics_have_text_reads_navidrome_json():
+    assert lyrics_have_text(
+        '[{"lang":"xxx","line":[{"start":0,"value":"词：林夕"}]}]'
+    )
+    assert not lyrics_have_text("[]")
+    assert not lyrics_have_text('[{"lang":"xxx","line":[]}]')
+    assert lyrics_have_text("[00:01.00]歌词")
+
+
+def test_classify_metadata_flags_empty_cover_year_and_mismatch():
+    assert classify_metadata(
+        LibraryTrack(song_id="1", title="歌", artist="歌手", album="专辑")
+    ) == []
+    assert classify_metadata(
+        LibraryTrack(song_id="2", title="Unknown", artist="", album="未知专辑")
+    ) == ["missing_title", "missing_artist", "missing_album"]
+    assert classify_metadata(
+        LibraryTrack(
+            song_id="3",
+            title="歌",
+            artist="歌手",
+            album="专辑",
+            has_cover_art=False,
+            year=0,
+            lyrics="[]",
+        )
+    ) == ["missing_cover", "missing_year", "missing_lyrics"]
+    assert classify_metadata(
+        LibraryTrack(
+            song_id="4",
+            title="歌",
+            artist="歌手",
+            album="专辑",
+            lyrics="[]",
+            sidecar_lyrics=True,
+        )
+    ) == []
+    assert classify_metadata(
+        LibraryTrack(
+            song_id="5",
+            title="曲库标题",
+            artist="曲库歌手",
+            album="曲库专辑",
+            file_title="文件标题",
+            file_artist="曲库歌手",
+            file_album="曲库专辑",
+            tags_readable=True,
+        )
+    ) == ["tag_mismatch"]
+    assert not tags_mismatch("周杰伦", "周杰伦")
+    assert tags_mismatch("心痛", "Letting Go")
+
+
+def test_classify_metadata_track_number_only_on_multi_track_albums():
+    assert classify_metadata(
+        LibraryTrack(
+            song_id="single",
+            title="单曲",
+            artist="歌手",
+            album="专辑",
+            track_number=0,
+            album_track_count=1,
+        )
+    ) == []
+    assert classify_metadata(
+        LibraryTrack(
+            song_id="album",
+            title="专辑曲",
+            artist="歌手",
+            album="专辑",
+            track_number=0,
+            album_track_count=12,
+        )
+    ) == ["missing_track"]
 
 
 def test_duplicate_version_uses_duration_gap():
@@ -185,6 +277,104 @@ def test_library_audit_uses_request_thresholds(settings):
             headers=_headers(settings),
         )
         assert rejected.status_code == 422
+
+
+def test_library_audit_flags_metadata_without_paths(settings):
+    from mutagen.id3 import ID3, TALB, TIT2, TPE1
+
+    music = Path(settings.music_dir)
+    tagged = music / "mismatch.mp3"
+    tagged.write_bytes(b"mp3")
+    tags = ID3()
+    tags["TIT2"] = TIT2(encoding=3, text="文件标题")
+    tags["TPE1"] = TPE1(encoding=3, text="文件歌手")
+    tags["TALB"] = TALB(encoding=3, text="文件专辑")
+    tags.save(tagged)
+    (music / "ok.mp3").write_bytes(b"mp3")
+    tagged.with_suffix(".lrc").write_text("[00:01.00]歌词\n", encoding="utf-8")
+
+    db = sqlite3.connect(settings.navidrome_db_path)
+    db.execute(
+        """
+        CREATE TABLE media_file(
+            id TEXT PRIMARY KEY,
+            path TEXT NOT NULL,
+            title TEXT,
+            artist TEXT,
+            album TEXT,
+            album_id TEXT,
+            suffix TEXT,
+            bit_rate INTEGER,
+            duration INTEGER,
+            sample_rate INTEGER,
+            missing INTEGER DEFAULT 0,
+            has_cover_art INTEGER,
+            track_number INTEGER,
+            year INTEGER,
+            lyrics TEXT
+        )
+        """
+    )
+    db.executemany(
+        "INSERT INTO media_file VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+            (
+                "ok",
+                "ok.mp3",
+                "好歌",
+                "歌手",
+                "专辑",
+                "al1",
+                "mp3",
+                320,
+                200,
+                44100,
+                0,
+                1,
+                1,
+                2014,
+                '[{"lang":"xxx","line":[{"start":0,"value":"词"}]}]',
+            ),
+            (
+                "meta",
+                "mismatch.mp3",
+                "曲库标题",
+                "曲库歌手",
+                "曲库专辑",
+                "al2",
+                "mp3",
+                320,
+                200,
+                44100,
+                0,
+                0,
+                0,
+                0,
+                "[]",
+            ),
+        ],
+    )
+    db.commit()
+    db.close()
+
+    with TestClient(create_app(settings)) as client:
+        started = client.post("/v1/nas/library-audit", headers=_headers(settings))
+        assert started.status_code == 202, started.text
+        snapshot = _wait_for_stage(client, settings, "completed")
+        assert snapshot["summary"]["scanned"] == 2
+        assert snapshot["summary"]["passed"] == 1
+        assert snapshot["summary"]["missing_cover"] == 1
+        assert snapshot["summary"]["missing_year"] == 1
+        assert snapshot["summary"]["missing_lyrics"] == 0
+        assert snapshot["summary"]["tag_mismatch"] == 1
+        assert snapshot["summary"]["missing_track"] == 0
+        findings = client.get("/v1/nas/library-audit/findings", headers=_headers(settings))
+        items = findings.json()["items"]
+        assert len(items) == 1
+        assert items[0]["song_id"] == "meta"
+        assert "tag_mismatch" in items[0]["codes"]
+        assert "missing_cover" in items[0]["codes"]
+        assert "path" not in items[0]
 
 
 def test_library_audit_persists_last_report(settings):

@@ -2,7 +2,7 @@
 
 Local **NAS agent** for [音跃 player](../../apps/player). It imports online audio onto the music volume, writes tags/cover/lyrics, deletes tracks from disk plus `navidrome.db`, and can trigger a Navidrome scan.
 
-Source path in this repo: `services/nas-agent`. Production directory is still `nas-host:/path/to/nas-agent`.
+Source path in this repo: `services/nas-agent`. Production directory is the NAS Docker compose project on the home LAN.
 
 ## Implemented MVP
 
@@ -12,7 +12,7 @@ Source path in this repo: `services/nas-agent`. Production directory is still `n
 - Idempotent import and reserved free-space enforcement
 - Reversible file staging before SQLite row deletion
 - Optional Subsonic `startScan` using token authentication
-- Fast library audit of format, bitrate, missing files, and duration-mismatched duplicates
+- Fast library audit of format, bitrate, missing files, duration-mismatched duplicates, and metadata gaps
 - Optional spectral deep scan for fake lossless and fake Hi-Res
 - Last completed audit report persisted beside `navidrome.db`
 - Header-only `X-API-Key` auth and structured JSON audit events

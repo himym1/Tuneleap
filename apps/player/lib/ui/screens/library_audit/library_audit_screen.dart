@@ -41,6 +41,15 @@ class _LibraryAuditScreenState extends ConsumerState<LibraryAuditScreen> {
       libraryAuditCodeLossyTranscode => l10n.libraryAuditCodeLossyTranscode,
       libraryAuditCodeFakeHires => l10n.libraryAuditCodeFakeHires,
       libraryAuditCodeDeepFailed => l10n.libraryAuditCodeDeepFailed,
+      libraryAuditCodeMissingTitle => l10n.libraryAuditCodeMissingTitle,
+      libraryAuditCodeMissingArtist => l10n.libraryAuditCodeMissingArtist,
+      libraryAuditCodeMissingAlbum => l10n.libraryAuditCodeMissingAlbum,
+      libraryAuditCodeSuspiciousText => l10n.libraryAuditCodeSuspiciousText,
+      libraryAuditCodeMissingCover => l10n.libraryAuditCodeMissingCover,
+      libraryAuditCodeMissingTrack => l10n.libraryAuditCodeMissingTrack,
+      libraryAuditCodeMissingYear => l10n.libraryAuditCodeMissingYear,
+      libraryAuditCodeMissingLyrics => l10n.libraryAuditCodeMissingLyrics,
+      libraryAuditCodeTagMismatch => l10n.libraryAuditCodeTagMismatch,
       _ => code,
     };
   }
@@ -367,15 +376,15 @@ class _LibraryAuditScreenState extends ConsumerState<LibraryAuditScreen> {
                     Row(
                       children: [
                         StatCard(
-                          icon: Icons.library_music_outlined,
-                          label: l10n.libraryAuditVersionOnly,
-                          value: '${state.versionOnlyCount}',
+                          icon: Icons.label_outline_rounded,
+                          label: l10n.libraryAuditMetadataIssues,
+                          value: '${state.metadataIssueCount}',
                         ),
                         const SizedBox(width: 12),
                         StatCard(
-                          icon: Icons.album_outlined,
-                          label: l10n.libraryAuditScanned,
-                          value: '${snapshot.summary.scanned}',
+                          icon: Icons.library_music_outlined,
+                          label: l10n.libraryAuditVersionOnly,
+                          value: '${state.versionOnlyCount}',
                         ),
                       ],
                     ),
@@ -397,15 +406,15 @@ class _LibraryAuditScreenState extends ConsumerState<LibraryAuditScreen> {
                     ),
                     const SizedBox(width: 12),
                     StatCard(
-                      icon: Icons.library_music_outlined,
-                      label: l10n.libraryAuditVersionOnly,
-                      value: '${state.versionOnlyCount}',
+                      icon: Icons.label_outline_rounded,
+                      label: l10n.libraryAuditMetadataIssues,
+                      value: '${state.metadataIssueCount}',
                     ),
                     const SizedBox(width: 12),
                     StatCard(
-                      icon: Icons.album_outlined,
-                      label: l10n.libraryAuditScanned,
-                      value: '${snapshot.summary.scanned}',
+                      icon: Icons.library_music_outlined,
+                      label: l10n.libraryAuditVersionOnly,
+                      value: '${state.versionOnlyCount}',
                     ),
                   ],
                 ),
@@ -427,6 +436,15 @@ class _LibraryAuditScreenState extends ConsumerState<LibraryAuditScreen> {
                     libraryAuditCodeLossyTranscode,
                     libraryAuditCodeFakeHires,
                     libraryAuditCodeDeepFailed,
+                    libraryAuditCodeMissingTitle,
+                    libraryAuditCodeMissingArtist,
+                    libraryAuditCodeMissingAlbum,
+                    libraryAuditCodeSuspiciousText,
+                    libraryAuditCodeMissingCover,
+                    libraryAuditCodeMissingTrack,
+                    libraryAuditCodeMissingYear,
+                    libraryAuditCodeMissingLyrics,
+                    libraryAuditCodeTagMismatch,
                     libraryAuditCodeDuplicateVersion,
                   ])
                     AppFilterChip(
@@ -495,6 +513,25 @@ class _LibraryAuditScreenState extends ConsumerState<LibraryAuditScreen> {
                   )
                 else
                   for (final finding in state.qualityFindings)
+                    _buildFindingTile(l10n, finding),
+                const SizedBox(height: 8),
+                _SectionHeader(
+                  title: l10n.libraryAuditSectionMetadata,
+                  count: state.metadataFindings.length,
+                  hint: l10n.libraryAuditSectionMetadataHint,
+                ),
+                if (state.metadataFindings.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Text(
+                      l10n.libraryAuditEmptyMetadata,
+                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                else
+                  for (final finding in state.metadataFindings)
                     _buildFindingTile(l10n, finding),
                 const SizedBox(height: 8),
                 _SectionHeader(

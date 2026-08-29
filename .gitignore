@@ -57,3 +57,4 @@ services/nas-agent/data/*
 .ccw/
 .pi/
 .ace-tool/
+**/.claude/settings.local.json

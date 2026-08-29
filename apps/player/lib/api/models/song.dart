@@ -17,6 +17,7 @@ class Song {
   final String? suffix; // mp3, flac, etc.
   final String? path; // file path from Subsonic API
   final String? comment; // comment tag (may contain solara source info)
+  final String? genre;
   final SongBackend backend;
   final String? onlineSource;
   final String? onlineProvider;
@@ -39,6 +40,7 @@ class Song {
     this.suffix,
     this.path,
     this.comment,
+    this.genre,
     this.backend = SongBackend.subsonic,
     this.onlineSource,
     this.onlineProvider,
@@ -69,6 +71,37 @@ class Song {
       ? 'solara:${onlineSource ?? 'unknown'}:${urlId ?? id}'
       : 'subsonic:$id';
 
+  static String? _optionalText(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
+  }
+
+  Song copyWith({String? genre, bool clearGenre = false}) {
+    return Song(
+      id: id,
+      title: title,
+      album: album,
+      albumId: albumId,
+      artist: artist,
+      artistId: artistId,
+      track: track,
+      year: year,
+      duration: duration,
+      bitRate: bitRate,
+      coverArt: coverArt,
+      suffix: suffix,
+      path: path,
+      comment: comment,
+      genre: clearGenre ? null : (genre ?? this.genre),
+      backend: backend,
+      onlineSource: onlineSource,
+      onlineProvider: onlineProvider,
+      urlId: urlId,
+      lyricId: lyricId,
+      streamUrl: streamUrl,
+    );
+  }
+
   static SongBackend _parseBackend(String? value) {
     return switch (value) {
       'solara' => SongBackend.solara,
@@ -92,6 +125,7 @@ class Song {
       suffix: json['suffix'] as String?,
       path: json['path'] as String?,
       comment: json['comment'] as String?,
+      genre: _optionalText(json['genre']),
       backend: _parseBackend(json['backend'] as String?),
       onlineSource: json['onlineSource'] as String?,
       onlineProvider: json['onlineProvider'] as String?,
@@ -159,6 +193,7 @@ class Song {
       artist: artist,
       artistId: '',
       duration: duration,
+      genre: _optionalText(json['genre']),
       coverArt: coverArt == null || coverArt.isEmpty ? null : coverArt,
       backend: SongBackend.solara,
       onlineSource: source == null || source.isEmpty ? null : source,
@@ -183,6 +218,7 @@ class Song {
     if (suffix != null) 'suffix': suffix,
     if (path != null) 'path': path,
     if (comment != null) 'comment': comment,
+    if (genre != null) 'genre': genre,
     if (backend != SongBackend.subsonic) 'backend': backend.name,
     if (onlineSource != null) 'onlineSource': onlineSource,
     if (onlineProvider != null) 'onlineProvider': onlineProvider,

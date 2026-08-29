@@ -1,7 +1,7 @@
 # Music upstream benchmark
 
 Date: 2026-07-31
-Execution host: dmit Docker network
+Execution host: Cloud Docker network
 Corpus: 10 query types × 2 rounds per provider, plus page 1–3 and resource probes.
 
 ## Compared upstreams

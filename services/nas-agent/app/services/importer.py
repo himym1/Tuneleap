@@ -14,7 +14,7 @@ from urllib.parse import urljoin, urlsplit
 
 import httpx
 from mutagen.flac import FLAC, Picture
-from mutagen.id3 import APIC, ID3, TALB, TDRC, TIT2, TPE1, TRCK, TXXX, USLT, ID3NoHeaderError
+from mutagen.id3 import APIC, ID3, TALB, TCON, TDRC, TIT2, TPE1, TRCK, TXXX, USLT, ID3NoHeaderError
 from mutagen.mp4 import MP4, MP4Cover
 
 from app.core.audit import audit_event
@@ -97,6 +97,55 @@ class ImporterService:
 
     def current_progress(self) -> ImportProgress:
         return self.progress.snapshot()
+
+    async def update_media_tags(
+        self,
+        *,
+        target: Path,
+        song: SongMeta | None = None,
+        pic_url: str | None = None,
+        lyric: str | None = None,
+    ) -> list[str]:
+        """Write tags/cover/lyrics onto an existing library file. Returns updated fields."""
+        if target.is_symlink() or not target.is_file():
+            raise ValueError("target path is not a regular file")
+        if target.suffix.lower() not in _SUPPORTED_EXTENSIONS:
+            raise ValueError("unsupported audio extension")
+        if song is None and not pic_url and lyric is None:
+            raise ValueError("nothing to update")
+
+        async with self._import_lock:
+            cover_data = await self._download_cover(pic_url) if pic_url else None
+            cover_mime = self._cover_mime(cover_data) if cover_data else None
+            self._embed_metadata(target, song, cover_data, cover_mime, lyric)
+            if lyric is not None:
+                sidecar = target.with_suffix(".lrc")
+                self._write_text_atomic(sidecar, lyric)
+                os.chmod(sidecar, 0o644)
+            updated: list[str] = []
+            if song is not None:
+                if song.title:
+                    updated.append("title")
+                if song.artist:
+                    updated.append("artist")
+                if song.album:
+                    updated.append("album")
+                if song.track is not None:
+                    updated.append("track")
+                if song.year is not None:
+                    updated.append("year")
+                if song.genre:
+                    updated.append("genre")
+            if cover_data:
+                updated.append("cover")
+            if lyric is not None:
+                updated.append("lyric")
+            audit_event(
+                "media_tags_updated",
+                filename=target.name,
+                fields=",".join(updated),
+            )
+            return updated
 
     async def aclose(self) -> None:
         task = self._background_task
@@ -563,6 +612,8 @@ class ImporterService:
                 audio["TDRC"] = TDRC(encoding=3, text=str(song.year))
             if song.source:
                 audio["TXXX:SOURCE"] = TXXX(encoding=3, desc="SOURCE", text=song.source)
+            if song.genre:
+                audio["TCON"] = TCON(encoding=3, text=song.genre)
         if cover and cover_mime:
             audio.delall("APIC")
             audio.add(APIC(encoding=3, mime=cover_mime, type=3, desc="Cover", data=cover))
@@ -593,6 +644,8 @@ class ImporterService:
                 audio["date"] = str(song.year)
             if song.source:
                 audio["source"] = song.source
+            if song.genre:
+                audio["genre"] = song.genre
         if cover and cover_mime:
             picture = Picture()
             picture.type = 3
@@ -626,6 +679,8 @@ class ImporterService:
                 audio["\xa9day"] = [str(song.year)]
             if song.source:
                 audio["----:com.apple.iTunes:SOURCE"] = [song.source.encode()]
+            if song.genre:
+                audio["\xa9gen"] = [song.genre]
         if cover and cover_mime:
             image_format = (
                 MP4Cover.FORMAT_PNG if cover_mime == "image/png" else MP4Cover.FORMAT_JPEG

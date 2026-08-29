@@ -578,7 +578,7 @@
     "settingsResetRecommendationsDone": "Recommendation preferences reset",
 
     "libraryAuditTitle": "Library check",
-    "libraryAuditSubtitle": "A fast check looks at format and bitrate; you can deep-scan for fake lossless. Results split into quality problems and different versions with OK audio. Nothing is deleted or replaced automatically.",
+    "libraryAuditSubtitle": "A fast check looks at format, bitrate, and tags; you can deep-scan for fake lossless. Results split into quality problems, metadata, and different versions. Nothing is deleted or replaced automatically.",
     "libraryAuditStart": "Start check",
     "libraryAuditDeepStart": "Deep-scan issues",
     "libraryAuditCancel": "Cancel",
@@ -600,11 +600,15 @@
     "libraryAuditEmptyIssues": "No issues found this time.",
     "libraryAuditEmptyQuality": "No quality problems.",
     "libraryAuditEmptyVersions": "No different-version pairs.",
+    "libraryAuditEmptyMetadata": "No metadata problems.",
     "libraryAuditPassed": "Passed",
     "libraryAuditIssues": "Issues",
     "libraryAuditQualityIssues": "Quality issues",
+    "libraryAuditMetadataIssues": "Metadata",
     "libraryAuditVersionOnly": "Versions",
     "libraryAuditSectionQuality": "Quality issues",
+    "libraryAuditSectionMetadata": "Metadata",
+    "libraryAuditSectionMetadataHint": "Empty or garbled tags, missing cover/track/year/lyrics, or library tags that do not match the file. A single track without a track number is not flagged.",
     "libraryAuditSectionVersions": "Different versions (audio OK)",
     "libraryAuditSectionVersionsHint": "Same title and artist, different duration. Spectrum looks fine or was not flagged as a fake lossless file—safe to keep both.",
     "libraryAuditQualityOk": "Audio OK",
@@ -617,6 +621,15 @@
     "libraryAuditCodeLossyTranscode": "Sounds lossy",
     "libraryAuditCodeFakeHires": "Fake Hi-Res",
     "libraryAuditCodeDeepFailed": "Deep scan failed",
+    "libraryAuditCodeMissingTitle": "Missing title",
+    "libraryAuditCodeMissingArtist": "Missing artist",
+    "libraryAuditCodeMissingAlbum": "Missing album",
+    "libraryAuditCodeSuspiciousText": "Garbled text",
+    "libraryAuditCodeMissingCover": "Missing cover",
+    "libraryAuditCodeMissingTrack": "Missing track no.",
+    "libraryAuditCodeMissingYear": "Missing year",
+    "libraryAuditCodeMissingLyrics": "Missing lyrics",
+    "libraryAuditCodeTagMismatch": "Tag mismatch",
     "libraryAuditDeepErrorUnresolved": "No decodable file found",
     "libraryAuditDeepErrorSampleRate": "No valid sample rate; the file may be damaged or not audio",
     "libraryAuditDeepErrorDecode": "This audio could not be decoded",
@@ -706,6 +719,94 @@
     },
     "libraryAuditPlayFailed": "Could not play this song",
     "libraryAuditOpenAlbum": "Album",
+    "libraryStyleTitle": "Style tags",
+    "libraryStyleSubtitle": "Cloud looks up iTunes and MusicBrainz, then you preview and write the 14 closed styles. Untagged only queries missing genres; Analyze all re-queries existing tags (including Mandopop) and is slower. Playlist membership does not matter. Playlists are not created.",
+    "libraryStyleAnalyzeMissing": "Analyze untagged",
+    "libraryStyleAnalyzeAll": "Analyze all",
+    "libraryStyleApply": "Write {count} tracks",
+    "@libraryStyleApply": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryStyleCancel": "Cancel",
+    "libraryStyleDone": "Done",
+    "libraryStyleNasRequired": "Style tags need a reachable NAS Agent",
+    "libraryStyleCloudRequired": "Style lookup needs Cloud. Without it, only title rules run and most Western tracks stay in review.",
+    "libraryStyleFailed": "Style update failed: {reason}",
+    "@libraryStyleFailed": {
+        "placeholders": {
+            "reason": { "type": "String" }
+        }
+    },
+    "libraryStyleAnalyzing": "Analyzing the library…",
+    "libraryStyleLookingUp": "Looking up styles {progress}/{total}",
+    "@libraryStyleLookingUp": {
+        "placeholders": {
+            "progress": { "type": "int" },
+            "total": { "type": "int" }
+        }
+    },
+    "libraryStyleApplying": "Writing {progress}/{total}",
+    "@libraryStyleApplying": {
+        "placeholders": {
+            "progress": { "type": "int" },
+            "total": { "type": "int" }
+        }
+    },
+    "libraryStyleSuggested": "Suggested",
+    "libraryStyleReview": "Needs review",
+    "libraryStyleApplied": "Written",
+    "libraryStyleFailedLabel": "Failed",
+    "libraryStyleEmptySuggested": "No suggestions to write.",
+    "libraryStyleEmptyReview": "No tracks need review.",
+    "libraryStyleIdle": "Choose a scope. High-confidence title markers stay local; everything else is looked up on Cloud. Assign is only an override.",
+    "libraryStylePlay": "Play",
+    "libraryStyleAssign": "Assign style",
+    "libraryStyleDelete": "Delete from library",
+    "libraryStyleOpenPlaylists": "Create style playlists",
+
+    "libraryPlaylistTitle": "Style playlists",
+    "libraryPlaylistSubtitle": "Build the 14 style playlists from genre tags already on files. Untagged tracks stay in the inbox. Existing same-name lists only gain songs.",
+    "libraryPlaylistAnalyzeMissing": "Analyze not in playlists",
+    "libraryPlaylistAnalyzeAll": "Rebuild from genres",
+    "libraryPlaylistApply": "Add {count} tracks to playlists",
+    "@libraryPlaylistApply": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryPlaylistFailed": "Playlist update failed: {reason}",
+    "@libraryPlaylistFailed": {
+        "placeholders": {
+            "reason": { "type": "String" }
+        }
+    },
+    "libraryPlaylistApplying": "Updating playlists {progress}/{total}",
+    "@libraryPlaylistApplying": {
+        "placeholders": {
+            "progress": { "type": "int" },
+            "total": { "type": "int" }
+        }
+    },
+    "libraryPlaylistLists": "Playlists",
+    "libraryPlaylistEmptyLists": "No style playlists to write. Tag genres first, or handle the inbox.",
+    "libraryPlaylistIdle": "Playlists follow file genre tags. Finish style tags and scan, then generate lists here.",
+    "libraryPlaylistNew": "New",
+    "libraryPlaylistExisting": "{count} already in list",
+    "@libraryPlaylistExisting": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryPlaylistAddCount": "Will add {count}",
+    "@libraryPlaylistAddCount": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "libraryPlaylistAssign": "Assign to playlist",
+
     "libraryAuditReplaceBannerQueued": "{current}/{total}: pick a result to replace \"{title}\" · {artist}",
     "@libraryAuditReplaceBannerQueued": {
         "placeholders": {

@@ -1402,7 +1402,7 @@ class SEn extends S {
 
   @override
   String get libraryAuditSubtitle =>
-      'A fast check looks at format and bitrate; you can deep-scan for fake lossless. Results split into quality problems and different versions with OK audio. Nothing is deleted or replaced automatically.';
+      'A fast check looks at format, bitrate, and tags; you can deep-scan for fake lossless. Results split into quality problems, metadata, and different versions. Nothing is deleted or replaced automatically.';
 
   @override
   String get libraryAuditStart => 'Start check';
@@ -1437,6 +1437,9 @@ class SEn extends S {
   String get libraryAuditEmptyVersions => 'No different-version pairs.';
 
   @override
+  String get libraryAuditEmptyMetadata => 'No metadata problems.';
+
+  @override
   String get libraryAuditPassed => 'Passed';
 
   @override
@@ -1446,10 +1449,20 @@ class SEn extends S {
   String get libraryAuditQualityIssues => 'Quality issues';
 
   @override
+  String get libraryAuditMetadataIssues => 'Metadata';
+
+  @override
   String get libraryAuditVersionOnly => 'Versions';
 
   @override
   String get libraryAuditSectionQuality => 'Quality issues';
+
+  @override
+  String get libraryAuditSectionMetadata => 'Metadata';
+
+  @override
+  String get libraryAuditSectionMetadataHint =>
+      'Empty or garbled tags, missing cover/track/year/lyrics, or library tags that do not match the file. A single track without a track number is not flagged.';
 
   @override
   String get libraryAuditSectionVersions => 'Different versions (audio OK)';
@@ -1487,6 +1500,33 @@ class SEn extends S {
 
   @override
   String get libraryAuditCodeDeepFailed => 'Deep scan failed';
+
+  @override
+  String get libraryAuditCodeMissingTitle => 'Missing title';
+
+  @override
+  String get libraryAuditCodeMissingArtist => 'Missing artist';
+
+  @override
+  String get libraryAuditCodeMissingAlbum => 'Missing album';
+
+  @override
+  String get libraryAuditCodeSuspiciousText => 'Garbled text';
+
+  @override
+  String get libraryAuditCodeMissingCover => 'Missing cover';
+
+  @override
+  String get libraryAuditCodeMissingTrack => 'Missing track no.';
+
+  @override
+  String get libraryAuditCodeMissingYear => 'Missing year';
+
+  @override
+  String get libraryAuditCodeMissingLyrics => 'Missing lyrics';
+
+  @override
+  String get libraryAuditCodeTagMismatch => 'Tag mismatch';
 
   @override
   String get libraryAuditDeepErrorUnresolved => 'No decodable file found';
@@ -1596,6 +1636,144 @@ class SEn extends S {
 
   @override
   String get libraryAuditOpenAlbum => 'Album';
+
+  @override
+  String get libraryStyleTitle => 'Style tags';
+
+  @override
+  String get libraryStyleSubtitle =>
+      'Cloud looks up iTunes and MusicBrainz, then you preview and write the 14 closed styles. Untagged only queries missing genres; Analyze all re-queries existing tags (including Mandopop) and is slower. Playlist membership does not matter. Playlists are not created.';
+
+  @override
+  String get libraryStyleAnalyzeMissing => 'Analyze untagged';
+
+  @override
+  String get libraryStyleAnalyzeAll => 'Analyze all';
+
+  @override
+  String libraryStyleApply(int count) {
+    return 'Write $count tracks';
+  }
+
+  @override
+  String get libraryStyleCancel => 'Cancel';
+
+  @override
+  String get libraryStyleDone => 'Done';
+
+  @override
+  String get libraryStyleNasRequired => 'Style tags need a reachable NAS Agent';
+
+  @override
+  String get libraryStyleCloudRequired =>
+      'Style lookup needs Cloud. Without it, only title rules run and most Western tracks stay in review.';
+
+  @override
+  String libraryStyleFailed(String reason) {
+    return 'Style update failed: $reason';
+  }
+
+  @override
+  String get libraryStyleAnalyzing => 'Analyzing the library…';
+
+  @override
+  String libraryStyleLookingUp(int progress, int total) {
+    return 'Looking up styles $progress/$total';
+  }
+
+  @override
+  String libraryStyleApplying(int progress, int total) {
+    return 'Writing $progress/$total';
+  }
+
+  @override
+  String get libraryStyleSuggested => 'Suggested';
+
+  @override
+  String get libraryStyleReview => 'Needs review';
+
+  @override
+  String get libraryStyleApplied => 'Written';
+
+  @override
+  String get libraryStyleFailedLabel => 'Failed';
+
+  @override
+  String get libraryStyleEmptySuggested => 'No suggestions to write.';
+
+  @override
+  String get libraryStyleEmptyReview => 'No tracks need review.';
+
+  @override
+  String get libraryStyleIdle =>
+      'Choose a scope. High-confidence title markers stay local; everything else is looked up on Cloud. Assign is only an override.';
+
+  @override
+  String get libraryStylePlay => 'Play';
+
+  @override
+  String get libraryStyleAssign => 'Assign style';
+
+  @override
+  String get libraryStyleDelete => 'Delete from library';
+
+  @override
+  String get libraryStyleOpenPlaylists => 'Create style playlists';
+
+  @override
+  String get libraryPlaylistTitle => 'Style playlists';
+
+  @override
+  String get libraryPlaylistSubtitle =>
+      'Build the 14 style playlists from genre tags already on files. Untagged tracks stay in the inbox. Existing same-name lists only gain songs.';
+
+  @override
+  String get libraryPlaylistAnalyzeMissing => 'Analyze not in playlists';
+
+  @override
+  String get libraryPlaylistAnalyzeAll => 'Rebuild from genres';
+
+  @override
+  String libraryPlaylistApply(int count) {
+    return 'Add $count tracks to playlists';
+  }
+
+  @override
+  String libraryPlaylistFailed(String reason) {
+    return 'Playlist update failed: $reason';
+  }
+
+  @override
+  String libraryPlaylistApplying(int progress, int total) {
+    return 'Updating playlists $progress/$total';
+  }
+
+  @override
+  String get libraryPlaylistLists => 'Playlists';
+
+  @override
+  String get libraryPlaylistEmptyLists =>
+      'No style playlists to write. Tag genres first, or handle the inbox.';
+
+  @override
+  String get libraryPlaylistIdle =>
+      'Playlists follow file genre tags. Finish style tags and scan, then generate lists here.';
+
+  @override
+  String get libraryPlaylistNew => 'New';
+
+  @override
+  String libraryPlaylistExisting(int count) {
+    return '$count already in list';
+  }
+
+  @override
+  String libraryPlaylistAddCount(int count) {
+    return 'Will add $count';
+  }
+
+  @override
+  String get libraryPlaylistAssign => 'Assign to playlist';
 
   @override
   String libraryAuditReplaceBannerQueued(

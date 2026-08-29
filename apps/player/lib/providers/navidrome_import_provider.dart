@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/models.dart';
+import 'package:navidrome_player/utils/library_style.dart';
 import 'package:navidrome_player/api/backend_client.dart';
 
 import 'audio_providers.dart';
@@ -71,6 +72,7 @@ class NavidromeImportService {
       debugPrint(
         '[Import] metadata ready: lyrics=${lrcText != null}, cover=${picUrl.isNotEmpty}',
       );
+      final genre = await _resolveImportGenre(song);
 
       onStage?.call(NasImportStage.uploading);
       String? message;
@@ -89,7 +91,7 @@ class NavidromeImportService {
           message = await backendClient.queueNasDownload(
             url: playbackUrl,
             filename: filename,
-            song: buildNasDownloadSong(song),
+            song: buildNasDownloadSong(song, genre: genre),
             picUrl: picUrl,
             lyric: lrcText,
             force: force,
@@ -126,8 +128,41 @@ class NavidromeImportService {
     return 'solara_$source${providerSuffix}_$id.$extension';
   }
 
-  static Map<String, dynamic> buildNasDownloadSong(Song song) {
+  Future<String?> _resolveImportGenre(Song song) async {
+    final local = highConfidenceImportGenre(
+      title: song.title,
+      artist: song.artist,
+      album: song.album,
+      year: song.year,
+    );
+    if (local != null) return local;
+    if (!backendClient.isConfigured) return null;
+    try {
+      final hits = await backendClient.lookupStyles([
+        (
+          title: song.title,
+          artist: song.artist,
+          album: song.album,
+          year: song.year,
+        ),
+      ]);
+      if (hits.isEmpty) return null;
+      return closedStyleOf(hits.first.style);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Map<String, dynamic> buildNasDownloadSong(Song song, {String? genre}) {
     final songId = song.urlId ?? song.id;
+    final resolved =
+        closedStyleOf(genre) ??
+        highConfidenceImportGenre(
+          title: song.title,
+          artist: song.artist,
+          album: song.album,
+          year: song.year,
+        );
     return {
       'id': songId,
       'url_id': songId,
@@ -137,6 +172,7 @@ class NavidromeImportService {
       'artist': song.artist,
       'album': song.album,
       'source': song.onlineSource ?? 'netease',
+      'genre': ?resolved,
       if (song.onlineProvider?.isNotEmpty ?? false)
         'provider': song.onlineProvider,
       if (song.coverArt != null && song.coverArt!.isNotEmpty)

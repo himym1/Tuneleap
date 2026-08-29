@@ -22,7 +22,31 @@ class SongDTO(BaseModel):
     cover_id: Optional[str] = None
     lyric_id: Optional[str] = None
     duration: Optional[float] = None
+    genre: Optional[str] = None
     raw: Optional[dict[str, Any]] = None
+
+
+class StyleLookupTrack(BaseModel):
+    title: str
+    artist: str = ""
+    album: str = ""
+    year: Optional[int] = None
+
+
+class StyleLookupRequest(BaseModel):
+    tracks: list[StyleLookupTrack]
+
+
+class StyleLookupItem(BaseModel):
+    title: str
+    artist: str
+    style: Optional[str] = None
+    raw_genre: Optional[str] = None
+    provider: Optional[str] = None
+
+
+class StyleLookupResponse(BaseModel):
+    items: list[StyleLookupItem]
 
 
 class SearchResponse(BaseModel):

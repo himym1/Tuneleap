@@ -58,10 +58,11 @@ def normalize_song(raw: dict[str, Any], *, provider: str, default_source: str | 
         # some sources return milliseconds
         duration = duration / 1000.0
 
+    artist = _as_str(raw.get("artist") or raw.get("singer") or raw.get("author"))
     return {
         "id": song_id,
         "title": title,
-        "artist": _as_str(raw.get("artist") or raw.get("singer") or raw.get("author")),
+        "artist": artist,
         "album": _as_str(raw.get("album")),
         "source": source,
         "provider": provider,
@@ -69,6 +70,7 @@ def normalize_song(raw: dict[str, Any], *, provider: str, default_source: str | 
         "cover_id": cover_id,
         "lyric_id": lyric_id,
         "duration": duration,
+        "genre": _as_optional_str(raw.get("genre") or raw.get("style") or raw.get("曲风")),
         "raw": raw,
     }
 

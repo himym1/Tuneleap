@@ -1,6 +1,6 @@
 # 音跃 · 播放器
 
-音跃产品仓里的 Flutter 客户端，目录是 `apps/player`。支持 Android 与 macOS。客户端同时接入公网 Cloud 和局域网 NAS Agent，提供在线搜索、推荐、导入和私有更新。
+音跃产品仓里的 Flutter 客户端，目录是 `apps/player`。支持 Android、macOS 与 Windows。客户端同时接入公网 Cloud 和局域网 NAS Agent，提供在线搜索、推荐、导入和私有更新。
 
 产品总览见仓库根目录 [README](../../README.md) 和 [架构](../../docs/architecture.md)。
 
@@ -13,7 +13,7 @@
 - 基于播放历史和反馈的在线推荐，过滤 NAS 曲库中已有歌曲。
 - 通过 NAS Agent 导入/删除歌曲，不让公网 Cloud 直接访问音乐目录或 `navidrome.db`。
 - 多 Navidrome 服务器隔离：播放历史、下载、缓存和凭据按 `serverId` 分区。
-- Android/macOS 应用内检查更新、同源下载、SHA-256 校验和系统安装入口。
+- Android/macOS/Windows 应用内检查更新、同源下载、SHA-256 校验；Windows 打开 zip，由用户自行覆盖安装。
 
 ## 三端点配置
 
@@ -21,7 +21,7 @@
 |---|---|---|
 | Navidrome URL + 用户名/密码 | 本地曲库与音频流 | 用户自己的 Subsonic 地址 |
 | Cloud URL + Cloud 账号 | 搜索、推荐、歌词、更新 | `https://player.himym.us.ci` |
-| NAS Agent URL + NAS Agent Key | 导入、删除 | `http://192.168.1.10:8504` |
+| NAS Agent URL + NAS Agent Key | 导入、删除 | `http://<nas-lan-ip>:8504` |
 
 Cloud 的服务端 API Key 只存在于 Cloud 环境。App 使用 Cloud 登录后获得的 Bearer Access Token，并在安全存储中保存轮换 Refresh Token；NAS Agent 使用独立的局域网 Key。NAS Agent URL 留空时，App 会从 Navidrome 主机推断 LAN 端口 `8504`；Cloud URL 默认使用生产 Origin。
 
@@ -55,10 +55,11 @@ flutter run -d macos
 ```bash
 make android
 make macos
+make windows   # 必须在 Windows 上；macOS 上用 GitHub Actions 打 zip
 make publish
 ```
 
-构建产物写入 `dist/`。`make publish` 将 APK、DMG、SHA-256 和 `version.json` 上传至 Cloud 发布目录，App 通过 `https://player.himym.us.ci/version.json` 发现新版本。
+构建产物写入 `dist/`。`make publish` 将 APK、DMG、Windows zip（若有）、SHA-256 和 `version.json` 上传至 Cloud 发布目录，App 通过 `https://player.himym.us.ci/version.json` 发现新版本。
 
 完整流程见 [私有更新发布](./docs/release.md)。
 

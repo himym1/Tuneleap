@@ -10,7 +10,7 @@ updated: "2026-08-06"
 
 ## When to Use
 
-用户要求对 `apps/player` 执行以下任一完整发布意图时使用：
+用户要求对本播放器项目（`apps/player`）执行以下任一完整发布意图时使用：
 
 - `commit/push - 打包构建 - 部署`
 - 发布 Flutter 安装包或私有更新
@@ -21,17 +21,17 @@ updated: "2026-08-06"
 
 ## Source of Truth
 
-- 项目：`apps/player`
+- 项目：仓库内 `apps/player`
 - 分支：`main`
 - 远端：`origin/main`
 - 版本配置：`pubspec.yaml`、`scripts/versions.env`
 - 更新说明：`scripts/prepare-private-update.sh`
-- 构建：`scripts/build.sh` 或 `make android` / `make macos`
+- 构建：`scripts/build.sh` 或 `make android` / `make macos` / `make windows`
 - 发布：`scripts/deploy-private-update.sh` 或 `make publish`
 - 发布规范：`docs/release.md`
 - 公网 Origin：`https://player.himym.us.ci`
-- 发布主机：SSH alias `dmit`
-- 发布目录：`/opt/navidrome-cloud/releases`
+- 发布主机：环境变量 `REMOTE_HOST`（本机 SSH alias）
+- 发布目录：`REMOTE_DIR`，默认 `/opt/navidrome-cloud/releases`
 
 现有脚本是构建、校验和上传的唯一实现。Skill 只编排、检查和报告，不复制发布逻辑。
 
@@ -49,7 +49,7 @@ updated: "2026-08-06"
 1. 进入项目根目录，确认 `git rev-parse --show-toplevel` 等于项目路径。
 2. 运行 `git fetch origin`，记录本地 HEAD、`origin/main`、当前分支和分叉数量。
 3. 读取 `docs/release.md`、`scripts/versions.env`、`pubspec.yaml` 和发布脚本；不读取任何 `.env`。
-4. 运行 SSH 只读连通性检查：`ssh -o BatchMode=yes -o ConnectTimeout=5 dmit 'printf ready'`。
+4. 运行 SSH 只读连通性检查：`ssh -o BatchMode=yes -o ConnectTimeout=5 "$REMOTE_HOST" 'printf ready'`（`REMOTE_HOST` 默认见 `deploy-private-update.sh`）。
 5. 只读获取服务器当前 `version.json` 中 Android/macOS 的 version/build；只能输出版本号与 build，不输出任何凭据。
 6. 检查 Git 状态并分类：任务文件、用户已有改动、生成物、未跟踪文件。
 

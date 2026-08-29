@@ -35,7 +35,8 @@ The endpoint remains HTTP 200 for liveness; inspect the booleans before enabling
     "album": "Album",
     "track": 1,
     "year": 2026,
-    "source": "netease"
+    "source": "netease",
+    "genre": "华语流行"
   },
   "force": false,
   "wait": true
@@ -128,7 +129,7 @@ Missing database/table configuration returns 503. Unknown IDs are skipped. Unsaf
 
 ## `POST /v1/nas/library-audit`
 
-Starts a single in-flight fast library audit. The agent reads active `media_file` rows and checks file presence plus format/bitrate/duration rules. It does not decode audio or run a spectral analysis.
+Starts a single in-flight fast library audit. The agent reads active `media_file` rows and checks file presence, format/bitrate/duration, and metadata (empty or placeholder title/artist/album, garbled text, missing cover/year/lyrics, missing track numbers on multi-track albums, and library-vs-file tag mismatch). It does not decode audio or run a spectral analysis. It does not guess a “wrong” artist or album without one of those signals.
 
 Optional JSON body overrides the default thresholds. Defaults stay `320` / `500` / `3`. Out-of-range values return 422.
 
@@ -165,7 +166,16 @@ The last completed or cancelled report is written next to `navidrome.db` as `lib
     "missing": 0,
     "low_bitrate": 0,
     "suspect_transcode": 0,
-    "duplicate_version": 0
+    "duplicate_version": 0,
+    "missing_title": 0,
+    "missing_artist": 0,
+    "missing_album": 0,
+    "suspicious_text": 0,
+    "missing_cover": 0,
+    "missing_track": 0,
+    "missing_year": 0,
+    "missing_lyrics": 0,
+    "tag_mismatch": 0
   }
 }
 ```
@@ -178,7 +188,7 @@ Live snapshot of the current or last audit. When nothing has run yet, `active` i
 
 ## `GET /v1/nas/library-audit/findings`
 
-Paginated findings from the last audit. `offset` defaults to 0; `limit` defaults to 50 and is capped at 200. Optional `code` filters to `missing`, `low_bitrate`, `suspect_transcode`, `duplicate_version`, `lossy_transcode`, `fake_hires`, or `deep_failed`.
+Paginated findings from the last audit. `offset` defaults to 0; `limit` defaults to 50 and is capped at 200. Optional `code` filters to `missing`, `low_bitrate`, `suspect_transcode`, `duplicate_version`, `lossy_transcode`, `fake_hires`, `deep_failed`, `missing_title`, `missing_artist`, `missing_album`, `suspicious_text`, `missing_cover`, `missing_track`, `missing_year`, `missing_lyrics`, or `tag_mismatch`. `missing_track` is only raised when the same album has two or more tracks and this row has no track number. `missing_lyrics` uses the Navidrome lyrics field plus a same-name `.lrc` or embedded lyrics. `tag_mismatch` compares library title/artist/album with embedded file tags after normalization.
 
 ```json
 {
@@ -224,6 +234,28 @@ A running audit returns HTTP 409. `scope=findings` with no prior fast audit retu
 ## `POST /v1/nas/library-audit/cancel`
 
 Requests cancellation of the in-flight fast or deep audit. The next snapshot uses `stage=cancelled` and keeps any findings already produced.
+
+## `POST /v1/nas/media-tags`
+
+Updates tags, cover, and/or lyrics on an existing library file identified by Navidrome `song_id`. Does not download a new audio file. Host paths are never returned.
+
+```json
+{
+  "song_id": "id1",
+  "pic_url": "https://cdn.example/cover.jpg",
+  "lyric": "[00:01.00]First line",
+  "song": {
+    "title": "Track",
+    "artist": "Artist",
+    "album": "Album",
+    "track": 1,
+    "year": 2026,
+    "genre": "华语流行"
+  }
+}
+```
+
+Only provided song fields are written. `genre` is optional, stripped, and capped at 64 characters; it is written as MP3 `TCON`, FLAC `GENRE`, or MP4 `©gen`. Missing song, unknown id, or missing media file returns 404. Unsupported extensions return 400.
 
 ## `POST /v1/nas/scan`
 

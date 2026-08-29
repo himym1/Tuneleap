@@ -35,7 +35,7 @@ App 需要三组独立配置：
 |---|---|---|
 | Navidrome URL / 用户名 / 密码 | 曲库和播放 | 用户自己的 Subsonic 地址 |
 | Cloud URL / Cloud 账号 | 搜索、推荐、歌词、更新 | `https://player.himym.us.ci` |
-| NAS Agent URL / NAS Agent Key | 导入、删除 | `http://192.168.1.10:8504` |
+| NAS Agent URL / NAS Agent Key | 导入、删除 | `http://<nas-lan-ip>:8504` |
 
 Cloud 的服务端 API Key 只保存在 Cloud `.env`，不得写入 App、仓库、命令输出或测试 fixture。App 通过 Cloud 注册/登录获取 Bearer Token；Refresh Token 存入平台安全存储。NAS Agent Key 只用于局域网导入/删除。
 
@@ -62,9 +62,10 @@ export RECOMMENDATION_SMOKE_API_KEY=...
 ```bash
 make android
 make macos
+make windows   # Windows 主机；macOS 上见 release.md 的 Actions 步骤
 ```
 
-产物写入 `dist/`。Android/macOS 版本统一由 `scripts/versions.env` 管理，`pubspec.yaml` 必须同步提升。
+产物写入 `dist/`。各平台版本由 `scripts/versions.env` 分别管理，`pubspec.yaml` 跟本轮主发平台对齐即可。
 
 ## 发布
 

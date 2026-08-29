@@ -86,6 +86,22 @@ Success:
 | 400 | Requested adapter is unavailable or does not support the requested platform |
 | 502/504 | All upstreams failed / timeout |
 
+### `POST /v1/music/style-lookup`
+
+Resolve closed 音跃 styles for library tracks. Cloud looks up iTunes `primaryGenreName` first (CN/HK storefronts for CJK titles), then MusicBrainz genres/tags. Mandopop / Pop are treated as coarse language buckets and may be refined with title/album/year markers (e.g. 情歌 → 抒情情歌). Title/artist matching uses the same weak identity as recommendations. Playback-search adapters are not used: they do not return genre. NAS Agent is not involved. Optional `year` on each track improves 经典老歌.
+
+```json
+{ "tracks": [{ "title": "晴天", "artist": "周杰伦", "album": "叶惠美" }] }
+```
+
+At most 20 tracks per call. Each item may include `style` (one of the 14 closed names), `raw_genre`, and `provider` (`itunes`, `musicbrainz`). `style` is omitted when nothing mappable was found.
+
+| Code | When |
+|---|---|
+| 401 | Missing/invalid key/token |
+| 400 | Empty `tracks` or more than 20 tracks |
+| 503 | Style lookup not initialized |
+
 ### `GET /v1/music/url`
 
 | Param | Required |

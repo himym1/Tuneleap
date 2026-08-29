@@ -10,7 +10,7 @@ services:
     env_file:
       - .env
     volumes:
-      # Production examples:
+      # Production: bind the real Navidrome data dir and music volume, e.g.
       # - /path/to/navidrome/data:/data:rw
       # - /path/to/music:/music:rw
       - ./data:/data:rw

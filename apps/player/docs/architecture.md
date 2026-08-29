@@ -11,19 +11,19 @@ Navidrome Player
 ├── Navidrome / Subsonic
 │   └── 本地曲库、专辑、歌曲、播放列表、音频流、scrobble
 ├── navidrome-cloud
-│   └── 在线搜索、播放 URL、封面、歌词、推荐、认证、私有更新
+│   └── 在线搜索、播放 URL、封面、歌词、流派查询、推荐、认证、私有更新
 └── navidrome-nas-agent
-    └── NAS 导入、删除、扫描、曲库体检和曲库身份读取
+    └── NAS 导入、删除、扫描、写标签、曲库体检和曲库身份读取
 ```
 
 生产部署：
 
 | 组件 | 位置 | 对外地址 |
 |---|---|---|
-| `navidrome-cloud` | DMIT `/opt/navidrome-cloud` | `https://player.himym.us.ci` |
-| Cloud Postgres | DMIT Docker | 仅 loopback / Docker 网络 |
-| `navidrome-nas-agent` | himym `/path/to/nas-agent` | LAN `http://192.168.1.10:8504` |
-| Navidrome | himym NAS | Subsonic URL 由用户配置 |
+| `navidrome-cloud` | 公网 VPS `/opt/navidrome-cloud` | `https://player.himym.us.ci` |
+| Cloud Postgres | 同机 Docker | 仅 loopback / Docker 网络 |
+| `navidrome-nas-agent` | 家庭 NAS 容器目录 | LAN `http://<nas-lan-ip>:8504` |
+| Navidrome | 家庭 NAS | Subsonic URL 由用户配置 |
 
 旧的单体 `navidrome-backend:8503` 已退役并删除。
 
@@ -42,6 +42,7 @@ Navidrome Player
 - 公网控制面，FastAPI + Postgres。
 - 持有账号、Refresh Token、推荐 session/candidate/feedback/profile。
 - 代理在线音乐来源，执行 first-success 搜索。
+- 用 iTunes / MusicBrainz 查询封闭风格；不写音乐文件。
 - 读取 NAS Agent 提供的曲库身份，过滤本地已有歌曲。
 - 从只读挂载的 `/app/releases` 提供版本元数据和安装包。
 - 不挂载 NAS 音乐目录，不打开 `navidrome.db`。
@@ -49,7 +50,7 @@ Navidrome Player
 ### navidrome-nas-agent
 
 - 唯一允许读取 `navidrome.db` 和写 NAS 音乐目录的配套服务。
-- 执行导入、删除、扫描和曲库体检。
+- 执行导入、删除、扫描、写标签和曲库体检。
 - 提供曲库身份给 Cloud 的推荐过滤流程。
 - 使用独立 NAS Agent Key；不承担公网搜索、账号和更新服务。
 
@@ -99,6 +100,19 @@ App 从 Cloud 获取在线歌曲元数据
 
 导入与删除必须使用显式的局域网 NAS Agent 地址和独立 Key；公网 Navidrome 地址不会自动推断为 Agent。重复导入默认按归一化标题/歌手拒绝，只有用户确认“仍然导入”后才发送 `force: true`。
 
+### 流派整理
+
+```text
+App 读取 Subsonic 曲库
+  -> 高置信规则直接建议
+  -> Cloud POST /v1/music/style-lookup（iTunes，失败再 MusicBrainz）
+  -> App 预览
+  -> NAS Agent POST /v1/nas/media-tags 写文件流派
+  -> Navidrome 扫描
+```
+
+待审只留给接口和规则都没判出来的歌。指定流派是覆盖，不是来源。
+
 ### 推荐
 
 ```text
@@ -113,7 +127,7 @@ App 最近播放 + feedback
 
 ```text
 make publish
-  -> cloud-host:/opt/navidrome-cloud/releases
+  -> $REMOTE_HOST:$REMOTE_DIR
   -> https://player.himym.us.ci/version.json
   -> App 下载 /releases/{filename}
   -> SHA-256 校验

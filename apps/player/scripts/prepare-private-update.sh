@@ -82,7 +82,7 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "曲库体检分音质与版本；替换可选搜索结果；歌单有详情页；首页改为最新歌曲。"
+        "修复「分析全部」：会重查已有流派标签（不再只查未标的约一百多首）。请更新后用分析全部再写入，然后重做歌单整理。"
     )
 }
 if Path(windows_name).is_file():
@@ -109,7 +109,7 @@ python3 "$SCRIPT_DIR/write_appcast.py" \
   --macos-build "$MACOS_BUILD" \
   --macos-name "$macos" \
   --sign-output "$sign_output" \
-  --changelog "曲库体检分音质与版本；替换可选搜索结果；歌单有详情页；首页改为最新歌曲。" \
+  --changelog "修复「分析全部」：会重查已有流派标签（不再只查未标的约一百多首）。请更新后用分析全部再写入，然后重做歌单整理。" \
   --output "$DIST_DIR/appcast.xml"
 
 echo "Prepared private update metadata in $DIST_DIR"

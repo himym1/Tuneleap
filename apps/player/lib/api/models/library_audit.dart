@@ -7,6 +7,15 @@ const libraryAuditCodeDuplicateVersion = 'duplicate_version';
 const libraryAuditCodeLossyTranscode = 'lossy_transcode';
 const libraryAuditCodeFakeHires = 'fake_hires';
 const libraryAuditCodeDeepFailed = 'deep_failed';
+const libraryAuditCodeMissingTitle = 'missing_title';
+const libraryAuditCodeMissingArtist = 'missing_artist';
+const libraryAuditCodeMissingAlbum = 'missing_album';
+const libraryAuditCodeSuspiciousText = 'suspicious_text';
+const libraryAuditCodeMissingCover = 'missing_cover';
+const libraryAuditCodeMissingTrack = 'missing_track';
+const libraryAuditCodeMissingYear = 'missing_year';
+const libraryAuditCodeMissingLyrics = 'missing_lyrics';
+const libraryAuditCodeTagMismatch = 'tag_mismatch';
 
 /// Codes that mean the file itself looks defective or unverifiable.
 const libraryAuditQualityCodes = {
@@ -16,6 +25,19 @@ const libraryAuditQualityCodes = {
   libraryAuditCodeLossyTranscode,
   libraryAuditCodeFakeHires,
   libraryAuditCodeDeepFailed,
+};
+
+/// Codes that mean tags or extras are incomplete, not that the audio is bad.
+const libraryAuditMetadataCodes = {
+  libraryAuditCodeMissingTitle,
+  libraryAuditCodeMissingArtist,
+  libraryAuditCodeMissingAlbum,
+  libraryAuditCodeSuspiciousText,
+  libraryAuditCodeMissingCover,
+  libraryAuditCodeMissingTrack,
+  libraryAuditCodeMissingYear,
+  libraryAuditCodeMissingLyrics,
+  libraryAuditCodeTagMismatch,
 };
 
 class LibraryAuditRules {
@@ -81,6 +103,15 @@ class LibraryAuditSummary {
     this.lossyTranscode = 0,
     this.fakeHires = 0,
     this.deepFailed = 0,
+    this.missingTitle = 0,
+    this.missingArtist = 0,
+    this.missingAlbum = 0,
+    this.suspiciousText = 0,
+    this.missingCover = 0,
+    this.missingTrack = 0,
+    this.missingYear = 0,
+    this.missingLyrics = 0,
+    this.tagMismatch = 0,
   });
 
   final int scanned;
@@ -93,6 +124,15 @@ class LibraryAuditSummary {
   final int lossyTranscode;
   final int fakeHires;
   final int deepFailed;
+  final int missingTitle;
+  final int missingArtist;
+  final int missingAlbum;
+  final int suspiciousText;
+  final int missingCover;
+  final int missingTrack;
+  final int missingYear;
+  final int missingLyrics;
+  final int tagMismatch;
 
   factory LibraryAuditSummary.fromJson(Map<dynamic, dynamic> data) {
     return LibraryAuditSummary(
@@ -106,6 +146,15 @@ class LibraryAuditSummary {
       lossyTranscode: _asInt(data['lossy_transcode']) ?? 0,
       fakeHires: _asInt(data['fake_hires']) ?? 0,
       deepFailed: _asInt(data['deep_failed']) ?? 0,
+      missingTitle: _asInt(data['missing_title']) ?? 0,
+      missingArtist: _asInt(data['missing_artist']) ?? 0,
+      missingAlbum: _asInt(data['missing_album']) ?? 0,
+      suspiciousText: _asInt(data['suspicious_text']) ?? 0,
+      missingCover: _asInt(data['missing_cover']) ?? 0,
+      missingTrack: _asInt(data['missing_track']) ?? 0,
+      missingYear: _asInt(data['missing_year']) ?? 0,
+      missingLyrics: _asInt(data['missing_lyrics']) ?? 0,
+      tagMismatch: _asInt(data['tag_mismatch']) ?? 0,
     );
   }
 }
@@ -198,9 +247,16 @@ class LibraryAuditFinding {
   /// File looks defective / unverifiable (missing, low bitrate, fake lossless…).
   bool get hasQualityIssue => codes.any(libraryAuditQualityCodes.contains);
 
+  bool get hasMetadataIssue => codes.any(libraryAuditMetadataCodes.contains);
+
+  /// Tag/cover/lyrics problems without a quality defect.
+  bool get isMetadataOnly => hasMetadataIssue && !hasQualityIssue;
+
   /// Same-title duration mismatch only; audio itself is not flagged bad.
   bool get isVersionOnly =>
-      codes.contains(libraryAuditCodeDuplicateVersion) && !hasQualityIssue;
+      codes.contains(libraryAuditCodeDuplicateVersion) &&
+      !hasQualityIssue &&
+      !hasMetadataIssue;
 
   Song toSong() {
     return Song(

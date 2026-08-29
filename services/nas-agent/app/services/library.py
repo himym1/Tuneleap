@@ -317,6 +317,26 @@ class LibraryService:
         )
         return scan_status
 
+    async def media_file_by_id(self, song_id: str) -> dict[str, str] | None:
+        """Return path/title/artist/album for one media_file row, or None."""
+        database = Path(self._settings.navidrome_db_path)
+        if not database.is_file():
+            raise DatabaseUnavailableError("Navidrome database is not available")
+        async with aiosqlite.connect(f"file:{database}?mode=ro", uri=True) as db:
+            cursor = await db.execute(
+                "SELECT path, title, artist, album FROM media_file WHERE id = ?",
+                (song_id,),
+            )
+            row = await cursor.fetchone()
+        if row is None:
+            return None
+        return {
+            "path": str(row[0] or ""),
+            "title": str(row[1] or ""),
+            "artist": str(row[2] or ""),
+            "album": str(row[3] or ""),
+        }
+
     def inspect_media_file(self, navidrome_path: str) -> tuple[bool, int | None]:
         """Return whether the stored path is a non-empty regular file, plus size."""
         try:

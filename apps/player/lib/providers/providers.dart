@@ -28,6 +28,8 @@ export 'album_detail_provider.dart';
 export 'weather_provider.dart';
 export 'recommendation_provider.dart';
 export 'library_audit_provider.dart';
+export 'library_style_provider.dart';
+export 'library_playlist_organize_provider.dart';
 
 final appVersionProvider = Provider<String>(
   (ref) => throw UnimplementedError('Must be overridden in ProviderScope'),

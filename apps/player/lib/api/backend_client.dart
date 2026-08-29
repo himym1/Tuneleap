@@ -58,6 +58,51 @@ class NasDeleteResult {
   bool get ok => deleted > 0 && errors == 0;
 }
 
+class MediaTagsResult {
+  const MediaTagsResult({
+    required this.ok,
+    required this.songId,
+    this.updated = const [],
+    this.message = '',
+  });
+
+  final bool ok;
+  final String songId;
+  final List<String> updated;
+  final String message;
+}
+
+class StyleLookupHit {
+  const StyleLookupHit({
+    required this.title,
+    required this.artist,
+    this.style,
+    this.rawGenre,
+    this.provider,
+  });
+
+  final String title;
+  final String artist;
+  final String? style;
+  final String? rawGenre;
+  final String? provider;
+
+  factory StyleLookupHit.fromJson(Map<String, dynamic> json) {
+    String? text(Object? value) {
+      final trimmed = value?.toString().trim() ?? '';
+      return trimmed.isEmpty ? null : trimmed;
+    }
+
+    return StyleLookupHit(
+      title: json['title']?.toString() ?? '',
+      artist: json['artist']?.toString() ?? '',
+      style: text(json['style']),
+      rawGenre: text(json['raw_genre'] ?? json['rawGenre']),
+      provider: text(json['provider']),
+    );
+  }
+}
+
 bool isSlowNasUpstream(Object error) {
   final text = formatNasImportError(error).toLowerCase();
   return text.contains('too slow');
@@ -418,6 +463,46 @@ class BackendClient {
       debugPrint('[Backend] searchSongs ERROR: ${e.runtimeType}');
       rethrow;
     }
+  }
+
+  Future<List<StyleLookupHit>> lookupStyles(
+    List<({String title, String artist, String album, int? year})> tracks,
+  ) async {
+    if (!isConfigured) {
+      throw StateError('Cloud is not configured');
+    }
+    if (tracks.isEmpty) return const [];
+    if (tracks.length > 20) {
+      throw ArgumentError('at most 20 tracks per lookup');
+    }
+    final response = await _dio.post(
+      '$_cloudBaseUrl/v1/music/style-lookup',
+      data: {
+        'tracks': [
+          for (final track in tracks)
+            {
+              'title': track.title,
+              'artist': track.artist,
+              'album': track.album,
+              if (track.year != null) 'year': track.year,
+            },
+        ],
+      },
+      options: _cloudOptions().copyWith(contentType: 'application/json'),
+    );
+    final data = response.data;
+    if (data is! Map) {
+      throw const FormatException('Style lookup response must be an object');
+    }
+    final items = data['items'];
+    if (items is! List) {
+      throw const FormatException('Style lookup items must be a list');
+    }
+    return [
+      for (final item in items)
+        if (item is Map)
+          StyleLookupHit.fromJson(Map<String, dynamic>.from(item)),
+    ];
   }
 
   static bool _parseSearchHasMore(Map data, int itemCount, int count) {
@@ -1007,6 +1092,44 @@ class BackendClient {
     return LibraryAuditSnapshot.fromJson(
       _requireObject(response.data, 'Library audit'),
     );
+  }
+
+  Future<MediaTagsResult> updateMediaTags({
+    required String songId,
+    String? genre,
+  }) async {
+    _ensureDirectNasAgent();
+    final song = <String, dynamic>{
+      if (genre != null && genre.trim().isNotEmpty) 'genre': genre.trim(),
+    };
+    if (song.isEmpty) {
+      throw ArgumentError('nothing to update');
+    }
+    try {
+      final response = await _dio.post(
+        '$_nasBaseUrl/v1/nas/media-tags',
+        data: {'song_id': songId, 'song': song},
+        options: _nasOptions(contentType: 'application/json').copyWith(
+          sendTimeout: const Duration(seconds: 20),
+          receiveTimeout: const Duration(seconds: 20),
+        ),
+      );
+      final data = _requireObject(response.data, 'Media tags');
+      final updated = switch (data['updated']) {
+        final List<dynamic> items => [
+          for (final item in items) item.toString(),
+        ],
+        _ => const <String>[],
+      };
+      return MediaTagsResult(
+        ok: data['ok'] == true,
+        songId: data['song_id']?.toString() ?? songId,
+        updated: updated,
+        message: data['message']?.toString() ?? '',
+      );
+    } on DioException catch (error) {
+      throw StateError(formatNasImportError(error));
+    }
   }
 
   Future<List<LibraryAuditFinding>> getLibraryAuditFindings({

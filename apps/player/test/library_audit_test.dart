@@ -126,17 +126,24 @@ void main() {
       'codes': ['duplicate_version'],
       'cutoff_hz': 20570,
     });
+    final metadata = LibraryAuditFinding.fromJson({
+      'song_id': 'meta',
+      'codes': ['missing_year', 'missing_cover'],
+    });
     expect(lossy.hasQualityIssue, isTrue);
     expect(lossy.isVersionOnly, isFalse);
     expect(versionOnly.hasQualityIssue, isFalse);
     expect(versionOnly.isVersionOnly, isTrue);
+    expect(metadata.hasMetadataIssue, isTrue);
+    expect(metadata.isMetadataOnly, isTrue);
+    expect(metadata.isVersionOnly, isFalse);
 
-    final grouped = LibraryAuditState(
-      findings: [lossy, versionOnly],
-    );
+    final grouped = LibraryAuditState(findings: [lossy, versionOnly, metadata]);
     expect(grouped.qualityIssueCount, 1);
+    expect(grouped.metadataIssueCount, 1);
     expect(grouped.versionOnlyCount, 1);
     expect(grouped.qualityFindings.single.songId, 'lossy');
+    expect(grouped.metadataFindings.single.songId, 'meta');
     expect(grouped.versionOnlyFindings.single.songId, 'ok');
     expect(grouped.showGroupedFindings, isTrue);
   });

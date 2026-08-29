@@ -11,6 +11,8 @@ from app.models.schemas import (
     LibraryAuditFindingsResponse,
     LibraryAuditSnapshot,
     LibraryAuditStartRequest,
+    MediaTagsRequest,
+    MediaTagsResult,
     ScanResult,
 )
 from app.services.importer import (
@@ -112,6 +114,47 @@ async def nas_import(request: Request, body: ImportRequest):
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except OSError as exc:
         raise HTTPException(status_code=500, detail="media file write failed") from exc
+
+
+@router.post("/media-tags", response_model=MediaTagsResult, summary="Update tags on an existing library file")
+async def nas_media_tags(request: Request, body: MediaTagsRequest):
+    library = _library(request)
+    importer = _importer(request)
+    try:
+        record = await library.media_file_by_id(body.song_id)
+    except DatabaseUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="song not found")
+    path = library.resolve_media_path(record["path"])
+    if path is None:
+        raise HTTPException(status_code=404, detail="media file not found")
+    try:
+        updated = await importer.update_media_tags(
+            target=path,
+            song=body.song,
+            pic_url=body.pic_url,
+            lyric=body.lyric,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=504, detail="cover download timed out") from exc
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"cover upstream returned {exc.response.status_code}",
+        ) from exc
+    except (httpx.TooManyRedirects, UpstreamContentError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail="media file write failed") from exc
+    return MediaTagsResult(
+        ok=True,
+        song_id=body.song_id,
+        updated=updated,
+        message="updated",
+    )
 
 
 @router.post("/scan", response_model=ScanResult, summary="Trigger Navidrome rescan")

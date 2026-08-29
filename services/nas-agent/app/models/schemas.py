@@ -24,7 +24,20 @@ class SongMeta(BaseModel):
     track: int | None = None
     year: int | None = None
     source: str | None = None
+    genre: str | None = None
     extra: dict[str, Any] | None = None
+
+    @field_validator("genre")
+    @classmethod
+    def _normalize_genre(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            return None
+        if len(cleaned) > 64:
+            raise ValueError("genre must be at most 64 characters")
+        return cleaned
 
 
 class ImportRequest(BaseModel):
@@ -86,6 +99,34 @@ class ScanResult(BaseModel):
     message: str = ""
 
 
+class MediaTagsRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    song_id: str = Field(..., min_length=1, max_length=128)
+    song: SongMeta | None = None
+    pic_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("pic_url", "picUrl"),
+        max_length=4096,
+    )
+    lyric: str | None = Field(default=None, max_length=2_000_000)
+
+    @field_validator("song_id")
+    @classmethod
+    def _validate_song_id(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("song_id must not be blank")
+        return cleaned
+
+
+class MediaTagsResult(BaseModel):
+    ok: bool
+    song_id: str
+    updated: list[str] = Field(default_factory=list)
+    message: str = ""
+
+
 class LibraryIdentitiesResponse(BaseModel):
     count: int
     identities: list[str] = Field(default_factory=list)
@@ -119,6 +160,15 @@ class LibraryAuditSummary(BaseModel):
     lossy_transcode: int = 0
     fake_hires: int = 0
     deep_failed: int = 0
+    missing_title: int = 0
+    missing_artist: int = 0
+    missing_album: int = 0
+    suspicious_text: int = 0
+    missing_cover: int = 0
+    missing_track: int = 0
+    missing_year: int = 0
+    missing_lyrics: int = 0
+    tag_mismatch: int = 0
 
 
 class LibraryAuditStartRequest(BaseModel):

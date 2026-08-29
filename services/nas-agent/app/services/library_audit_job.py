@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections import Counter
 from contextlib import suppress
+from dataclasses import replace
 from pathlib import Path
 
 import aiosqlite
@@ -24,10 +26,13 @@ from app.services.library_audit import (
     LibraryAuditRules,
     LibraryTrack,
     apply_spectrum_codes,
+    classify_metadata,
     classify_track,
     duplicate_version_ids,
     is_deep_scan_suffix,
     normalize_suffix,
+    read_file_tags,
+    sidecar_lyrics_present,
     severity_for_codes,
     summarize_codes,
 )
@@ -45,6 +50,10 @@ _OPTIONAL_COLUMNS = (
     "sample_rate",
     "size",
     "missing",
+    "has_cover_art",
+    "track_number",
+    "year",
+    "lyrics",
 )
 
 
@@ -259,6 +268,15 @@ class LibraryAuditService:
                 lossy_transcode=counts["lossy_transcode"],
                 fake_hires=counts["fake_hires"],
                 deep_failed=counts["deep_failed"],
+                missing_title=counts["missing_title"],
+                missing_artist=counts["missing_artist"],
+                missing_album=counts["missing_album"],
+                suspicious_text=counts["suspicious_text"],
+                missing_cover=counts["missing_cover"],
+                missing_track=counts["missing_track"],
+                missing_year=counts["missing_year"],
+                missing_lyrics=counts["missing_lyrics"],
+                tag_mismatch=counts["tag_mismatch"],
             ),
         )
 
@@ -390,6 +408,7 @@ class LibraryAuditService:
             if self._cancel.is_set():
                 break
             codes = classify_track(track, self._rules)
+            codes.extend(classify_metadata(track))
             if track.song_id in duplicates:
                 codes.append(CODE_DUPLICATE_VERSION)
             if codes:
@@ -436,25 +455,52 @@ class LibraryAuditService:
             rows = await cursor.fetchall()
 
         tracks: list[LibraryTrack] = []
+        album_counts: Counter[str] = Counter()
         for row in rows:
             record = dict(zip(selected, row, strict=True))
+            album_id = str(record.get("album_id") or "")
+            if album_id:
+                album_counts[album_id] += 1
             marked_missing = _as_int(record.get("missing")) == 1
             present, _size = (False, None)
+            path = None
             if not marked_missing:
                 present, _size = self._library.inspect_media_file(str(record.get("path") or ""))
+                if present:
+                    path = self._library.resolve_media_path(str(record.get("path") or ""))
+            file_tags = read_file_tags(path) if path is not None else {}
+            sidecar = sidecar_lyrics_present(path) if path is not None else False
+            cover = record.get("has_cover_art") if "has_cover_art" in record else None
+            year = record.get("year") if "year" in record else None
+            track_number = record.get("track_number") if "track_number" in record else None
+            lyrics = record.get("lyrics") if "lyrics" in record else None
             tracks.append(
                 LibraryTrack(
                     song_id=str(record["id"]),
                     title=str(record.get("title") or ""),
                     artist=str(record.get("artist") or ""),
                     album=str(record.get("album") or ""),
-                    album_id=str(record.get("album_id") or ""),
+                    album_id=album_id,
                     suffix=normalize_suffix(record.get("suffix")),
                     bit_rate=_as_int(record.get("bit_rate")),
                     duration=_as_int(record.get("duration")),
                     sample_rate=_as_int(record.get("sample_rate")),
                     missing_file=marked_missing or not present,
                     stored_path=str(record.get("path") or ""),
+                    has_cover_art=None if cover is None else _as_int(cover) == 1,
+                    track_number=None if track_number is None else (_as_int(track_number) or 0),
+                    year=None if year is None else (_as_int(year) or 0),
+                    lyrics=None if lyrics is None else str(lyrics),
+                    album_track_count=1,
+                    file_title=str(file_tags.get("title") or ""),
+                    file_artist=str(file_tags.get("artist") or ""),
+                    file_album=str(file_tags.get("album") or ""),
+                    file_has_lyrics=bool(file_tags.get("has_lyrics")),
+                    sidecar_lyrics=sidecar,
+                    tags_readable=bool(file_tags.get("readable")),
                 )
             )
-        return tracks
+        return [
+            replace(track, album_track_count=album_counts.get(track.album_id, 1))
+            for track in tracks
+        ]

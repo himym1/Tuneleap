@@ -25,6 +25,7 @@ def test_import_downloads_tags_cover_lyrics_and_is_idempotent(settings, media_se
             "track": 3,
             "year": 2026,
             "source": "netease",
+            "genre": "华语流行",
         },
     }
 
@@ -46,6 +47,7 @@ def test_import_downloads_tags_cover_lyrics_and_is_idempotent(settings, media_se
     assert str(tags["TALB"]) == "Album"
     assert str(tags["TRCK"]) == "3"
     assert str(tags["TDRC"]) == "2026"
+    assert str(tags["TCON"]) == "华语流行"
     assert tags.getall("APIC")[0].mime == "image/png"
     uslt = tags.getall("USLT")
     assert uslt
@@ -53,6 +55,80 @@ def test_import_downloads_tags_cover_lyrics_and_is_idempotent(settings, media_se
     assert sum(urlsplit.startswith("/redirect.mp3") for urlsplit in server.requests) == 1
     assert sum(urlsplit.startswith("/audio.mp3") for urlsplit in server.requests) == 1
     assert sum(urlsplit.startswith("/cover.png") for urlsplit in server.requests) == 1
+
+
+def test_media_tags_updates_existing_file_cover_and_title(settings, media_server):
+    base_url, _ = media_server
+    target = Path(settings.music_dir) / "existing.mp3"
+    target.write_bytes(b"\xff\xfb\x90\x64" + (b"\x00" * 4096))
+    db = sqlite3.connect(settings.navidrome_db_path)
+    db.execute(
+        "CREATE TABLE media_file(id TEXT PRIMARY KEY, path TEXT, title TEXT, artist TEXT, album TEXT)"
+    )
+    db.execute(
+        "INSERT INTO media_file(id, path, title, artist, album) VALUES (?, ?, ?, ?, ?)",
+        ("song1", "existing.mp3", "旧标题", "旧歌手", "旧专辑"),
+    )
+    db.commit()
+    db.close()
+
+    with TestClient(create_app(settings)) as client:
+        response = client.post(
+            "/v1/nas/media-tags",
+            json={
+                "song_id": "song1",
+                "picUrl": f"{base_url}/cover.png",
+                "song": {
+                    "title": "新标题",
+                    "artist": "新歌手",
+                    "album": "新专辑",
+                },
+            },
+            headers=_headers(settings),
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["ok"] is True
+    assert "path" not in body
+    assert set(body["updated"]) >= {"title", "artist", "album", "cover"}
+    tags = ID3(target)
+    assert str(tags["TIT2"]) == "新标题"
+    assert str(tags["TPE1"]) == "新歌手"
+    assert str(tags["TALB"]) == "新专辑"
+    assert tags.getall("APIC")
+
+
+def test_media_tags_writes_genre_only(settings):
+    target = Path(settings.music_dir) / "genre-only.mp3"
+    target.write_bytes(b"\xff\xfb\x90\x64" + (b"\x00" * 4096))
+    db = sqlite3.connect(settings.navidrome_db_path)
+    db.execute(
+        "CREATE TABLE media_file(id TEXT PRIMARY KEY, path TEXT, title TEXT, artist TEXT, album TEXT)"
+    )
+    db.execute(
+        "INSERT INTO media_file(id, path, title, artist, album) VALUES (?, ?, ?, ?, ?)",
+        ("song-genre", "genre-only.mp3", "标题", "歌手", "专辑"),
+    )
+    db.commit()
+    db.close()
+
+    with TestClient(create_app(settings)) as client:
+        response = client.post(
+            "/v1/nas/media-tags",
+            json={"song_id": "song-genre", "song": {"genre": " 民谣 "}},
+            headers=_headers(settings),
+        )
+        rejected = client.post(
+            "/v1/nas/media-tags",
+            json={"song_id": "song-genre", "song": {"genre": "x" * 65}},
+            headers=_headers(settings),
+        )
+
+    assert response.status_code == 200, response.text
+    assert "genre" in response.json()["updated"]
+    assert str(ID3(target)["TCON"]) == "民谣"
+    assert rejected.status_code == 422
 
 
 def test_import_rejects_path_traversal_before_download(settings, media_server):

@@ -76,16 +76,16 @@ When NAS Agent URL is omitted, the App infers the Navidrome host on LAN port `85
 
 ### Private updates
 
-Release files are published to `/opt/navidrome-cloud/releases` on `dmit` and mounted read-only at `/app/releases`. The App uses its Cloud Bearer token to check `https://player.himym.us.ci/version.json`, downloads from the same Origin under `/releases/`, and verifies SHA-256 before opening the installer.
+Release files are published to `/opt/navidrome-cloud/releases` on the Cloud host (`REMOTE_HOST`) and mounted read-only at `/app/releases`. The App uses its Cloud Bearer token to check `https://player.himym.us.ci/version.json`, downloads from the same Origin under `/releases/`, and verifies SHA-256 before opening the installer.
 
 ## Production deployment
 
 | Component | Production location |
 |---|---|
-| Cloud | `cloud-host:/opt/navidrome-cloud`, loopback `8600`, Cloudflare Tunnel HTTPS |
-| Postgres | DMIT Docker network / loopback only |
-| NAS Agent | `nas-host:/path/to/nas-agent`, LAN `192.168.1.10:8504` |
-| Navidrome | himym NAS |
+| Cloud | VPS `/opt/navidrome-cloud`, loopback `8600`, Cloudflare Tunnel HTTPS |
+| Postgres | Same-host Docker network / loopback only |
+| NAS Agent | Home NAS container, LAN `http://<nas-lan-ip>:8504` |
+| Navidrome | Home NAS |
 
 Cloud reaches the NAS Agent only through the restricted private mapping. Public access to `5432`, `8504`, and `8600` is blocked.
 

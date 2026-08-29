@@ -83,10 +83,14 @@ void main() {
     );
   });
 
-  test('LAN Navidrome host resolves to public Subsonic origin', () {
+  test('loopback Navidrome host clears; real hosts are kept', () {
     expect(resolveNavidromeOrigin(''), defaultNavidromeOrigin);
     expect(
-      resolveNavidromeOrigin('http://192.168.1.10:54533'),
+      resolveNavidromeOrigin('http://localhost:54533'),
+      defaultNavidromeOrigin,
+    );
+    expect(
+      resolveNavidromeOrigin('http://127.0.0.1:54533'),
       defaultNavidromeOrigin,
     );
     expect(
