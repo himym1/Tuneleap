@@ -6,6 +6,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/rename_playlist_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 class PlaylistsScreen extends ConsumerWidget {
@@ -373,30 +374,9 @@ class PlaylistsScreen extends ConsumerWidget {
     WidgetRef ref,
     Playlist playlist,
   ) async {
-    final controller = TextEditingController(text: playlist.name);
-    final name = await showDialog<String>(
+    final name = await showRenamePlaylistDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(S.of(context).playlistRename),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: S.of(context).playlistNameLabel,
-          ),
-          onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(S.of(context).commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text(S.of(context).commonSave),
-          ),
-        ],
-      ),
+      currentName: playlist.name,
     );
     if (name == null || name.isEmpty || name == playlist.name) return;
     try {

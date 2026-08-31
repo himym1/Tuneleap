@@ -58,3 +58,6 @@ services/nas-agent/data/*
 .pi/
 .ace-tool/
 **/.claude/settings.local.json
+
+# Deslop 扫描产物
+.deslop/

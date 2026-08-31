@@ -1,0 +1,33 @@
+# Deslop 重复代码分析策略。
+[defaults]
+exclude = [
+  "apps/player/build/**",
+  "apps/player/dist/**",
+  "apps/player/.dart_tool/**",
+  "**/Pods/**",
+  "services/cloud/.venv/**",
+  "services/cloud/venv/**",
+  "services/cloud/data/**",
+  "services/cloud/releases/**",
+  "services/nas-agent/.venv/**",
+  "services/nas-agent/venv/**",
+  "services/nas-agent/data/**",
+  "**/.pytest_cache/**",
+  "**/.mypy_cache/**",
+  "**/.ruff_cache/**",
+]
+report_hide = [
+  "apps/player/test/**",
+  "**/test/**",
+  "services/**/tests/**",
+  "services/**/conftest.py",
+]
+
+[report]
+split_by_language = true
+
+[ranking]
+data_clones = "demote"
+data_clone_weight = 0.15
+structural_only = "demote"
+structural_only_weight = 0.15
