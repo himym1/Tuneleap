@@ -105,6 +105,31 @@ void main() {
     });
   });
 
+  group('importDuplicateSearchQueries', () {
+    test('adds the canonical title so live labels still find studio copies', () {
+      final incoming = _song(
+        id: 'online',
+        title: '凡人诀 (live)',
+        artist: '陈楚生',
+        backend: SongBackend.solara,
+      );
+      expect(importDuplicateSearchQueries(incoming), [
+        '凡人诀 (live)',
+        '凡人诀',
+      ]);
+    });
+
+    test('does not duplicate when the title is already canonical', () {
+      final incoming = _song(
+        id: 'online',
+        title: '大梦',
+        artist: '陈楚生',
+        backend: SongBackend.solara,
+      );
+      expect(importDuplicateSearchQueries(incoming), ['大梦']);
+    });
+  });
+
   group('importDuplicateCandidates', () {
     test('keeps weak-identity hits and classifies each row', () {
       final incoming = _song(

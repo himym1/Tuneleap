@@ -42,15 +42,22 @@ Future<bool> importOnlineSongToNavidrome(
   } else {
     final List<ImportDuplicateCandidate> candidates;
     try {
-      final local = await localClient.search3(
-        song.title,
-        songCount: 20,
-        albumCount: 0,
-        artistCount: 0,
-      );
+      final seenIds = <String>{};
+      final locals = <Song>[];
+      for (final query in importDuplicateSearchQueries(song)) {
+        final local = await localClient.search3(
+          query,
+          songCount: 20,
+          albumCount: 0,
+          artistCount: 0,
+        );
+        for (final hit in local.songs) {
+          if (seenIds.add(hit.id)) locals.add(hit);
+        }
+      }
       candidates = importDuplicateCandidates(
         incoming: song,
-        locals: local.songs,
+        locals: locals,
       );
     } catch (_) {
       messenger.showSnackBar(_message(l10n.importDuplicateCheckFailed));

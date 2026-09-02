@@ -72,6 +72,27 @@ ImportRecordingMatch classifyRecordingMatch({
   return ImportRecordingMatch.unknown;
 }
 
+/// Subsonic `search3` queries for the import duplicate pre-check.
+///
+/// Online titles often keep version labels (`(live)`, `现场版`) that the local
+/// library stores without. Search the raw title and the weak-identity title so
+/// studio copies still surface in the duplicate picker.
+List<String> importDuplicateSearchQueries(Song incoming) {
+  final queries = <String>[];
+  void add(String value) {
+    final query = value.trim();
+    if (query.isEmpty) return;
+    final exists = queries.any(
+      (existing) => existing.toLowerCase() == query.toLowerCase(),
+    );
+    if (!exists) queries.add(query);
+  }
+
+  add(incoming.title);
+  add(canonicalSongTitle(incoming.title, incoming.artist));
+  return queries;
+}
+
 List<ImportDuplicateCandidate> importDuplicateCandidates({
   required Song incoming,
   required Iterable<Song> locals,

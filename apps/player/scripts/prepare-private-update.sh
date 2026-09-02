@@ -82,7 +82,7 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "Windows：修复搜索无响应；播放页可点击歌手/专辑跳转；支持检查更新并自动覆盖安装。请用设置里的检查更新升级。"
+        "导入曲库：live/现场版会按弱身份找到本地原版并弹出「歌曲已存在」对照窗，不再直接进队列失败。"
     )
 }
 if Path(windows_name).is_file():
@@ -109,7 +109,7 @@ python3 "$SCRIPT_DIR/write_appcast.py" \
   --macos-build "$MACOS_BUILD" \
   --macos-name "$macos" \
   --sign-output "$sign_output" \
-  --changelog "Windows：修复搜索无响应；播放页可点击歌手/专辑跳转；支持检查更新并自动覆盖安装。请用设置里的检查更新升级。" \
+  --changelog "导入曲库：live/现场版会按弱身份找到本地原版并弹出「歌曲已存在」对照窗，不再直接进队列失败。" \
   --output "$DIST_DIR/appcast.xml"
 
 echo "Prepared private update metadata in $DIST_DIR"
