@@ -37,6 +37,8 @@ docs/architecture.md      Canonical topology
 
 ## Verification
 
+- Coding tasks authorize maintaining necessary tests and running focused, low-risk local unit tests, analysis, and necessary local builds after checking script side effects. Documentation, prompt, and comment-only changes normally need only readback and diff review.
+- Database/container tests or setup, remote smoke requests, real accounts/data, device installation, release scripts, and full or substantially costly checks require explicit authorization. Use synthetic data and disposable local paths for ordinary checks; report results without automatically checking every component.
 - Player: run `make player-analyze` and `make player-test` from the repository root; these targets are defined in the root `Makefile`.
 - Cloud tests need disposable Postgres (`TEST_DATABASE_URL`). Do not point smoke scripts at production.
 - NAS Agent tests must use disposable directories, never the production music volume.
