@@ -37,7 +37,7 @@ docs/architecture.md      Canonical topology
 
 ## Verification
 
-- Player: `make player-analyze` and `make player-test` from the repo root, or the same commands inside `apps/player`.
+- Player: run `make player-analyze` and `make player-test` from the repository root; these targets are defined in the root `Makefile`.
 - Cloud tests need disposable Postgres (`TEST_DATABASE_URL`). Do not point smoke scripts at production.
 - NAS Agent tests must use disposable directories, never the production music volume.
 
