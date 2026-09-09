@@ -24,13 +24,22 @@ class _CapabilitiesBackendClient extends BackendClient {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('sanitizeOnlineSources maps qq and keeps catalog order defaults', () {
-    expect(sanitizeOnlineSources(['qq', 'KUGOU', 'unknown']), [
-      'tencent',
-      'kugou',
-    ]);
-    expect(sanitizeOnlineSources(const []), kDefaultOnlineSources);
-  });
+  test(
+    'sanitizeOnlineSources drops retired platforms back to current defaults',
+    () {
+      expect(
+        sanitizeOnlineSources(['qq', 'KUGOU', 'unknown']),
+        kDefaultOnlineSources,
+      );
+      expect(
+        sanitizeOnlineSources(['netease', 'tencent', 'kugou']),
+        kDefaultOnlineSources,
+      );
+      expect(sanitizeOnlineSources(const []), kDefaultOnlineSources);
+      expect(sanitizeOnlineSources(['netease']), ['netease']);
+      expect(sanitizeOnlineSources(['joox', 'netease']), ['netease', 'joox']);
+    },
+  );
   test('adapter capabilities filter enabled platform tabs', () {
     expect(
       catalogSourcesSupportedBy(
@@ -38,20 +47,20 @@ void main() {
           adapters: [
             MusicAdapterCapability(
               id: 'gdstudio',
-              sources: ['netease', 'kugou', 'migu', 'joox', 'kuwo'],
+              sources: ['netease', 'joox'],
             ),
           ],
         ),
         'gdstudio',
       ),
-      ['netease', 'kugou', 'migu', 'joox'],
+      ['netease', 'joox'],
     );
     expect(
       filterEnabledOnlineSources(
-        ['netease', 'tencent', 'migu'],
-        ['netease', 'kugou', 'migu', 'joox'],
+        ['netease', 'tencent', 'joox'],
+        ['netease', 'joox'],
       ),
-      ['netease', 'migu'],
+      ['netease', 'joox'],
     );
   });
 
@@ -67,8 +76,7 @@ void main() {
     addTearDown(container.dispose);
 
     final notifier = container.read(onlineSourcePreferencesProvider.notifier);
-    await notifier.setEnabled('tencent', enabled: false);
-    await notifier.setEnabled('kugou', enabled: false);
+    await notifier.setEnabled('joox', enabled: false);
     final kept = await notifier.setEnabled('netease', enabled: false);
 
     expect(kept, isFalse);

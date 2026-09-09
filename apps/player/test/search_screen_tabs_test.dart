@@ -15,13 +15,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'active_server_id': 'server-a',
       'server_url': 'http://music.local',
-      onlineSourcesPreferenceKey('server-a'): [
-        'netease',
-        'tencent',
-        'kugou',
-        'migu',
-        'joox',
-      ],
+      onlineSourcesPreferenceKey('server-a'): ['netease', 'joox'],
       onlineAdapterPreferenceKey('server-a'): 'gdstudio',
     });
     final prefs = await SharedPreferences.getInstance();
@@ -40,7 +34,7 @@ void main() {
                 ),
                 MusicAdapterCapability(
                   id: 'gdstudio',
-                  sources: ['netease', 'kugou', 'migu', 'joox'],
+                  sources: ['netease', 'joox'],
                 ),
               ],
             ),
@@ -57,16 +51,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('网易云'), findsOneWidget);
-    expect(find.text('QQ'), findsNothing);
-    expect(find.text('酷狗'), findsOneWidget);
-    expect(find.text('咪咕'), findsOneWidget);
     expect(find.text('JOOX'), findsOneWidget);
+    expect(find.text('QQ'), findsNothing);
+    expect(find.text('酷狗'), findsNothing);
+    expect(find.text('咪咕'), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('search-source-kugou')));
+    await tester.tap(find.byKey(const ValueKey('search-source-joox')));
     await tester.pump();
     expect(
       tester
-          .widget<Semantics>(find.byKey(const ValueKey('search-source-kugou')))
+          .widget<Semantics>(find.byKey(const ValueKey('search-source-joox')))
           .properties
           .selected,
       isTrue,
@@ -80,14 +74,8 @@ void main() {
         .setProvider('meting');
     await tester.pumpAndSettle();
 
-    expect(
-      tester
-          .widget<Semantics>(
-            find.byKey(const ValueKey('search-source-netease')),
-          )
-          .properties
-          .selected,
-      isTrue,
-    );
+    expect(find.text('JOOX'), findsNothing);
+    expect(find.byKey(const ValueKey('search-source-joox')), findsNothing);
+    expect(find.byKey(const ValueKey('search-source-netease')), findsNothing);
   });
 }

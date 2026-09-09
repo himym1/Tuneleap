@@ -21,6 +21,7 @@ import 'package:navidrome_player/utils/duration_format.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/request_generation.dart';
 import 'package:navidrome_player/providers/server_scope.dart';
+import 'package:navidrome_player/utils/player_navigation.dart';
 
 /// 响应式播放器页面 — 移动端单栏 / PC 端双栏布局
 class PlayerScreen extends ConsumerStatefulWidget {
@@ -40,20 +41,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool _showQueue = _lastShowQueue;
 
   void _openArtistOrAlbum(Song song, {required bool artist}) {
-    final id = artist ? song.artistId.trim() : song.albumId.trim();
-    final label = artist ? song.artist.trim() : song.album.trim();
-    if (id.isNotEmpty && !song.isOnline) {
-      final path = artist
-          ? '/artist/${Uri.encodeComponent(id)}'
-          : '/album/${Uri.encodeComponent(id)}';
-      if (context.canPop()) context.pop();
-      context.go(path);
-      return;
-    }
-    if (label.isEmpty) return;
-    // Online tracks (or missing IDs) fall back to search.
-    if (context.canPop()) context.pop();
-    context.go('/search?q=${Uri.encodeComponent(label)}');
+    openLibraryItemFromPlayer(
+      context,
+      artist: artist,
+      id: artist ? song.artistId.trim() : song.albumId.trim(),
+      label: artist ? song.artist.trim() : song.album.trim(),
+      isOnline: song.isOnline,
+    );
   }
 
   Widget _buildSongMetaLine(

@@ -24,9 +24,7 @@ DEFAULT_SOURCE = "netease"
 
 class GdstudioAdapter(MusicAdapter):
     name = "gdstudio"
-    supported_sources = frozenset(
-        {"netease", "kugou", "migu", "joox", "kuwo"}
-    )
+    supported_sources = frozenset({"netease", "joox"})
 
     def __init__(
         self,
@@ -49,8 +47,6 @@ class GdstudioAdapter(MusicAdapter):
         resolved = source or DEFAULT_SOURCE
         if resolved == "netease":
             return SearchWindow(max_count=CLOUD_SEARCH_COUNT_MAX, paginates=True)
-        if resolved == "kuwo":
-            return SearchWindow(max_count=CLOUD_SEARCH_COUNT_MAX, paginates=False)
         return SearchWindow(max_count=DEFAULT_SEARCH_COUNT, paginates=False)
 
     async def search(

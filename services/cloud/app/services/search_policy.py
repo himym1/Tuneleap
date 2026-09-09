@@ -91,18 +91,35 @@ def product_source_windows(
     return dict(sorted(sources.items()))
 
 
-def capabilities_payload(adapters: list[MusicAdapter]) -> dict[str, object]:
+def capabilities_payload(
+    adapters: list[MusicAdapter],
+    advertised_sources: tuple[str, ...] | None = None,
+) -> dict[str, object]:
     live = available_adapters(adapters)
+    allowed = frozenset(advertised_sources) if advertised_sources else None
+    windows = product_source_windows(live)
+    if allowed is not None:
+        windows = {
+            source: window
+            for source, window in windows.items()
+            if source in allowed
+        }
+
+    def visible(sources: frozenset[str] | set[str]) -> list[str]:
+        names = sorted(sources)
+        if allowed is None:
+            return names
+        return [source for source in names if source in allowed]
+
     return {
         "default_provider": live[0].name if live else None,
         "sources": {
-            source: window.as_capability()
-            for source, window in product_source_windows(live).items()
+            source: window.as_capability() for source, window in windows.items()
         },
         "adapters": [
             {
                 "id": adapter.name,
-                "sources": sorted(adapter.supported_sources),
+                "sources": visible(adapter.supported_sources),
             }
             for adapter in live
         ],

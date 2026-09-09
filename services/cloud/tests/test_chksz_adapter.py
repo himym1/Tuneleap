@@ -132,6 +132,64 @@ async def test_chksz_kugou_search_sends_num():
 
 
 @pytest.mark.asyncio
+async def test_chksz_qq_search_reads_songmid_payloads_and_code_zero():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "data": [],
+                "list": [
+                    {
+                        "songname": "晴天",
+                        "singer": [{"name": "周杰伦"}],
+                        "songmid": "0039MnYb0qxYhV",
+                        "albumname": "叶惠美",
+                    }
+                ],
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(client, "https://api.chksz.test", "chksz_test")
+        songs = await adapter.search("晴天", source="tencent", count=5, page=1)
+
+    assert [song["id"] for song in songs] == ["0039MnYb0qxYhV"]
+    assert songs[0]["title"] == "晴天"
+    assert songs[0]["artist"] == "周杰伦"
+    assert songs[0]["source"] == "tencent"
+
+
+@pytest.mark.asyncio
+async def test_chksz_kugou_search_reads_filehash_payloads():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "list": [
+                    {
+                        "FileName": "晴天",
+                        "SingerName": "周杰伦",
+                        "FileHash": "hash-1",
+                        "AlbumName": "叶惠美",
+                    }
+                ],
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        adapter = ChkszAdapter(client, "https://api.chksz.test", "chksz_test")
+        songs = await adapter.search("晴天", source="kugou", count=20, page=1)
+
+    assert [song["id"] for song in songs] == ["hash-1"]
+    assert songs[0]["title"] == "晴天"
+    assert songs[0]["artist"] == "周杰伦"
+
+
+@pytest.mark.asyncio
 async def test_chksz_url_and_http_cover():
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/api/163_music":

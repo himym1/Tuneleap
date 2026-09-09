@@ -226,7 +226,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'active_server_id': 'server-a',
       'server_url': 'http://music.local',
-      onlineSourcesPreferenceKey('server-a'): ['netease', 'tencent'],
+      onlineSourcesPreferenceKey('server-a'): ['netease', 'joox'],
     });
     final prefs = await SharedPreferences.getInstance();
     final backend = _PagedBackendClient();
@@ -238,15 +238,15 @@ void main() {
     );
     addTearDown(container.dispose);
     container.listen(searchProvider('netease'), (_, _) {});
-    container.listen(searchProvider('tencent'), (_, _) {});
+    container.listen(searchProvider('joox'), (_, _) {});
 
     final sources = container.read(onlineSourcePreferencesProvider);
     for (final source in sources) {
       await container.read(searchProvider(source).notifier).search('query');
     }
 
-    expect(backend.sources, ['netease', 'tencent']);
-    expect(sources, ['netease', 'tencent']);
+    expect(backend.sources, ['netease', 'joox']);
+    expect(sources, ['netease', 'joox']);
   });
 
   test('server hasMore false stops after the first page', () async {

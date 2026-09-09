@@ -18,8 +18,8 @@ def test_product_windows_merge_pagination_and_max_count():
 
     assert windows["netease"] == SearchWindow(max_count=50, paginates=True)
     assert windows["tencent"] == SearchWindow(max_count=30, paginates=False)
-    assert windows["kuwo"].max_count == 50
-    assert windows["kuwo"].paginates is False
+    assert windows["joox"].max_count == 30
+    assert windows["joox"].paginates is False
 
 
 def test_has_more_uses_policy_not_full_page():
@@ -85,3 +85,18 @@ def test_capabilities_payload_includes_product_sources():
     assert payload["default_provider"] == "meting"
     assert payload["sources"]["netease"] == {"max_count": 30, "paginates": False}
     assert payload["adapters"][0]["id"] == "meting"
+    assert "tencent" in payload["adapters"][0]["sources"]
+
+
+def test_capabilities_payload_can_hide_unadvertised_sources():
+    meting = MetingAdapter(httpx.AsyncClient(), ("https://meting.test/api",))
+    gdstudio = GdstudioAdapter(httpx.AsyncClient(), ("https://gds.test/api.php",))
+    payload = capabilities_payload(
+        [meting, gdstudio],
+        advertised_sources=("netease", "joox"),
+    )
+    assert payload["default_provider"] == "meting"
+    assert set(payload["sources"]) == {"netease", "joox"}
+    assert payload["adapters"][0]["sources"] == ["netease"]
+    assert payload["adapters"][1]["id"] == "gdstudio"
+    assert payload["adapters"][1]["sources"] == ["joox", "netease"]

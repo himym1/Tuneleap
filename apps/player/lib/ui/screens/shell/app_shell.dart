@@ -18,6 +18,7 @@ import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/platform_utils.dart';
 import 'package:navidrome_player/utils/player_navigation.dart';
 import 'package:navidrome_player/utils/request_generation.dart';
+import 'package:navidrome_player/utils/shell_navigation.dart';
 import 'package:window_manager/window_manager.dart';
 
 class PlaybackSpaceActivator implements ShortcutActivator {
@@ -276,45 +277,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     return 0;
   }
 
-  int? _branchIndexForPath(String path) {
-    final uri = path.split('?').first;
-    if (uri == '/recommendations' ||
-        uri == '/playlists' ||
-        uri == '/home' ||
-        uri.startsWith('/home/')) {
-      return 0;
-    }
-    if (uri.startsWith('/library') ||
-        uri.startsWith('/album/') ||
-        uri.startsWith('/playlist/') ||
-        uri.startsWith('/artist/')) {
-      return 1;
-    }
-    if (uri == '/search' || uri.startsWith('/search/')) return 2;
-    if (uri == '/settings' ||
-        uri == '/downloads' ||
-        uri == '/servers' ||
-        uri == '/scrobble' ||
-        uri == '/favorites' ||
-        uri == '/audio-quality' ||
-        uri == '/library-audit' ||
-        uri == '/library-styles' ||
-        uri == '/library-playlists') {
-      return 3;
-    }
-    return null;
-  }
-
   /// Branch roots restore the last stack when switching; re-tap resets.
   void _openDesktopPath(BuildContext context, String path) {
     final shell = widget.navigationShell;
-    final branch = _branchIndexForPath(path);
-    final isBranchRoot =
-        path == '/home' ||
-        path == '/library' ||
-        path == '/search' ||
-        path == '/settings';
-    if (branch != null && isBranchRoot) {
+    final branch = shellBranchIndexForPath(path);
+    if (branch != null && isShellTabRoot(path)) {
       shell.goBranch(branch, initialLocation: branch == shell.currentIndex);
       return;
     }

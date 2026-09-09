@@ -47,3 +47,9 @@ docs/architecture.md      Canonical topology
 
 - Never commit `.env`, API keys, JWT secrets, NAS Agent keys, Navidrome passwords, or `navidrome.db`.
 - Do not log tokens, passwords, or full media URLs with credentials.
+
+## 远程 SSH 目标
+
+- `dmit`：Tuneleap Cloud VPS 和私有更新发布主机；`apps/player/scripts/deploy-private-update.sh` 默认发布到 `dmit:/opt/navidrome-cloud/releases`。
+- `himym`：家庭 NAS，运行 `services/nas-agent` 和 Navidrome；Cloud 通过受限私有通路访问 NAS Agent。
+- 涉及发布或远程运维时必须同时确认 SSH alias 和 remote dir；不要把凭据、私钥、令牌或其他 secret value 写入项目文档。

@@ -27,6 +27,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
   final SharedPreferences? _prefs;
   String _serverId;
   String get _historyKey => scopedPreferenceKey('play_history', _serverId);
+  String get _queueKey => scopedPreferenceKey('play_queue', _serverId);
   String? Function(Song song)? _localPathLookup;
   final RequestGeneration _loadRequests = RequestGeneration();
   Future<void> _playerOperations = Future.value();
@@ -60,8 +61,9 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
            player ?? AudioPlayer(useProxyForRequestHeaders: !Platform.isMacOS),
        _prefs = prefs,
        _serverId = normalizeServerId(serverId) {
-    // 加载持久化的播放历史
+    // 加载持久化的播放历史和上次队列
     _loadHistory();
+    _restoreQueue();
 
     _player.playbackEventStream.listen(_broadcastState);
     _player.processingStateStream.listen((state) {
@@ -103,6 +105,73 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     if (_prefs == null) return;
     final json = jsonEncode(_playHistory.map((s) => s.toJson()).toList());
     _prefs.setString(_historyKey, json);
+  }
+
+  void _persistQueue() {
+    if (_prefs == null) return;
+    final json = jsonEncode({
+      'songs': [for (final song in _queue) song.toJson()],
+      'index': _currentIndex,
+      'shuffle': _shuffle,
+      'repeat': _repeatMode.name,
+    });
+    _prefs.setString(_queueKey, json);
+  }
+
+  /// Restore the last queue without autoplay so a restart resumes paused.
+  void _restoreQueue() {
+    _queue.clear();
+    _clearOrigins();
+    _currentIndex = -1;
+    _shuffle = false;
+    _repeatMode = PlaybackRepeatMode.off;
+
+    final json = _prefs?.getString(_queueKey);
+    if (json != null) {
+      try {
+        final data = jsonDecode(json);
+        if (data is Map<String, dynamic>) {
+          final rawSongs = data['songs'];
+          if (rawSongs is List) {
+            _queue.addAll([
+              for (final item in rawSongs)
+                if (item is Map) Song.fromJson(Map<String, dynamic>.from(item)),
+            ]);
+            _origins.addAll(List<PlaybackOrigin?>.filled(_queue.length, null));
+          }
+          final index = data['index'];
+          if (index is int && index >= 0 && index < _queue.length) {
+            _currentIndex = index;
+          }
+          _shuffle = data['shuffle'] == true;
+          final repeat = data['repeat'];
+          if (repeat is String) {
+            _repeatMode = PlaybackRepeatMode.values.firstWhere(
+              (mode) => mode.name == repeat,
+              orElse: () => PlaybackRepeatMode.off,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to load play queue: $e');
+        _queue.clear();
+        _origins.clear();
+        _currentIndex = -1;
+        _shuffle = false;
+        _repeatMode = PlaybackRepeatMode.off;
+      }
+    }
+
+    queue.add(_queue.map(_songToMediaItem).toList());
+    final song = currentSong;
+    mediaItem.add(song == null ? null : _songToMediaItem(song));
+    _publishCurrentOrigin();
+    _publishPlaybackMode();
+    if (_repeatMode == PlaybackRepeatMode.one) {
+      unawaited(
+        _enqueuePlayerOperation(() => _player.setLoopMode(LoopMode.one)),
+      );
+    }
   }
 
   void _checkScrobble(Duration position) {
@@ -158,18 +227,24 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     _backendClient = newBackend;
     if (!changedSession) return;
 
+    final serverChanged = nextServerId != _serverId;
+    if (serverChanged) _persistQueue();
     _serverId = nextServerId;
     _loadRequests.invalidate();
     _loadedSongKey = null;
     _loadedRequest = null;
     _scrobbledSongId = null;
     _scrobbleInFlightSongId = null;
+    final keepRepeatOne =
+        !serverChanged && _repeatMode == PlaybackRepeatMode.one;
     unawaited(
       _enqueuePlayerOperation(() async {
         await _player.stop();
-        await _player.setLoopMode(LoopMode.off);
+        await _player.setLoopMode(keepRepeatOne ? LoopMode.one : LoopMode.off);
       }),
     );
+    if (!serverChanged) return;
+
     _queue.clear();
     _clearOrigins();
     _currentIndex = -1;
@@ -179,6 +254,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     _repeatMode = PlaybackRepeatMode.off;
     _publishPlaybackMode();
     _loadHistory();
+    _restoreQueue();
   }
 
   /// 设置最大码率（0 = 原始音质，不限制）
@@ -283,11 +359,13 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       _loadedRequest = null;
       _currentIndex = -1;
       mediaItem.add(null);
+      _persistQueue();
       await _enqueuePlayerOperation(_player.stop);
       return;
     }
     _currentIndex = startIndex.clamp(0, songs.length - 1);
     _publishCurrentOrigin();
+    _persistQueue();
     await _loadAndPlay();
   }
 
@@ -296,6 +374,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     _queue.add(song);
     _origins.add(origin);
     queue.add(_queue.map(_songToMediaItem).toList());
+    _persistQueue();
   }
 
   /// 在当前歌曲后面插入
@@ -308,6 +387,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       _origins.add(origin);
     }
     queue.add(_queue.map(_songToMediaItem).toList());
+    _persistQueue();
   }
 
   /// 从队列中移除
@@ -328,6 +408,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     }
     queue.add(_queue.map(_songToMediaItem).toList());
     _publishCurrentOrigin();
+    _persistQueue();
 
     if (!removingCurrent) return;
     _loadRequests.invalidate();
@@ -369,12 +450,14 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     }
     queue.add(_queue.map(_songToMediaItem).toList());
     _publishCurrentOrigin();
+    _persistQueue();
   }
 
   void setShuffle(bool enabled) {
     _shuffle = enabled;
     if (enabled) shuffleQueue();
     _publishPlaybackMode();
+    if (!enabled) _persistQueue();
   }
 
   /// 随机打乱队列（保持当前歌曲在首位）
@@ -410,12 +493,14 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     }
     queue.add(_queue.map(_songToMediaItem).toList());
     _publishCurrentOrigin();
+    _persistQueue();
   }
 
   /// 设置循环模式
   void setRepeat(PlaybackRepeatMode mode) {
     _repeatMode = mode;
     _publishPlaybackMode();
+    _persistQueue();
     unawaited(
       _enqueuePlayerOperation(
         () => _player.setLoopMode(
@@ -490,6 +575,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     if (nextIndex == null) return;
     _currentIndex = nextIndex;
     _publishCurrentOrigin();
+    _persistQueue();
     await _loadAndPlay();
   }
 
@@ -508,6 +594,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
       return;
     }
     _publishCurrentOrigin();
+    _persistQueue();
     await _loadAndPlay();
   }
 
@@ -516,6 +603,7 @@ class NavidromeAudioHandler extends BaseAudioHandler with SeekHandler {
     if (index < 0 || index >= _queue.length) return;
     _currentIndex = index;
     _publishCurrentOrigin();
+    _persistQueue();
     await _loadAndPlay();
   }
 

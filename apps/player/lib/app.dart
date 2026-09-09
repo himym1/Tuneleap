@@ -60,6 +60,13 @@ Widget _fadeThroughTransition(
 
 const _kFadeDuration = Duration(milliseconds: 250);
 
+Widget _playerStackDetail(BuildContext context, Widget child) {
+  return ColoredBox(
+    color: Theme.of(context).scaffoldBackgroundColor,
+    child: child,
+  );
+}
+
 CustomTransitionPage<void> _detailSlidePage({
   required LocalKey key,
   required Widget child,
@@ -177,12 +184,36 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   );
                 },
           ),
+          routes: [
+            GoRoute(
+              path: 'artist/:id',
+              parentNavigatorKey: _rootNavigatorKey,
+              pageBuilder: (context, state) => _detailSlidePage(
+                key: state.pageKey,
+                child: _playerStackDetail(
+                  context,
+                  ArtistDetailScreen(artistId: state.pathParameters['id']!),
+                ),
+              ),
+            ),
+            GoRoute(
+              path: 'album/:id',
+              parentNavigatorKey: _rootNavigatorKey,
+              pageBuilder: (context, state) => _detailSlidePage(
+                key: state.pageKey,
+                child: _playerStackDetail(
+                  context,
+                  AlbumDetailScreen(albumId: state.pathParameters['id']!),
+                ),
+              ),
+            ),
+          ],
         ),
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) =>
               AppShell(navigationShell: navigationShell),
           branches: [
-            // 0 Home hub — recommendations and legacy playlist alias
+            // 0 Home hub — recommendations live on this stack
             StatefulShellBranch(
               routes: [
                 GoRoute(
@@ -225,10 +256,6 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                   path: '/recommendations',
                   redirect: (context, state) => '/home/recommendations',
                 ),
-                GoRoute(
-                  path: '/playlists',
-                  redirect: (context, state) => '/library/playlists',
-                ),
               ],
             ),
             // 1 Library — album/artist detail share this stack
@@ -237,15 +264,6 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                 GoRoute(
                   path: '/library',
                   redirect: (context, state) => '/library/songs',
-                ),
-                GoRoute(
-                  path: '/library/playlists',
-                  pageBuilder: (context, state) => CustomTransitionPage(
-                    key: state.pageKey,
-                    child: const PlaylistsScreen(),
-                    transitionsBuilder: _fadeThroughTransition,
-                    transitionDuration: _kFadeDuration,
-                  ),
                 ),
                 GoRoute(
                   path: '/library/songs',
@@ -307,17 +325,6 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                     key: state.pageKey,
                     child: AlbumDetailScreen(
                       albumId: state.pathParameters['id']!,
-                    ),
-                  ),
-                ),
-                GoRoute(
-                  path: '/playlist/:id',
-                  pageBuilder: (context, state) => _detailSlidePage(
-                    key: state.pageKey,
-                    child: PlaylistDetailScreen(
-                      playlistId: Uri.decodeComponent(
-                        state.pathParameters['id']!,
-                      ),
                     ),
                   ),
                 ),
@@ -432,6 +439,35 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                     child: const LibraryPlaylistOrganizeScreen(),
                     transitionsBuilder: _fadeThroughTransition,
                     transitionDuration: _kFadeDuration,
+                  ),
+                ),
+              ],
+            ),
+            // 4 Playlists — keep a separate tab stack from library
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/library/playlists',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const PlaylistsScreen(),
+                    transitionsBuilder: _fadeThroughTransition,
+                    transitionDuration: _kFadeDuration,
+                  ),
+                ),
+                GoRoute(
+                  path: '/playlists',
+                  redirect: (context, state) => '/library/playlists',
+                ),
+                GoRoute(
+                  path: '/playlist/:id',
+                  pageBuilder: (context, state) => _detailSlidePage(
+                    key: state.pageKey,
+                    child: PlaylistDetailScreen(
+                      playlistId: Uri.decodeComponent(
+                        state.pathParameters['id']!,
+                      ),
+                    ),
                   ),
                 ),
               ],

@@ -79,7 +79,10 @@ class MusicFacade:
         return list(self._adapters)
 
     def capabilities(self) -> dict[str, Any]:
-        return capabilities_payload(self._adapters)
+        return capabilities_payload(
+            self._adapters,
+            advertised_sources=self._settings.music_search_source_list,
+        )
 
 
     def _adapter_by_name(self, provider: str | None) -> MusicAdapter | None:
@@ -418,7 +421,7 @@ class MusicFacade:
                     invalidate(id, source=resolved, br=br)
             return await adapter.get_url(id, source=resolved, br=br)
 
-        data = await self._with_adapters(provider, _resolve)
+        data = await self._with_adapters(provider, _resolve, source=resolved)
         return UrlResponse.model_validate(data)
 
     async def get_cover(
@@ -428,6 +431,7 @@ class MusicFacade:
         data = await self._with_adapters(
             provider,
             lambda adapter: adapter.get_cover(id, source=resolved, size=size),
+            source=resolved,
         )
         return CoverResponse.model_validate(data)
 
@@ -470,15 +474,21 @@ class MusicFacade:
             raise last_error
         raise httpx.HTTPError("lyric empty")
 
-    async def _with_adapters(self, provider: str | None, op) -> dict[str, Any]:
+    async def _with_adapters(
+        self, provider: str | None, op, *, source: str | None = None
+    ) -> dict[str, Any]:
         preferred = self._adapter_by_name(provider)
         if provider and preferred is None:
             raise MusicSearchSelectionError(f"music adapter unavailable: {provider}")
-        order = (
-            [preferred]
-            if preferred is not None
-            else [adapter for adapter in self._adapters if _is_available(adapter)]
-        )
+        order: list[MusicAdapter] = []
+        if preferred is not None:
+            order.append(preferred)
+        for adapter in self._adapters:
+            if not _is_available(adapter) or adapter in order:
+                continue
+            if source is not None and not adapter.supports(source):
+                continue
+            order.append(adapter)
         if not order:
             raise httpx.HTTPError("no music adapters configured")
         last_error: Exception | None = None

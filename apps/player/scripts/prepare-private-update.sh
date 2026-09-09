@@ -82,7 +82,7 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "导入曲库：live/现场版会按弱身份找到本地原版并弹出「歌曲已存在」对照窗，不再直接进队列失败。"
+        "修复从播放页点歌手或专辑后无法返回。歌单标出正在播放的歌曲，退出后恢复上次播放队列。在线搜索源改为网易云和 Joox。"
     )
 }
 if Path(windows_name).is_file():
@@ -109,7 +109,7 @@ python3 "$SCRIPT_DIR/write_appcast.py" \
   --macos-build "$MACOS_BUILD" \
   --macos-name "$macos" \
   --sign-output "$sign_output" \
-  --changelog "导入曲库：live/现场版会按弱身份找到本地原版并弹出「歌曲已存在」对照窗，不再直接进队列失败。" \
+  --changelog "修复从播放页点歌手或专辑后无法返回。歌单标出正在播放的歌曲，退出后恢复上次播放队列。在线搜索源改为网易云和 Joox。" \
   --output "$DIST_DIR/appcast.xml"
 
 echo "Prepared private update metadata in $DIST_DIR"

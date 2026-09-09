@@ -8,15 +8,9 @@ import 'server_config_provider.dart';
 import 'server_scope.dart';
 
 /// Catalog of online platforms exposed by the player UI.
-const kOnlineCatalogSources = <String>[
-  'netease',
-  'tencent',
-  'kugou',
-  'migu',
-  'joox',
-];
+const kOnlineCatalogSources = <String>['netease', 'joox'];
 
-const kDefaultOnlineSources = <String>['netease', 'tencent', 'kugou'];
+const kDefaultOnlineSources = <String>['netease', 'joox'];
 
 String onlineSourcesPreferenceKey(String serverId) =>
     'online_search_sources_${normalizeServerId(serverId)}';
@@ -41,13 +35,24 @@ String? canonicalizeOnlineAdapter(String? adapter) {
 
 List<String> sanitizeOnlineSources(Iterable<String> raw) {
   final unique = <String>[];
+  var droppedUnknown = false;
   for (final source in raw) {
     final canonical = canonicalizeCatalogSource(source);
-    if (canonical != null && !unique.contains(canonical)) {
-      unique.add(canonical);
+    if (canonical != null) {
+      if (!unique.contains(canonical)) unique.add(canonical);
+    } else if (source.trim().isNotEmpty) {
+      droppedUnknown = true;
     }
   }
-  return unique.isEmpty ? List<String>.of(kDefaultOnlineSources) : unique;
+  if (unique.isEmpty || droppedUnknown) {
+    return List<String>.of(kDefaultOnlineSources);
+  }
+  unique.sort(
+    (a, b) => kOnlineCatalogSources
+        .indexOf(a)
+        .compareTo(kOnlineCatalogSources.indexOf(b)),
+  );
+  return unique;
 }
 
 List<String> catalogSourcesSupportedBy(

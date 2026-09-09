@@ -9,6 +9,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
 import 'package:navidrome_player/ui/widgets/rename_playlist_dialog.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
@@ -57,6 +58,9 @@ class PlaylistDetailScreen extends ConsumerWidget {
 
     final client = ref.read(subsonicClientProvider);
     final songs = playlist.songs;
+    final playerService = songs.isEmpty
+        ? null
+        : ref.read(audioPlayerServiceProvider);
     final isMobile = AppBreakpoints.isMobile(MediaQuery.sizeOf(context).width);
     final padding = isMobile
         ? AppDimensions.paddingMobile
@@ -67,215 +71,257 @@ class PlaylistDetailScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () =>
             ref.read(playlistDetailProvider(playlistId).notifier).refresh(),
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(padding, padding, padding, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Semantics(
-                      button: true,
-                      label: S.of(context).tooltipBack,
-                      child: InkWell(
-                        onTap: () => _goBack(context),
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.arrow_back_rounded,
-                                size: 16,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+        child: StreamBuilder<Song?>(
+          stream: playerService?.currentSongStream ?? const Stream.empty(),
+          initialData: playerService?.currentSong,
+          builder: (context, snapshot) {
+            final currentSong = snapshot.data ?? playerService?.currentSong;
+            return CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(padding, padding, padding, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Semantics(
+                          button: true,
+                          label: S.of(context).tooltipBack,
+                          child: InkWell(
+                            onTap: () => _goBack(context),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.arrow_back_rounded,
+                                    size: 16,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    S.of(context).commonBack,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .songSubtitle
+                                        .copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                S.of(context).commonBack,
-                                style: Theme.of(context).textTheme.songSubtitle
-                                    .copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (isMobile)
+                          Column(
+                            children: [
+                              _cover(client, playlist, 200),
+                              const SizedBox(height: 16),
+                              _headerText(context, playlist),
+                              const SizedBox(height: 16),
+                              _actions(context, ref, playlist, songs),
+                            ],
+                          )
+                        else
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _cover(client, playlist, 220),
+                              const SizedBox(width: 28),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _headerText(context, playlist),
+                                    const SizedBox(height: 20),
+                                    _actions(context, ref, playlist, songs),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (isMobile)
-                      Column(
-                        children: [
-                          _cover(client, playlist, 200),
-                          const SizedBox(height: 16),
-                          _headerText(context, playlist),
-                          const SizedBox(height: 16),
-                          _actions(context, ref, playlist, songs),
-                        ],
-                      )
-                    else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _cover(client, playlist, 220),
-                          const SizedBox(width: 28),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _headerText(context, playlist),
-                                const SizedBox(height: 20),
-                                _actions(context, ref, playlist, songs),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            if (songs.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          S.of(context).playlistListEmpty,
-                          style: Theme.of(context).textTheme.songSubtitle
-                              .copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                        const SizedBox(height: 16),
-                        FilledButton.tonalIcon(
-                          key: const Key('playlist-empty-add-songs-button'),
-                          onPressed: () => _addSongs(context, ref, playlist),
-                          icon: const Icon(Icons.playlist_add_rounded),
-                          label: Text(S.of(context).playlistAddSongs),
-                        ),
                       ],
                     ),
                   ),
                 ),
-              )
-            else
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(padding, 8, padding, 32),
-                sliver: SliverReorderableList(
-                  itemCount: songs.length,
-                  onReorderItem: (oldIndex, newIndex) =>
-                      _reorder(context, ref, playlist, oldIndex, newIndex),
-                  itemBuilder: (context, index) {
-                    final song = songs[index];
-                    return Material(
-                      key: ValueKey('${song.id}_$index'),
-                      color: Colors.transparent,
-                      child: ReorderableDelayedDragStartListener(
-                        index: index,
-                        child: SongContextMenu(
-                          song: song,
-                          onPlay: () => _playSongs(context, ref, songs, index),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 4),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              leading: CoverArt(
-                                url: client.coverArtUrl(
-                                  song.coverArt,
-                                  size: 80,
-                                ),
-                                size: 44,
-                                borderRadius: 6,
-                              ),
-                              title: Text(
-                                song.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.songTitle,
-                              ),
-                              subtitle: Text(
-                                song.artist,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.songSubtitle
-                                    .copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (song.duration != null)
-                                    Text(
-                                      formatDuration(song.duration!),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .songDuration
-                                          .copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                  IconButton(
-                                    tooltip: S.of(context).commonDelete,
-                                    onPressed: () => _removeSong(
+                if (songs.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              S.of(context).playlistListEmpty,
+                              style: Theme.of(context).textTheme.songSubtitle
+                                  .copyWith(
+                                    color: Theme.of(
                                       context,
-                                      ref,
-                                      playlist,
-                                      index,
-                                    ),
-                                    icon: Icon(
-                                      Icons.remove_circle_outline_rounded,
-                                      size: 18,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
-                                  ReorderableDragStartListener(
-                                    index: index,
-                                    child: Icon(
-                                      Icons.drag_handle_rounded,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              onTap: () =>
-                                  _playSongs(context, ref, songs, index),
                             ),
-                          ),
+                            const SizedBox(height: 16),
+                            FilledButton.tonalIcon(
+                              key: const Key('playlist-empty-add-songs-button'),
+                              onPressed: () =>
+                                  _addSongs(context, ref, playlist),
+                              icon: const Icon(Icons.playlist_add_rounded),
+                              label: Text(S.of(context).playlistAddSongs),
+                            ),
+                          ],
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-          ],
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(padding, 8, padding, 32),
+                    sliver: SliverReorderableList(
+                      itemCount: songs.length,
+                      onReorderItem: (oldIndex, newIndex) =>
+                          _reorder(context, ref, playlist, oldIndex, newIndex),
+                      itemBuilder: (context, index) {
+                        final song = songs[index];
+                        final isPlaying = currentSong?.id == song.id;
+                        return Material(
+                          key: ValueKey('${song.id}_$index'),
+                          color: Colors.transparent,
+                          child: ReorderableDelayedDragStartListener(
+                            index: index,
+                            child: SongContextMenu(
+                              song: song,
+                              onPlay: () =>
+                                  _playSongs(context, ref, songs, index),
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: ListTile(
+                                  tileColor: isPlaying
+                                      ? context.colors.primarySoft
+                                      : null,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                  leading: CoverArt(
+                                    url: client.coverArtUrl(
+                                      song.coverArt,
+                                      size: 80,
+                                    ),
+                                    size: 44,
+                                    borderRadius: 6,
+                                  ),
+                                  title: Text(
+                                    song.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.songTitle
+                                        .copyWith(
+                                          fontWeight: isPlaying
+                                              ? FontWeight.w600
+                                              : null,
+                                          color: isPlaying
+                                              ? context.colors.primary
+                                              : null,
+                                        ),
+                                  ),
+                                  subtitle: Text(
+                                    song.artist,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .songSubtitle
+                                        .copyWith(
+                                          color: isPlaying
+                                              ? context.colors.primary
+                                                    .withValues(alpha: 0.7)
+                                              : Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (isPlaying &&
+                                          playerService != null) ...[
+                                        StreamBuilder<bool>(
+                                          stream: playerService.playingStream,
+                                          builder: (context, playingSnap) =>
+                                              AudioVisualizerBars(
+                                                isPlaying:
+                                                    playingSnap.data ?? false,
+                                                size: 13,
+                                                color: context.colors.primary,
+                                              ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      if (song.duration != null)
+                                        Text(
+                                          formatDuration(song.duration!),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .songDuration
+                                              .copyWith(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                              ),
+                                        ),
+                                      IconButton(
+                                        tooltip: S.of(context).commonDelete,
+                                        onPressed: () => _removeSong(
+                                          context,
+                                          ref,
+                                          playlist,
+                                          index,
+                                        ),
+                                        icon: Icon(
+                                          Icons.remove_circle_outline_rounded,
+                                          size: 18,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                      ReorderableDragStartListener(
+                                        index: index,
+                                        child: Icon(
+                                          Icons.drag_handle_rounded,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  onTap: () =>
+                                      _playSongs(context, ref, songs, index),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );

@@ -105,7 +105,7 @@ async def test_first_success_does_not_concatenate_providers():
 
 
 @pytest.mark.asyncio
-async def test_default_adapter_order_prefers_meting():
+async def test_default_adapter_order_prefers_gdstudio():
     async with httpx.AsyncClient() as client:
         settings = Settings(
             _env_file=None,
@@ -114,7 +114,7 @@ async def test_default_adapter_order_prefers_meting():
         )
         facade = MusicFacade(client, settings)
 
-    assert [adapter.name for adapter in facade.adapters] == ["meting", "gdstudio"]
+    assert [adapter.name for adapter in facade.adapters] == ["gdstudio", "meting"]
 
 
 @pytest.mark.asyncio
@@ -153,7 +153,7 @@ async def test_omitted_source_walks_configured_search_sources():
     def handler(request: httpx.Request) -> httpx.Response:
         source = request.url.params.get("source") or ""
         calls.append(source)
-        if source == "migu":
+        if source == "netease":
             return httpx.Response(200, json=[])
         return httpx.Response(200, json=[_song(9, source="joox")])
 
@@ -164,14 +164,14 @@ async def test_omitted_source_walks_configured_search_sources():
             api_key="k",
             gdstudio_api_base_urls="https://gds.test/api.php",
             meting_api_base_urls="",
-            music_search_sources="migu,joox",
+            music_search_sources="netease,joox",
             upstream_strategy="ordered",
         )
         result = await MusicFacade(client, settings).search_first_success(
             "q", source=None, count=20, page=1
         )
 
-    assert calls == ["migu", "joox"]
+    assert calls == ["netease", "joox"]
     assert result.source == "joox"
     assert [item.id for item in result.items] == ["9"]
 
@@ -226,6 +226,7 @@ async def test_capabilities_and_provider_pin_follow_adapter_support():
                 chksz_api_base_url="https://chksz.test",
                 chksz_api_key="test-key",
                 music_adapter_order="meting,gdstudio,chksz",
+                music_search_sources="netease,joox",
                 upstream_strategy="ordered",
             ),
         )
@@ -233,7 +234,7 @@ async def test_capabilities_and_provider_pin_follow_adapter_support():
         capabilities = facade.capabilities()
         result = await facade.search_first_success(
             "q",
-            source="migu",
+            source="joox",
             provider="gdstudio",
             count=1,
             page=1,
@@ -245,31 +246,20 @@ async def test_capabilities_and_provider_pin_follow_adapter_support():
             "gdstudio",
             "chksz",
         ]
-        assert capabilities["adapters"][0]["sources"] == [
-            "baidu",
-            "kugou",
-            "kuwo",
-            "netease",
-            "tencent",
-        ]
+        assert capabilities["adapters"][0]["sources"] == ["netease"]
+        assert capabilities["adapters"][1]["sources"] == ["joox", "netease"]
         assert capabilities["sources"]["netease"] == {
             "max_count": 50,
             "paginates": True,
         }
-        assert capabilities["sources"]["tencent"] == {
+        assert capabilities["sources"]["joox"] == {
             "max_count": 30,
             "paginates": False,
         }
-        assert capabilities["sources"]["kugou"] == {
-            "max_count": 30,
-            "paginates": False,
-        }
-        assert capabilities["sources"]["kuwo"] == {
-            "max_count": 50,
-            "paginates": False,
-        }
+        assert "tencent" not in capabilities["sources"]
+        assert "kugou" not in capabilities["sources"]
         assert result.provider == "gdstudio"
-        assert calls == [("gds.test", "migu")]
+        assert calls == [("gds.test", "joox")]
 
 
 @pytest.mark.asyncio
@@ -740,10 +730,20 @@ async def test_is_playable_falls_back_after_preferred_provider_error():
     assert calls == ["meting", "gdstudio"]
 
 class _MediaAdapter:
-    def __init__(self, name: str, result: dict | Exception, calls: list[str]):
+    def __init__(
+        self,
+        name: str,
+        result: dict | Exception,
+        calls: list[str],
+        sources: frozenset[str] | None = None,
+    ):
         self.name = name
         self.result = result
         self.calls = calls
+        self.supported_sources = sources or frozenset({"netease"})
+
+    def supports(self, source: str | None) -> bool:
+        return source is None or source in self.supported_sources
 
     async def get_url(self, id: str, *, source: str, br: int) -> dict:
         self.calls.append(self.name)
@@ -776,7 +776,7 @@ class _LyricAdapter:
 
 
 @pytest.mark.asyncio
-async def test_media_request_pins_explicit_provider_without_fallback():
+async def test_get_url_falls_back_when_preferred_returns_empty():
     calls: list[str] = []
     async with httpx.AsyncClient() as client:
         facade = MusicFacade(
@@ -788,27 +788,70 @@ async def test_media_request_pins_explicit_provider_without_fallback():
             ),
         )
     facade._adapters = [  # type: ignore[assignment]
-        _MediaAdapter("chksz", httpx.HTTPError("down"), calls),
+        _MediaAdapter("gdstudio", httpx.HTTPError("gdstudio url empty"), calls),
         _MediaAdapter(
-            "meting",
+            "chksz",
             {
-                "url": "https://cdn.example.com/wrong.mp3",
-                "provider": "meting",
+                "url": "https://cdn.example.com/ok.mp3",
+                "provider": "chksz",
                 "source": "netease",
             },
             calls,
         ),
     ]
 
-    with pytest.raises(httpx.HTTPError, match="down"):
+    result = await facade.get_url(
+        "185912",
+        source="netease",
+        br=320,
+        provider="gdstudio",
+    )
+
+    assert result.url == "https://cdn.example.com/ok.mp3"
+    assert result.provider == "chksz"
+    assert calls == ["gdstudio", "chksz"]
+
+
+@pytest.mark.asyncio
+async def test_get_url_does_not_fallback_to_unsupported_source():
+    calls: list[str] = []
+    async with httpx.AsyncClient() as client:
+        facade = MusicFacade(
+            client,
+            Settings(
+                _env_file=None,
+                gdstudio_api_base_urls="",
+                meting_api_base_urls="",
+            ),
+        )
+    facade._adapters = [  # type: ignore[assignment]
+        _MediaAdapter(
+            "gdstudio",
+            httpx.HTTPError("gdstudio url empty"),
+            calls,
+            sources=frozenset({"netease", "joox"}),
+        ),
+        _MediaAdapter(
+            "chksz",
+            {
+                "url": "https://cdn.example.com/wrong.mp3",
+                "provider": "chksz",
+                "source": "netease",
+            },
+            calls,
+            sources=frozenset({"netease"}),
+        ),
+    ]
+
+    with pytest.raises(httpx.HTTPError, match="gdstudio url empty"):
         await facade.get_url(
-            "provider-specific-id",
-            source="netease",
+            "joox-id",
+            source="joox",
             br=320,
-            provider="chksz",
+            provider="gdstudio",
         )
 
-    assert calls == ["chksz"]
+    assert calls == ["gdstudio"]
 
 
 @pytest.mark.asyncio

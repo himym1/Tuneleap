@@ -7,6 +7,7 @@ import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/player/audio_handler.dart';
+import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/player/playback_origin.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -168,34 +169,38 @@ void main() {
     },
   );
 
-  test('replacing clients for the same server ends the old session', () async {
-    const song = Song(
-      id: 'a',
-      title: 'A',
-      artist: 'Artist',
-      artistId: 'artist',
-      album: 'Album',
-      albumId: 'album',
-    );
-    final player = _FakeAudioPlayer();
-    final handler = NavidromeAudioHandler(
-      _ScrobbleClient()
-        ..configure(serverUrl: 'http://a', username: 'u', password: 'p'),
-      BackendClient(),
-      player: player,
-      serverId: 'a',
-    );
-    await handler.setQueue([song]);
+  test(
+    'replacing clients for the same server stops playback and keeps the queue',
+    () async {
+      const song = Song(
+        id: 'a',
+        title: 'A',
+        artist: 'Artist',
+        artistId: 'artist',
+        album: 'Album',
+        albumId: 'album',
+      );
+      final player = _FakeAudioPlayer();
+      final handler = NavidromeAudioHandler(
+        _ScrobbleClient()
+          ..configure(serverUrl: 'http://a', username: 'u', password: 'p'),
+        BackendClient(),
+        player: player,
+        serverId: 'a',
+      );
+      await handler.setQueue([song]);
 
-    handler.updateClients(SubsonicClient(), BackendClient(), serverId: 'a');
-    await Future<void>.delayed(Duration.zero);
-    await Future<void>.delayed(Duration.zero);
+      handler.updateClients(SubsonicClient(), BackendClient(), serverId: 'a');
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
-    expect(handler.songQueue, isEmpty);
-    expect(handler.currentSong, isNull);
-    expect(handler.mediaItem.value, isNull);
-    expect(player.stopCalls, 1);
-  });
+      expect(handler.songQueue.single.id, 'a');
+      expect(handler.currentSong?.id, 'a');
+      expect(handler.hasLoadedCurrentSong, isFalse);
+      expect(player.stopCalls, 1);
+      expect(player.isPlaying, isFalse);
+    },
+  );
 
   test(
     'removing the current queue item loads the next source or stops',
@@ -780,5 +785,112 @@ void main() {
     await handler.pause();
     await handler.play();
     expect(player.loadedUrls, hasLength(2));
+  });
+
+  test('persists queue and restores it paused on a new handler', () async {
+    const songA = Song(
+      id: 'a',
+      title: 'A',
+      artist: 'Artist',
+      artistId: 'artist',
+      album: 'Album',
+      albumId: 'album',
+    );
+    const songB = Song(
+      id: 'b',
+      title: 'B',
+      artist: 'Artist',
+      artistId: 'artist',
+      album: 'Album',
+      albumId: 'album',
+    );
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final firstPlayer = _FakeAudioPlayer();
+    final first = NavidromeAudioHandler(
+      SubsonicClient(),
+      BackendClient(),
+      prefs: prefs,
+      player: firstPlayer,
+      serverId: 'server-a',
+    );
+    await first.setQueue([songA, songB], startIndex: 1);
+    first.setRepeat(PlaybackRepeatMode.all);
+    await first.stop();
+
+    final restoredPlayer = _FakeAudioPlayer();
+    final restored = NavidromeAudioHandler(
+      SubsonicClient(),
+      BackendClient(),
+      prefs: prefs,
+      player: restoredPlayer,
+      serverId: 'server-a',
+    );
+
+    expect(restored.songQueue.map((song) => song.id), ['a', 'b']);
+    expect(restored.currentIndex, 1);
+    expect(restored.currentSong?.id, 'b');
+    expect(restored.repeatMode, PlaybackRepeatMode.all);
+    expect(restoredPlayer.playCalls, 0);
+    expect(restoredPlayer.isPlaying, isFalse);
+
+    restored.updateClients(
+      SubsonicClient(),
+      BackendClient(),
+      serverId: 'server-a',
+    );
+    expect(restored.songQueue.map((song) => song.id), ['a', 'b']);
+    expect(restored.currentSong?.id, 'b');
+    expect(restoredPlayer.playCalls, 0);
+
+    await restored.stop();
+  });
+
+  test('restores the previous server queue after switching back', () async {
+    const songA = Song(
+      id: 'a',
+      title: 'Server A',
+      artist: 'Artist',
+      artistId: 'artist',
+      album: 'Album',
+      albumId: 'album',
+    );
+    const songB = Song(
+      id: 'b',
+      title: 'Server B',
+      artist: 'Artist',
+      artistId: 'artist',
+      album: 'Album',
+      albumId: 'album',
+    );
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final player = _FakeAudioPlayer();
+    final handler = NavidromeAudioHandler(
+      SubsonicClient(),
+      BackendClient(),
+      prefs: prefs,
+      player: player,
+      serverId: 'server-a',
+    );
+    await handler.setQueue([songA]);
+
+    handler.updateClients(
+      SubsonicClient(),
+      BackendClient(),
+      serverId: 'server-b',
+    );
+    await handler.setQueue([songB]);
+    handler.updateClients(
+      SubsonicClient(),
+      BackendClient(),
+      serverId: 'server-a',
+    );
+
+    expect(handler.songQueue.single.id, 'a');
+    expect(handler.currentSong?.id, 'a');
+    expect(player.isPlaying, isFalse);
+
+    await handler.stop();
   });
 }

@@ -50,18 +50,23 @@ def _common_size(br: int) -> str:
     return "128k"
 
 
+_SUCCESS_CODES = frozenset({0, 200, "0", "200", None})
+
+
 def _search_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[Any] = []
     data = payload.get("data")
     if isinstance(data, list):
-        return [item for item in data if isinstance(item, dict)]
-    if isinstance(data, dict):
-        for key in ("songs", "list", "records"):
-            items = data.get(key)
-            if isinstance(items, list):
-                return [item for item in items if isinstance(item, dict)]
-    items = payload.get("list")
-    if isinstance(items, list):
-        return [item for item in items if isinstance(item, dict)]
+        candidates.append(data)
+    elif isinstance(data, dict):
+        candidates.extend(data.get(key) for key in ("songs", "list", "records"))
+    candidates.extend((payload.get("list"), payload.get("songs")))
+    for candidate in candidates:
+        if not isinstance(candidate, list):
+            continue
+        items = [item for item in candidate if isinstance(item, dict)]
+        if items:
+            return items
     return []
 
 
@@ -132,14 +137,66 @@ def _item_cover_url(raw: dict[str, Any]) -> str | None:
     return None
 
 
+def _first_text(*values: Any) -> str | None:
+    for value in values:
+        if isinstance(value, list):
+            names: list[str] = []
+            for part in value:
+                if isinstance(part, dict):
+                    name = _first_text(
+                        part.get("name"), part.get("title"), part.get("singer")
+                    )
+                elif part in (None, ""):
+                    name = None
+                else:
+                    name = str(part).strip() or None
+                if name:
+                    names.append(name)
+            if names:
+                return " / ".join(names)
+            continue
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return str(value)
+    return None
+
+
 def _prepare_item(raw: dict[str, Any], *, source: str) -> dict[str, Any]:
     prepared = dict(raw)
-    song_id = raw.get("id") or raw.get("mid") or raw.get("songid")
-    if song_id not in (None, ""):
+    song_id = _first_text(
+        raw.get("id"),
+        raw.get("mid"),
+        raw.get("songid"),
+        raw.get("songmid"),
+        raw.get("songMid"),
+        raw.get("FileHash"),
+        raw.get("filehash"),
+        raw.get("hash") if source == "kugou" else None,
+    )
+    if song_id is not None:
         prepared["id"] = song_id
-    artist = raw.get("artist") or raw.get("artists") or raw.get("singer")
-    if artist not in (None, ""):
+    title = _first_text(
+        raw.get("title"),
+        raw.get("name"),
+        raw.get("song"),
+        raw.get("songname"),
+        raw.get("FileName"),
+    )
+    if title is not None:
+        prepared["title"] = title
+        prepared["name"] = title
+    artist = _first_text(
+        raw.get("artist"),
+        raw.get("artists"),
+        raw.get("singer"),
+        raw.get("SingerName"),
+    )
+    if artist is not None:
         prepared["artist"] = artist
+    album = _first_text(raw.get("album"), raw.get("albumname"), raw.get("AlbumName"))
+    if album is not None:
+        prepared["album"] = album
     cover = _item_cover_url(raw)
     if cover is not None:
         prepared["cover_id"] = cover
@@ -346,7 +403,7 @@ class ChkszAdapter(MusicAdapter):
             if not isinstance(payload, dict):
                 raise httpx.HTTPError("chksz invalid payload")
             code = payload.get("code")
-            if code not in (200, "200", None):
+            if code not in _SUCCESS_CODES:
                 raise httpx.HTTPError("chksz upstream rejected the request")
             if cache_ttl > 0:
                 if len(self._response_cache) >= 256:

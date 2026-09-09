@@ -1,15 +1,22 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:navidrome_player/api/backend_client.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/api/subsonic_client.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/player/audio_handler.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/screens/playlist_detail/playlist_detail_screen.dart';
 import 'package:navidrome_player/ui/screens/playlists/playlists_screen.dart';
 import 'package:navidrome_player/ui/theme/app_color_loader.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const _librarySong = Song(
   id: 's1',
@@ -137,13 +144,31 @@ class _RecordingPlaylistClient extends SubsonicClient {
   }
 }
 
-Future<_RecordingPlaylistClient> _pumpPlaylists(WidgetTester tester) async {
+Future<_RecordingPlaylistClient> _pumpPlaylists(
+  WidgetTester tester, {
+  bool withPlayer = false,
+}) async {
   tester.view.physicalSize = const Size(400, 900);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
   final client = _RecordingPlaylistClient();
+  final player = withPlayer ? _FakeAudioPlayer() : null;
+  final handler = withPlayer
+      ? NavidromeAudioHandler(
+          client,
+          BackendClient(),
+          prefs: prefs,
+          player: player,
+        )
+      : null;
+  if (handler != null && player != null) {
+    addTearDown(player.disposeStreams);
+  }
+
   final router = GoRouter(
     initialLocation: '/library/playlists',
     routes: [
@@ -172,7 +197,13 @@ Future<_RecordingPlaylistClient> _pumpPlaylists(WidgetTester tester) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [subsonicClientProvider.overrideWithValue(client)],
+      overrides: [
+        subsonicClientProvider.overrideWithValue(client),
+        if (handler != null) ...[
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          audioHandlerProvider.overrideWithValue(handler),
+        ],
+      ],
       child: MaterialApp.router(
         locale: const Locale('en'),
         theme: AppTheme.light(),
@@ -182,7 +213,12 @@ Future<_RecordingPlaylistClient> _pumpPlaylists(WidgetTester tester) async {
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (withPlayer) {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+  } else {
+    await tester.pumpAndSettle();
+  }
   return client;
 }
 
@@ -239,7 +275,7 @@ void main() {
   testWidgets('empty playlist opens detail and can add local library songs', (
     tester,
   ) async {
-    final client = await _pumpPlaylists(tester);
+    final client = await _pumpPlaylists(tester, withPlayer: true);
 
     await tester.tap(find.text('Morning'));
     // Avoid pumpAndSettle: CoverArt shimmer keeps animating.
@@ -268,4 +304,130 @@ void main() {
     expect(find.text('Spring'), findsWidgets);
     expect(find.text('Added 1 songs'), findsWidgets);
   });
+
+  testWidgets('playlist songs mark the currently playing item', (tester) async {
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const current = Song(
+      id: 's2',
+      title: 'Summer',
+      album: 'Album',
+      albumId: 'a1',
+      artist: 'Artist',
+      artistId: 'ar1',
+    );
+    const other = Song(
+      id: 's1',
+      title: 'Spring',
+      album: 'Album',
+      albumId: 'a1',
+      artist: 'Artist',
+      artistId: 'ar1',
+    );
+    final client = _RecordingPlaylistClient()
+      ..playlists[0] = Playlist(
+        id: 'p1',
+        name: 'Morning',
+        songCount: 2,
+        songs: const [other, current],
+      );
+
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final player = _FakeAudioPlayer();
+    final handler = NavidromeAudioHandler(
+      client,
+      BackendClient(),
+      prefs: prefs,
+      player: player,
+    );
+    addTearDown(player.disposeStreams);
+    await handler.setQueue(const [other, current], startIndex: 1);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          subsonicClientProvider.overrideWithValue(client),
+          audioHandlerProvider.overrideWithValue(handler),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          theme: AppTheme.light(),
+          localizationsDelegates: S.localizationsDelegates,
+          supportedLocales: S.supportedLocales,
+          home: const PlaylistDetailScreen(playlistId: 'p1'),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.text('Summer'), findsOneWidget);
+    expect(find.text('Spring'), findsOneWidget);
+    expect(find.byType(AudioVisualizerBars), findsOneWidget);
+  });
+}
+
+class _FakeAudioPlayer extends AudioPlayer {
+  final positionController = StreamController<Duration>.broadcast();
+  final processingController = StreamController<ProcessingState>.broadcast();
+  final playingController = StreamController<bool>.broadcast();
+  int playCalls = 0;
+  bool isPlaying = false;
+
+  @override
+  bool get playing => isPlaying;
+
+  @override
+  Stream<Duration> get positionStream => positionController.stream;
+
+  @override
+  Stream<ProcessingState> get processingStateStream =>
+      processingController.stream;
+
+  @override
+  Stream<bool> get playingStream => playingController.stream;
+
+  @override
+  Stream<PlaybackEvent> get playbackEventStream => const Stream.empty();
+
+  Future<void> disposeStreams() async {
+    await positionController.close();
+    await processingController.close();
+    await playingController.close();
+  }
+
+  @override
+  Future<Duration?> setUrl(
+    String url, {
+    Map<String, String>? headers,
+    Duration? initialPosition,
+    bool preload = true,
+    dynamic tag,
+  }) async {
+    return const Duration(seconds: 100);
+  }
+
+  @override
+  Future<void> play() async {
+    playCalls++;
+    isPlaying = true;
+  }
+
+  @override
+  Future<void> pause() async {
+    isPlaying = false;
+  }
+
+  @override
+  Future<void> stop() async {
+    isPlaying = false;
+  }
+
+  @override
+  Future<void> setLoopMode(LoopMode mode) async {}
 }

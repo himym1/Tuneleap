@@ -5,34 +5,57 @@ import 'package:navidrome_player/l10n/app_localizations.dart';
 Future<String?> showRenamePlaylistDialog({
   required BuildContext context,
   required String currentName,
-}) async {
-  final controller = TextEditingController(text: currentName);
-  try {
-    return await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(S.of(context).playlistRename),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: S.of(context).playlistNameLabel,
-          ),
-          onSubmitted: (value) => Navigator.pop(ctx, value.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(S.of(context).commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text(S.of(context).commonSave),
-          ),
-        ],
+}) {
+  return showDialog<String>(
+    context: context,
+    builder: (_) => _RenamePlaylistDialog(currentName: currentName),
+  );
+}
+
+class _RenamePlaylistDialog extends StatefulWidget {
+  const _RenamePlaylistDialog({required this.currentName});
+
+  final String currentName;
+
+  @override
+  State<_RenamePlaylistDialog> createState() => _RenamePlaylistDialogState();
+}
+
+class _RenamePlaylistDialogState extends State<_RenamePlaylistDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentName);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(S.of(context).playlistRename),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(labelText: S.of(context).playlistNameLabel),
+        onSubmitted: (value) => Navigator.pop(context, value.trim()),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(S.of(context).commonCancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: Text(S.of(context).commonSave),
+        ),
+      ],
     );
-  } finally {
-    controller.dispose();
   }
 }

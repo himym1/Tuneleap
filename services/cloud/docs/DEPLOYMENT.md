@@ -36,11 +36,12 @@ Postgres schema migrations run transactionally during application startup. Start
 
 ## Music upstream order
 
-The current bounded benchmark recommends Meting first and GDStudio second:
+The current search path uses GDStudio first for NetEase. Joox stays off the advertised tabs because GDStudio search works but `types=url` returns an empty play link. Playback tries GDStudio first, then ChKSz/Meting for the same NetEase id:
 
 ```env
-METING_API_BASE_URLS=https://meting.mikus.ink/api
-MUSIC_ADAPTER_ORDER=meting,gdstudio,chksz
+GDSTUDIO_API_BASE_URLS=https://music-api.gdstudio.xyz/api.php
+MUSIC_ADAPTER_ORDER=gdstudio,chksz,meting
+MUSIC_SEARCH_SOURCES=netease
 CHKSZ_API_BASE_URL=https://api.chksz.com
 CHKSZ_API_KEY=
 ```

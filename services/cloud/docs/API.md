@@ -25,15 +25,14 @@ Returns currently available configured adapters in failover order and the platfo
 
 ```json
 {
-  "default_provider": "meting",
+  "default_provider": "gdstudio",
   "sources": {
-    "netease": { "max_count": 50, "paginates": true },
-    "tencent": { "max_count": 30, "paginates": false },
-    "kugou": { "max_count": 30, "paginates": false }
+    "netease": { "max_count": 50, "paginates": true }
   },
   "adapters": [
-    { "id": "meting", "sources": ["netease", "tencent", "kugou"] },
-    { "id": "gdstudio", "sources": ["netease", "kugou", "migu", "joox"] }
+    { "id": "gdstudio", "sources": ["netease"] },
+    { "id": "chksz", "sources": ["netease"] },
+    { "id": "meting", "sources": ["netease"] }
   ]
 }
 ```

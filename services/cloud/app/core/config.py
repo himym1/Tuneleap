@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     http_timeout_seconds: float = 30.0
     upstream_cooldown_seconds: int = 60
     upstream_strategy: str = "ordered"  # ordered | race
-    music_adapter_order: str = "meting,gdstudio,chksz"
-    music_search_sources: str = "netease,migu,joox"
+    music_adapter_order: str = "gdstudio,chksz,meting"
+    music_search_sources: str = "netease"
     release_dir: str = "./releases"
 
     # Optional NAS agent for recommendation library blocking (no local navidrome.db mount)

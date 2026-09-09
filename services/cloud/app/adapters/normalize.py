@@ -9,7 +9,19 @@ def _as_str(value: Any, default: str = "") -> str:
     if value is None:
         return default
     if isinstance(value, list):
-        return " / ".join(str(part) for part in value if part not in (None, ""))
+        parts: list[str] = []
+        for part in value:
+            if isinstance(part, dict):
+                nested = _as_str(
+                    part.get("name") or part.get("title") or part.get("singer")
+                )
+                if nested:
+                    parts.append(nested)
+            elif part not in (None, ""):
+                text = str(part).strip()
+                if text:
+                    parts.append(text)
+        return " / ".join(parts) or default
     text = str(value).strip()
     return text or default
 
@@ -35,8 +47,19 @@ def normalize_song(raw: dict[str, Any], *, provider: str, default_source: str | 
         or raw.get("song_id")
         or raw.get("url_id")
         or raw.get("urlId")
+        or raw.get("mid")
+        or raw.get("songmid")
+        or raw.get("songMid")
+        or raw.get("FileHash")
+        or raw.get("filehash")
     )
-    title = _as_str(raw.get("title") or raw.get("name") or raw.get("song"))
+    title = _as_str(
+        raw.get("title")
+        or raw.get("name")
+        or raw.get("song")
+        or raw.get("songname")
+        or raw.get("FileName")
+    )
     if not song_id or not title:
         return None
 
@@ -58,12 +81,18 @@ def normalize_song(raw: dict[str, Any], *, provider: str, default_source: str | 
         # some sources return milliseconds
         duration = duration / 1000.0
 
-    artist = _as_str(raw.get("artist") or raw.get("singer") or raw.get("author"))
+    artist = _as_str(
+        raw.get("artist")
+        or raw.get("artists")
+        or raw.get("singer")
+        or raw.get("author")
+        or raw.get("SingerName")
+    )
     return {
         "id": song_id,
         "title": title,
         "artist": artist,
-        "album": _as_str(raw.get("album")),
+        "album": _as_str(raw.get("album") or raw.get("albumname") or raw.get("AlbumName")),
         "source": source,
         "provider": provider,
         "url_id": url_id,
