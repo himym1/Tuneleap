@@ -8,6 +8,7 @@ import 'package:navidrome_player/ui/widgets/library_section_tabs.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/utils/text_composing.dart';
 
 class LibraryAlbumsScreen extends ConsumerStatefulWidget {
   const LibraryAlbumsScreen({super.key});
@@ -31,7 +32,7 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
         .read(librarySearchProvider(LibrarySearchType.albums).notifier)
         .onQueryChanged(
           value,
-          composing: _searchController.value.composing != TextRange.empty,
+          composing: isActivelyComposing(_searchController.value),
         );
   }
 
@@ -71,7 +72,13 @@ class _LibraryAlbumsScreenState extends ConsumerState<LibraryAlbumsScreen> {
             padding: EdgeInsets.fromLTRB(h, 0, h, 16),
             child: TextField(
               controller: _searchController,
+              textInputAction: TextInputAction.search,
               onChanged: _onSearchChanged,
+              onSubmitted: (value) => ref
+                  .read(
+                    librarySearchProvider(LibrarySearchType.albums).notifier,
+                  )
+                  .onQueryChanged(value),
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
                 prefixIcon: const Icon(Icons.search_rounded),

@@ -16,6 +16,7 @@ import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/player_navigation.dart';
 import 'package:navidrome_player/utils/song_identity.dart';
+import 'package:navidrome_player/utils/text_composing.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key, this.initialQuery});
@@ -188,7 +189,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _onSearchChanged(String _) {
     _debounce?.cancel();
     // Skip if IME is still composing (e.g. pinyin input not yet confirmed)
-    if (_searchController.value.composing != TextRange.empty) return;
+    if (isActivelyComposing(_searchController.value)) return;
     _debounce = Timer(const Duration(milliseconds: 800), _doSearch);
   }
 

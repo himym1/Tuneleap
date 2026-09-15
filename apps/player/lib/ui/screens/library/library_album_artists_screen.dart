@@ -7,6 +7,7 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/utils/text_composing.dart';
 
 /// Album Artists screen — uses getArtists() which returns album artists by default in Subsonic
 class LibraryAlbumArtistsScreen extends ConsumerStatefulWidget {
@@ -42,7 +43,7 @@ class _LibraryAlbumArtistsScreenState
       });
       return;
     }
-    if (_searchController.value.composing != TextRange.empty) return;
+    if (isActivelyComposing(_searchController.value)) return;
     _searchDebounce = Timer(const Duration(milliseconds: 500), _doApiSearch);
   }
 
@@ -102,7 +103,12 @@ class _LibraryAlbumArtistsScreenState
             padding: EdgeInsets.fromLTRB(h, 0, h, 16),
             child: TextField(
               controller: _searchController,
+              textInputAction: TextInputAction.search,
               onChanged: _onSearchChanged,
+              onSubmitted: (_) {
+                _searchDebounce?.cancel();
+                unawaited(_doApiSearch());
+              },
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
                 prefixIcon: const Icon(Icons.search_rounded),

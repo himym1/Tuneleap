@@ -60,6 +60,10 @@ void main() {
       addTearDown(subscription.close);
       final notifier = container.read(provider.notifier);
 
+      notifier.onQueryChanged('j', composing: true);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      expect(client.calls, 0);
+
       notifier.onQueryChanged('jazz');
       await Future<void>.delayed(const Duration(milliseconds: 400));
       expect(client.calls, 0);

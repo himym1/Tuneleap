@@ -82,7 +82,7 @@ data = {
         "sha256": digest(macos_name),
     },
     "changelog": (
-        "修复从播放页点歌手或专辑后无法返回。歌单标出正在播放的歌曲，退出后恢复上次播放队列。在线搜索源改为网易云和 Joox。"
+        "修复 Windows 上库内搜索和在线搜索无法触发。"
     )
 }
 if Path(windows_name).is_file():
@@ -109,7 +109,7 @@ python3 "$SCRIPT_DIR/write_appcast.py" \
   --macos-build "$MACOS_BUILD" \
   --macos-name "$macos" \
   --sign-output "$sign_output" \
-  --changelog "修复从播放页点歌手或专辑后无法返回。歌单标出正在播放的歌曲，退出后恢复上次播放队列。在线搜索源改为网易云和 Joox。" \
+  --changelog "修复 Windows 上库内搜索和在线搜索无法触发。" \
   --output "$DIST_DIR/appcast.xml"
 
 echo "Prepared private update metadata in $DIST_DIR"

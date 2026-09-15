@@ -11,6 +11,7 @@ import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/ui/widgets/library_section_tabs.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/player_navigation.dart';
+import 'package:navidrome_player/utils/text_composing.dart';
 
 class LibrarySongsScreen extends ConsumerStatefulWidget {
   const LibrarySongsScreen({super.key});
@@ -213,7 +214,12 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
             padding: EdgeInsets.fromLTRB(h, 0, h, 16),
             child: TextField(
               controller: _searchController,
+              textInputAction: TextInputAction.search,
               onChanged: _onSearchChanged,
+              onSubmitted: (_) {
+                _searchDebounce?.cancel();
+                unawaited(_doApiSearch());
+              },
               decoration: InputDecoration(
                 hintText: S.of(context).navSearch,
                 prefixIcon: const Icon(Icons.search_rounded),
@@ -282,8 +288,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
       setState(() => _searchResults = null);
       return;
     }
-    // Skip if IME is still composing
-    if (_searchController.value.composing != TextRange.empty) return;
+    if (isActivelyComposing(_searchController.value)) return;
     _searchDebounce = Timer(const Duration(milliseconds: 500), _doApiSearch);
   }
 
