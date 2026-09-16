@@ -53,3 +53,10 @@ docs/architecture.md      Canonical topology
 - `dmit`：Tuneleap Cloud VPS 和私有更新发布主机；`apps/player/scripts/deploy-private-update.sh` 默认发布到 `dmit:/opt/navidrome-cloud/releases`。
 - `himym`：家庭 NAS，运行 `services/nas-agent` 和 Navidrome；Cloud 通过受限私有通路访问 NAS Agent。
 - 涉及发布或远程运维时必须同时确认 SSH alias 和 remote dir；不要把凭据、私钥、令牌或其他 secret value 写入项目文档。
+
+## 注释语言
+
+- 新增或修改代码注释默认使用简体中文，包括文档注释。
+- 保留必要的英文技术术语、标识符、命令、协议字段及工具要求的固定注释。
+- 不为统一语言批量翻译已有注释；修改相关代码时按需调整。
+- 用户明确要求英文，或文件必须遵循外部规范时，以该要求为准。
