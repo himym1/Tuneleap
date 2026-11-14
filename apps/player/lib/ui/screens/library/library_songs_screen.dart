@@ -7,6 +7,8 @@ import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
+import 'package:navidrome_player/ui/widgets/empty_state.dart';
+import 'package:navidrome_player/ui/widgets/loading_skeleton.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/ui/widgets/library_section_tabs.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
@@ -228,38 +230,28 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
           ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? SongListSkeleton(
+                    itemCount: 10,
+                    padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
+                  )
                 : _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(S.of(context).commonLoadFailed),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _loading = true;
-                              _error = null;
-                            });
-                            _loadData();
-                          },
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: Text(S.of(context).commonRetry),
-                        ),
-                      ],
-                    ),
+                ? ErrorState(
+                    message: S.of(context).commonLoadFailed,
+                    retryLabel: S.of(context).commonRetry,
+                    onRetry: () {
+                      setState(() {
+                        _loading = true;
+                        _error = null;
+                      });
+                      _loadData();
+                    },
                   )
                 : _songs.isEmpty
-                ? Center(
-                    child: Text(
-                      S.of(context).libraryNoSongs,
-                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                ? EmptyState(
+                    icon: Icons.music_note_rounded,
+                    message: S.of(context).libraryNoSongs,
                   )
-                : _buildSongList(),
+                : _buildSongList(h),
           ),
         ],
       ),
@@ -319,19 +311,15 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
     return _searchResults ?? _songs;
   }
 
-  Widget _buildSongList() {
+  Widget _buildSongList(double h) {
     final playerService = ref.read(audioPlayerServiceProvider);
     final client = ref.read(subsonicClientProvider);
     final filtered = _filteredSongs();
 
     if (filtered.isEmpty) {
-      return Center(
-        child: Text(
-          S.of(context).libraryNoSongs,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
+      return EmptyState(
+        icon: Icons.music_off_rounded,
+        message: S.of(context).libraryNoSongs,
       );
     }
 
@@ -344,7 +332,7 @@ class _LibrarySongsScreenState extends ConsumerState<LibrarySongsScreen>
           children: [
             ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
               itemExtent: _itemExtent,
               itemCount:
                   filtered.length + (_hasMore && _searchQuery.isEmpty ? 1 : 0),

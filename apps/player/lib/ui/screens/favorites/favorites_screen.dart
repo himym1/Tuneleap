@@ -8,6 +8,7 @@ import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
+import 'package:navidrome_player/ui/widgets/loading_skeleton.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/ui/widgets/segmented_control.dart';
 
@@ -59,10 +60,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
               children: [
                 if (isMobile) ...[
                   IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 20,
-                    ),
+                    tooltip: S.of(context).tooltipBack,
+                    icon: const Icon(Icons.arrow_back_rounded, size: 22),
                     onPressed: () => context.go('/settings'),
                   ),
                   const SizedBox(width: 4),
@@ -104,7 +103,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
           ),
           Expanded(
             child: starred.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => SongListSkeleton(
+                itemCount: 8,
+                padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
+              ),
               error: (_, _) => ErrorState(
                 message: S.of(context).commonError,
                 onRetry: () => ref.invalidate(starredProvider),

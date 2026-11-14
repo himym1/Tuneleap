@@ -16,6 +16,8 @@ void main() {
       'active_server_id': 'server-a',
       'server_url': 'http://music.local',
       onlineSourcesPreferenceKey('server-a'): ['netease', 'joox'],
+      tencentSourceSeedPreferenceKey('server-a'): true,
+      bilibiliSourceSeedPreferenceKey('server-a'): true,
       onlineAdapterPreferenceKey('server-a'): 'gdstudio',
     });
     final prefs = await SharedPreferences.getInstance();
@@ -77,5 +79,49 @@ void main() {
     expect(find.text('JOOX'), findsNothing);
     expect(find.byKey(const ValueKey('search-source-joox')), findsNothing);
     expect(find.byKey(const ValueKey('search-source-netease')), findsNothing);
+  });
+
+  testWidgets('search screen shows QQ when that source is enabled', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'active_server_id': 'server-a',
+      'server_url': 'http://music.local',
+      onlineSourcesPreferenceKey('server-a'): ['netease', 'tencent'],
+      tencentSourceSeedPreferenceKey('server-a'): true,
+      bilibiliSourceSeedPreferenceKey('server-a'): true,
+    });
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          musicCapabilitiesProvider.overrideWith(
+            (ref) async => const MusicCapabilities(
+              defaultProvider: 'gdstudio',
+              adapters: [
+                MusicAdapterCapability(
+                  id: 'gdstudio',
+                  sources: ['netease', 'joox'],
+                ),
+                MusicAdapterCapability(id: 'qq', sources: ['tencent']),
+              ],
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: S.localizationsDelegates,
+          supportedLocales: S.supportedLocales,
+          home: const SearchScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('网易云'), findsOneWidget);
+    expect(find.text('QQ'), findsOneWidget);
+    expect(find.byKey(const ValueKey('search-source-tencent')), findsOneWidget);
   });
 }

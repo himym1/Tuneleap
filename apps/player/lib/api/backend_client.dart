@@ -505,6 +505,49 @@ class BackendClient {
     ];
   }
 
+  Future<OnlinePlaylistPage> getOnlinePlaylists({
+    String section = 'recommended',
+    int limit = 20,
+  }) async {
+    final response = await _dio.get(
+      '$_cloudBaseUrl/v1/music/playlists/catalog',
+      queryParameters: {'section': section, 'limit': limit},
+      options: _cloudOptions(),
+    );
+    return _playlistPage(response.data);
+  }
+
+  Future<OnlinePlaylistPage> searchOnlinePlaylists(
+    String query, {
+    int limit = 20,
+  }) async {
+    final response = await _dio.get(
+      '$_cloudBaseUrl/v1/music/playlists/search',
+      queryParameters: {'q': query, 'limit': limit},
+      options: _cloudOptions(),
+    );
+    return _playlistPage(response.data);
+  }
+
+  Future<OnlinePlaylistDetail> getOnlinePlaylist(String id) async {
+    final response = await _dio.get(
+      '$_cloudBaseUrl/v1/music/playlists/$id',
+      options: _cloudOptions(),
+    );
+    final data = response.data;
+    if (data is! Map) {
+      throw const FormatException('Cloud playlist response must be an object');
+    }
+    return OnlinePlaylistDetail.fromJson(Map<String, dynamic>.from(data));
+  }
+
+  OnlinePlaylistPage _playlistPage(Object? data) {
+    if (data is! Map) {
+      throw const FormatException('Cloud playlist page must be an object');
+    }
+    return OnlinePlaylistPage.fromJson(Map<String, dynamic>.from(data));
+  }
+
   static bool _parseSearchHasMore(Map data, int itemCount, int count) {
     final raw = data['has_more'] ?? data['hasMore'];
     if (raw is bool) return raw;

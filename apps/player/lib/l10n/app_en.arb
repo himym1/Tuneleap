@@ -374,12 +374,28 @@
     "playlistCreatedList": "Created Lists",
     "playlistEmptyTitle": "No playlists yet",
     "playlistEmptyHint": "Create a playlist to organize your music",
+    "onlinePlaylistsTitle": "Online playlists",
+    "onlinePlaylistsEntry": "Online",
+    "onlinePlaylistsRecommended": "Recommended",
+    "onlinePlaylistsFeatured": "Featured",
+    "onlinePlaylistsCharts": "Charts",
+    "onlinePlaylistsChinese": "Chinese",
+    "onlinePlaylistsSearchHint": "Search playlists, for example 我是歌手第一季",
+    "onlinePlaylistsEmpty": "No playlists found",
+    "onlinePlaylistsPlayAll": "Play all",
+    "onlinePlaylistsTruncated": "Showing the first {count}",
+    "@onlinePlaylistsTruncated": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
     "playlistSongCountLabel": "{count} songs",
     "playlistPlay": "Play",
     "playlistListEmpty": "Playlist is empty",
     "playlistAddSongs": "Add Songs",
     "playlistAddSongsTitle": "Add Songs to Playlist",
     "playlistSearchSongsHint": "Search local library",
+    "playlistTrackSearchHint": "Search title, artist, or album",
     "playlistNoMatchingSongs": "No matching songs",
     "playlistAddSelected": "Add Selected",
     "playlistSongsAdded": "Added {count} songs",
@@ -491,6 +507,7 @@
     "searchBackendNavidrome": "Navidrome",
     "searchBackendNetease": "Netease",
     "searchBackendTencent": "QQ",
+    "searchBackendBilibili": "Bilibili",
     "searchBackendKugou": "Kugou",
     "searchBackendMigu": "Migu",
     "searchBackendKuwo": "Kuwo",
@@ -816,5 +833,8 @@
             "title": { "type": "String" },
             "artist": { "type": "String" }
         }
-    }
+    },
+    "homeSwapBatch": "Refresh",
+    "searchHistory": "Search History",
+    "searchHistoryClear": "Clear History"
 }

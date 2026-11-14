@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/ui/widgets/segmented_control.dart';
+import 'package:navidrome_player/ui/theme/app_theme.dart';
 
 /// Shared primary navigation for every library section.
 class LibrarySectionTabs extends StatelessWidget {
@@ -10,7 +11,6 @@ class LibrarySectionTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final sections = [
       AppSegmentItem(value: '/library/songs', label: S.of(context).navSongs),
       AppSegmentItem(value: '/library/albums', label: S.of(context).navAlbums),
@@ -34,14 +34,10 @@ class LibrarySectionTabs extends StatelessWidget {
           height: 42,
           width: 42,
           decoration: BoxDecoration(
-            color: (isDark ? Colors.white : Colors.black).withValues(
-              alpha: isDark ? 0.08 : 0.05,
-            ),
+            color: context.colors.subtleSurface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: (isDark ? Colors.white : Colors.black).withValues(
-                alpha: isDark ? 0.10 : 0.07,
-              ),
+              color: context.colors.hairlineBorder,
               width: 0.8,
             ),
           ),

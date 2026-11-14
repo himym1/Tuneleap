@@ -985,6 +985,39 @@ class SEn extends S {
   String get playlistEmptyHint => 'Create a playlist to organize your music';
 
   @override
+  String get onlinePlaylistsTitle => 'Online playlists';
+
+  @override
+  String get onlinePlaylistsEntry => 'Online';
+
+  @override
+  String get onlinePlaylistsRecommended => 'Recommended';
+
+  @override
+  String get onlinePlaylistsFeatured => 'Featured';
+
+  @override
+  String get onlinePlaylistsCharts => 'Charts';
+
+  @override
+  String get onlinePlaylistsChinese => 'Chinese';
+
+  @override
+  String get onlinePlaylistsSearchHint =>
+      'Search playlists, for example 我是歌手第一季';
+
+  @override
+  String get onlinePlaylistsEmpty => 'No playlists found';
+
+  @override
+  String get onlinePlaylistsPlayAll => 'Play all';
+
+  @override
+  String onlinePlaylistsTruncated(int count) {
+    return 'Showing the first $count';
+  }
+
+  @override
   String playlistSongCountLabel(int count) {
     return '$count songs';
   }
@@ -1003,6 +1036,9 @@ class SEn extends S {
 
   @override
   String get playlistSearchSongsHint => 'Search local library';
+
+  @override
+  String get playlistTrackSearchHint => 'Search title, artist, or album';
 
   @override
   String get playlistNoMatchingSongs => 'No matching songs';
@@ -1197,6 +1233,9 @@ class SEn extends S {
 
   @override
   String get searchBackendTencent => 'QQ';
+
+  @override
+  String get searchBackendBilibili => 'Bilibili';
 
   @override
   String get searchBackendKugou => 'Kugou';
@@ -1788,4 +1827,13 @@ class SEn extends S {
   ) {
     return '$current/$total: pick a result to replace \"$title\" · $artist';
   }
+
+  @override
+  String get homeSwapBatch => 'Refresh';
+
+  @override
+  String get searchHistory => 'Search History';
+
+  @override
+  String get searchHistoryClear => 'Clear History';
 }

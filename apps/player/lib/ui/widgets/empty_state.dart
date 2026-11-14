@@ -24,12 +24,24 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 48,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: context.colors.subtleSurface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: context.colors.hairlineBorder,
+                  width: 0.8,
+                ),
+              ),
+              child: Icon(
+                icon,
+                size: 32,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+              ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -74,10 +86,18 @@ class ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline_rounded,
-              size: 48,
-              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.6),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: context.colors.errorSoft,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 32,
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
             const SizedBox(height: 16),
             Text(

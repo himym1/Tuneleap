@@ -12,6 +12,7 @@ import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
 import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/import_to_navidrome_button.dart';
+import 'package:navidrome_player/ui/widgets/loading_skeleton.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/player_navigation.dart';
@@ -295,14 +296,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Container(
                   decoration: BoxDecoration(
-                    color: (isDark ? Colors.white : Colors.black).withValues(
-                      alpha: isDark ? 0.08 : 0.05,
-                    ),
+                    color: context.colors.subtleSurface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: (isDark ? Colors.white : Colors.black).withValues(
-                        alpha: isDark ? 0.10 : 0.07,
-                      ),
+                      color: context.colors.hairlineBorder,
                       width: 0.8,
                     ),
                   ),
@@ -413,16 +410,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
             ],
             const SizedBox(height: 12),
-            Expanded(child: _buildResults(searchState, selected)),
+            Expanded(child: _buildResults(searchState, selected, h)),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildResults(SearchState searchState, String? source) {
+  Widget _buildResults(SearchState searchState, String? source, double h) {
     if (searchState.searching && searchState.songs.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return SongListSkeleton(
+        itemCount: 8,
+        padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
+      );
     }
 
     if (searchState.error != null && searchState.songs.isEmpty) {
@@ -458,10 +458,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     if (searchState.songs.isEmpty && !searchState.searching) {
       if (_searchController.text.trim().isEmpty) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
         if (_history.isNotEmpty) {
           return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: h, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -477,7 +476,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          '搜索历史',
+                          S.of(context).searchHistory,
                           style: Theme.of(context).textTheme.titleSmall
                               ?.copyWith(
                                 fontWeight: FontWeight.w700,
@@ -492,7 +491,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         size: 18,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      tooltip: '清空历史',
+                      tooltip: S.of(context).searchHistoryClear,
                       onPressed: () {
                         HapticFeedback.lightImpact();
                         _clearHistory();
@@ -525,12 +524,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: (isDark ? Colors.white : Colors.black)
-                                  .withValues(alpha: isDark ? 0.08 : 0.05),
+                              color: context.colors.subtleSurface,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: (isDark ? Colors.white : Colors.black)
-                                    .withValues(alpha: isDark ? 0.10 : 0.07),
+                                color: context.colors.hairlineBorder,
                                 width: 0.8,
                               ),
                             ),
@@ -550,27 +547,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           );
         }
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.search_rounded,
-                size: 64,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                S.of(context).searchPlaceholder,
-                style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 15,
-                ),
-              ),
-            ],
-          ),
+        return EmptyState(
+          icon: Icons.search_rounded,
+          message: S.of(context).searchPlaceholder,
         );
       }
       return EmptyState(
@@ -587,7 +566,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       onNotification: _onScrollNotification,
       child: ListView.builder(
         controller: _resultsScrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
         itemCount: searchState.songs.length + (showFooter ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == searchState.songs.length) {

@@ -23,12 +23,7 @@ abstract final class AppGlass {
       borderRadius: BorderRadius.circular(borderRadius),
       border:
           border ??
-          Border.all(
-            color: (isDark ? Colors.white : Colors.black).withValues(
-              alpha: isDark ? 0.10 : 0.06,
-            ),
-            width: 0.8,
-          ),
+          Border.all(color: context.colors.hairlineBorder, width: 0.8),
       boxShadow:
           boxShadow ??
           [
@@ -144,20 +139,22 @@ class AmbientAuroraBackdrop extends StatelessWidget {
         Container(color: surface),
         // Glow orb 1 (top center / left)
         Positioned(
-          top: -100,
-          left: -60,
-          right: -60,
-          height: 450,
+          top: -120,
+          left: -80,
+          right: -80,
+          height: 500,
           child: IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
-                  center: const Alignment(0.0, -0.4),
-                  radius: 0.85,
+                  center: const Alignment(0.0, -0.35),
+                  radius: 0.95,
                   colors: [
-                    accentColor.withValues(alpha: isDark ? 0.38 : 0.22),
+                    accentColor.withValues(alpha: isDark ? 0.34 : 0.20),
+                    accentColor.withValues(alpha: isDark ? 0.12 : 0.06),
                     accentColor.withValues(alpha: 0.0),
                   ],
+                  stops: const [0.0, 0.52, 1.0],
                 ),
               ),
             ),
@@ -165,29 +162,26 @@ class AmbientAuroraBackdrop extends StatelessWidget {
         ),
         // Glow orb 2 (center right / bottom)
         Positioned(
-          top: 200,
-          right: -100,
-          bottom: 0,
-          width: 360,
+          top: 180,
+          right: -110,
+          bottom: -40,
+          width: 420,
           child: IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
-                  center: const Alignment(0.6, 0.2),
-                  radius: 0.75,
+                  center: const Alignment(0.55, 0.2),
+                  radius: 0.88,
                   colors: [
-                    sec.withValues(alpha: isDark ? 0.24 : 0.14),
+                    sec.withValues(alpha: isDark ? 0.22 : 0.12),
+                    sec.withValues(alpha: isDark ? 0.07 : 0.04),
                     sec.withValues(alpha: 0.0),
                   ],
+                  stops: const [0.0, 0.55, 1.0],
                 ),
               ),
             ),
           ),
-        ),
-        // Smooth diffusion overlay
-        BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-          child: const SizedBox.expand(),
         ),
         // Foreground content
         child,
@@ -212,7 +206,6 @@ class AudioFormatBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final fg = primary
         ? context.colors.primary
         : theme.colorScheme.onSurfaceVariant;
@@ -220,16 +213,9 @@ class AudioFormatBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: (isDark ? Colors.white : Colors.black).withValues(
-          alpha: isDark ? 0.08 : 0.05,
-        ),
+        color: context.colors.subtleSurface,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: (isDark ? Colors.white : Colors.black).withValues(
-            alpha: isDark ? 0.12 : 0.08,
-          ),
-          width: 0.6,
-        ),
+        border: Border.all(color: context.colors.hairlineBorder, width: 0.6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

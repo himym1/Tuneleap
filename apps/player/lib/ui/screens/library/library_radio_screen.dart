@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
+import 'package:navidrome_player/ui/widgets/loading_skeleton.dart';
+import 'package:navidrome_player/ui/widgets/page_back_button.dart';
 
 class LibraryRadioScreen extends ConsumerWidget {
   const LibraryRadioScreen({super.key});
@@ -24,16 +27,32 @@ class LibraryRadioScreen extends ConsumerWidget {
         children: [
           Padding(
             padding: EdgeInsets.fromLTRB(h, h, h, 16),
-            child: Text(
-              S.of(context).libraryRadioTitle,
-              style: Theme.of(context).textTheme.pageTitle.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+            child: Row(
+              children: [
+                if (context.canPop()) ...[
+                  const PageBackButton(
+                    compact: true,
+                    fallbackRoute: '/library/songs',
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Expanded(
+                  child: Text(
+                    S.of(context).libraryRadioTitle,
+                    style: Theme.of(context).textTheme.pageTitle.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
             child: stations.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => SongListSkeleton(
+                itemCount: 6,
+                padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
+              ),
               error: (_, _) => ErrorState(
                 message: S.of(context).commonError,
                 onRetry: () => ref.invalidate(radioStationsProvider),
@@ -41,13 +60,9 @@ class LibraryRadioScreen extends ConsumerWidget {
               ),
               data: (items) {
                 if (items.isEmpty) {
-                  return Center(
-                    child: Text(
-                      S.of(context).libraryRadioEmpty,
-                      style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                  return EmptyState(
+                    icon: Icons.radio_rounded,
+                    message: S.of(context).libraryRadioEmpty,
                   );
                 }
                 return ListView.builder(

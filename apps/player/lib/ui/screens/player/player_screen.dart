@@ -4,19 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:navidrome_player/api/media_request_headers.dart';
 import 'package:navidrome_player/providers/providers.dart';
-import 'package:navidrome_player/ui/widgets/save_queue_playlist_button.dart';
+import 'package:navidrome_player/ui/screens/player/player_controls.dart';
+import 'package:navidrome_player/ui/screens/player/player_queue_panel.dart';
 import 'package:navidrome_player/ui/widgets/import_to_navidrome_button.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/theme/app_glass.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
-import 'package:navidrome_player/ui/widgets/playback_mode_listener.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/api/models/song.dart';
 import 'package:navidrome_player/api/subsonic_client.dart' show LyricsLine;
-import 'package:navidrome_player/utils/cover_color.dart';
 import 'package:navidrome_player/utils/duration_format.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/request_generation.dart';
@@ -137,10 +137,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final request = _lyricsRequests.begin();
     final cacheKey = _lyricsKey(song);
     if (_lyricsForSongId == cacheKey && _lyrics != null) return;
-    if (_lyricsCache.containsKey(cacheKey)) {
+    final cachedLines = _lyricsCache[cacheKey];
+    // 空结果不沿用。第一次曲库还没补上歌词时记下来，后面同一首歌就再也不会请求。
+    if (cachedLines != null && cachedLines.isNotEmpty) {
       debugPrint('[PlayerScreen] lyrics cache hit');
       setState(() {
-        _lyrics = _lyricsCache[cacheKey];
+        _lyrics = cachedLines;
         _lyricsForSongId = cacheKey;
       });
       return;
@@ -164,11 +166,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         '[PlayerScreen] _loadLyrics result: ${result?.lines.length ?? 0} lines, synced=${result?.synced}',
       );
       final lines = result?.lines ?? [];
-      if (!_lyricsCache.containsKey(cacheKey) &&
-          _lyricsCache.length >= _lyricsCacheLimit) {
-        _lyricsCache.remove(_lyricsCache.keys.first);
+      if (lines.isEmpty) {
+        _lyricsCache.remove(cacheKey);
+      } else {
+        if (!_lyricsCache.containsKey(cacheKey) &&
+            _lyricsCache.length >= _lyricsCacheLimit) {
+          _lyricsCache.remove(_lyricsCache.keys.first);
+        }
+        _lyricsCache[cacheKey] = lines;
       }
-      _lyricsCache[cacheKey] = lines;
       setState(() {
         _lyrics = lines;
         _lyricsForSongId = cacheKey;
@@ -190,205 +196,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     BuildContext context,
     AudioPlayerService playerService,
   ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.85),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: context.colors.shadowStrong,
-                  blurRadius: 20,
-                  offset: const Offset(0, -5),
-                ),
-              ],
-            ),
-            child: DraggableScrollableSheet(
-              initialChildSize: 0.6,
-              minChildSize: 0.3,
-              maxChildSize: 0.85,
-              expand: false,
-              builder: (ctx, scrollController) {
-                final queue = playerService.queue;
-                return Column(
-                  children: [
-                    const SizedBox(height: 8),
-                    Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            S.of(context).playerQueueTitle,
-                            style: Theme.of(context).textTheme.playerSongName
-                                .copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface,
-                                ),
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                S.of(context).commonSongs(queue.length),
-                                style: Theme.of(context).textTheme.chipLabel
-                                    .copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                              SaveQueuePlaylistButton(
-                                queue: playerService.queue,
-                              ),
-                              IconButton(
-                                tooltip: S.of(context).playerClearQueue,
-                                onPressed: queue.isEmpty
-                                    ? null
-                                    : () async {
-                                        await playerService.clearQueue();
-                                        if (ctx.mounted) Navigator.pop(ctx);
-                                      },
-                                icon: const Icon(
-                                  Icons.clear_all_rounded,
-                                  size: 20,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: queue.isEmpty
-                          ? Center(
-                              child: Text(
-                                S.of(context).playerQueueEmpty,
-                                style: Theme.of(context).textTheme.songSubtitle
-                                    .copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                            )
-                          : StatefulBuilder(
-                              builder: (context, setSheetState) {
-                                return ReorderableListView.builder(
-                                  scrollController: scrollController,
-                                  itemCount: queue.length,
-                                  onReorderItem: (oldIndex, newIndex) {
-                                    playerService.reorderQueue(
-                                      oldIndex,
-                                      newIndex,
-                                    );
-                                    setSheetState(() {});
-                                    if (mounted) setState(() {});
-                                  },
-                                  itemBuilder: (context, index) {
-                                    final song = queue[index];
-                                    final isCurrent =
-                                        index == playerService.currentIndex;
-                                    return ListTile(
-                                      key: ValueKey('${song.id}_$index'),
-                                      dense: true,
-                                      leading: isCurrent
-                                          ? Icon(
-                                              Icons.equalizer_rounded,
-                                              color: context.colors.primary,
-                                              size: 18,
-                                            )
-                                          : Text(
-                                              '${index + 1}',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .playerTimestamp
-                                                  .copyWith(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                            ),
-                                      title: Text(
-                                        song.title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .songTitle
-                                            .copyWith(
-                                              fontWeight: isCurrent
-                                                  ? FontWeight.w600
-                                                  : FontWeight.w400,
-                                              color: isCurrent
-                                                  ? context.colors.primary
-                                                  : Theme.of(
-                                                      context,
-                                                    ).colorScheme.onSurface,
-                                            ),
-                                      ),
-                                      subtitle: Text(
-                                        song.artist,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .songSubtitle
-                                            .copyWith(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
-                                            ),
-                                      ),
-                                      trailing: _QueueSongMenuButton(
-                                        song: song,
-                                        onPlay: () {
-                                          playerService.skipToIndex(index);
-                                          Navigator.pop(ctx);
-                                        },
-                                        onDeleted: () {
-                                          if (mounted) setState(() {});
-                                        },
-                                      ),
-                                      onTap: () {
-                                        playerService.skipToIndex(index);
-                                        Navigator.pop(ctx);
-                                      },
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ),
+    showMobileQueueSheet(
+      context,
+      playerService,
+      onQueueChanged: () {
+        if (mounted) setState(() {});
+      },
     );
   }
 
@@ -800,13 +613,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                   key: ValueKey(coverUrl),
                                   child: ImageFiltered(
                                     imageFilter: ImageFilter.blur(
-                                      sigmaX: 80,
-                                      sigmaY: 80,
+                                      sigmaX: 40,
+                                      sigmaY: 40,
                                     ),
                                     child: Opacity(
                                       opacity: 0.18,
                                       child: Image.network(
                                         coverUrl,
+                                        headers: mediaRequestHeaders(coverUrl),
                                         fit: BoxFit.cover,
                                         errorBuilder: (_, _, _) =>
                                             const SizedBox.shrink(),
@@ -860,7 +674,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     String coverUrl,
     Color accentColor,
   ) {
-    return _DragDismissWrapper(
+    return DragDismissWrapper(
       onDismiss: _closePlayer,
       child: _buildMobilePlayer(
         context,
@@ -944,7 +758,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         color: playerFgMuted,
                       ),
                     ),
-                    _PlayerOverflowMenu(
+                    PlayerOverflowMenu(
                       song: currentSong,
                       iconColor: playerFgMuted,
                     ),
@@ -1033,21 +847,21 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ],
             const SizedBox(height: 18),
             // 4. 进度条 (时间位于进度条正下方两侧)
-            _ProgressBar(
+            PlayerProgressBar(
               playerService: playerService,
               activeColor: effectiveAccent,
               textColor: playerFgMuted,
             ),
             const SizedBox(height: 10),
             // 5. 核心播放控制区 (Shuffle / Prev / PlayPause / Next / Repeat)
-            _PlaybackControls(
+            PlaybackControls(
               playerService: playerService,
               accentColor: effectiveAccent,
               iconColor: playerFg,
             ),
             const SizedBox(height: 14),
             // 6. 底部细致音量条与倍速 (带左右喇叭图标)
-            _BottomVolumeAndUtilityRow(
+            BottomVolumeAndUtilityRow(
               playerService: playerService,
               foreground: playerFgMuted,
             ),
@@ -1065,7 +879,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     String coverUrl,
     Color accentColor,
   ) {
-    final wide = MediaQuery.of(context).size.width >= AppBreakpoints.medium;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final wide =
+        screenWidth >= AppBreakpoints.expanded ||
+        (screenWidth >= AppBreakpoints.medium && !_showQueue);
     final showLyricsPane = _showLyrics || wide;
     if (showLyricsPane &&
         (_lyrics == null || _lyricsForSongId != _lyricsKey(currentSong))) {
@@ -1110,7 +927,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             tooltip: S.of(context).contextMenuAddPlaylist,
                             icon: const Icon(Icons.playlist_add_rounded),
                           ),
-                          _PlayerOverflowMenu(song: currentSong),
+                          PlayerOverflowMenu(song: currentSong),
                         ],
                         StreamBuilder<double>(
                           stream: playerService.player.speedStream,
@@ -1286,21 +1103,35 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     const SizedBox(height: 12),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 500),
-                      child: _ProgressBar(playerService: playerService),
+                      child: PlayerProgressBar(
+                        playerService: playerService,
+                        activeColor: accentColor,
+                      ),
                     ),
                     const SizedBox(height: 4),
-                    _PlaybackControls(
+                    PlaybackControls(
                       playerService: playerService,
                       accentColor: accentColor,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: BottomVolumeAndUtilityRow(
+                        playerService: playerService,
+                        foreground: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant,
+                        showSpeed: false,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
                   ],
                 ),
               ),
             ],
           ),
         ),
-        if (_showQueue) _QueuePanel(playerService: playerService),
+        if (_showQueue) DesktopQueuePanel(playerService: playerService),
       ],
     );
   }
@@ -1352,733 +1183,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
       child: _buildLyricsPanel(currentSong, playerService),
-    );
-  }
-}
-
-/// 右侧队列面板 — ReorderableListView + Dismissible
-class _QueuePanel extends StatefulWidget {
-  final AudioPlayerService playerService;
-  const _QueuePanel({required this.playerService});
-
-  @override
-  State<_QueuePanel> createState() => _QueuePanelState();
-}
-
-class _QueuePanelState extends State<_QueuePanel> {
-  @override
-  Widget build(BuildContext context) {
-    final ps = widget.playerService;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    // 监听当前歌曲变化以刷新高亮
-    return StreamBuilder<Song?>(
-      stream: ps.currentSongStream,
-      builder: (context, _) {
-        return ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              width: AppDimensions.queuePanelWidth,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh
-                    .withValues(alpha: isDark ? 0.85 : 0.90),
-                border: Border(
-                  left: BorderSide(
-                    color: (isDark ? Colors.white : Colors.black).withValues(
-                      alpha: isDark ? 0.10 : 0.06,
-                    ),
-                    width: 0.8,
-                  ),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          S.of(context).playerQueueTitle,
-                          style: Theme.of(context).textTheme.playerQueueHeader,
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              S.of(context).commonSongs(ps.queue.length),
-                              style: Theme.of(context).textTheme.playerTimestamp
-                                  .copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                            SaveQueuePlaylistButton(queue: ps.queue),
-                            IconButton(
-                              tooltip: S.of(context).playerClearQueue,
-                              onPressed: ps.queue.isEmpty
-                                  ? null
-                                  : () async {
-                                      await ps.clearQueue();
-                                      if (mounted) setState(() {});
-                                    },
-                              icon: const Icon(
-                                Icons.clear_all_rounded,
-                                size: 20,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: ps.queue.isEmpty
-                        ? Center(
-                            child: Text(
-                              S.of(context).playerQueueEmpty,
-                              style: Theme.of(context).textTheme.songSubtitle
-                                  .copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                          )
-                        : ReorderableListView.builder(
-                            itemCount: ps.queue.length,
-                            onReorderItem: (oldIndex, newIndex) {
-                              setState(() {
-                                ps.reorderQueue(oldIndex, newIndex);
-                              });
-                            },
-                            buildDefaultDragHandles: false,
-                            proxyDecorator: (child, index, animation) {
-                              return Material(
-                                color: context.colors.primarySoft,
-                                elevation: 2,
-                                borderRadius: BorderRadius.circular(8),
-                                child: child,
-                              );
-                            },
-                            itemBuilder: (context, index) {
-                              final song = ps.queue[index];
-                              final isCurrent = index == ps.currentIndex;
-                              return Dismissible(
-                                key: ValueKey('${song.id}_$index'),
-                                direction: DismissDirection.endToStart,
-                                background: Container(
-                                  alignment: Alignment.centerRight,
-                                  padding: const EdgeInsets.only(right: 16),
-                                  color: context.colors.errorSoft,
-                                  child: Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: context.colors.error,
-                                    size: 20,
-                                  ),
-                                ),
-                                onDismissed: (_) {
-                                  setState(() {
-                                    ps.removeFromQueue(index);
-                                  });
-                                },
-                                child: Container(
-                                  color: isCurrent
-                                      ? context.colors.primarySoftSubtle
-                                      : null,
-                                  child: ListTile(
-                                    dense: true,
-                                    leading: isCurrent
-                                        ? Icon(
-                                            Icons.equalizer_rounded,
-                                            color: context.colors.primary,
-                                            size: 18,
-                                          )
-                                        : Text(
-                                            '${index + 1}',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .playerTimestamp
-                                                .copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                          ),
-                                    title: Text(
-                                      song.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .chipLabel
-                                          .copyWith(
-                                            fontWeight: isCurrent
-                                                ? FontWeight.w600
-                                                : FontWeight.w400,
-                                            color: isCurrent
-                                                ? context.colors.primary
-                                                : Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
-                                          ),
-                                    ),
-                                    subtitle: Text(
-                                      song.artist,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .songSubtitle
-                                          .copyWith(
-                                            fontSize: 11,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (song.duration != null)
-                                          Text(
-                                            formatDuration(song.duration!),
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .songDuration
-                                                .copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                          ),
-                                        _QueueSongMenuButton(
-                                          song: song,
-                                          onPlay: () => ps.skipToIndex(index),
-                                          onDeleted: () {
-                                            if (mounted) setState(() {});
-                                          },
-                                        ),
-                                        const SizedBox(width: 4),
-                                        ReorderableDragStartListener(
-                                          index: index,
-                                          child: Icon(
-                                            Icons.drag_handle_rounded,
-                                            size: 18,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    onTap: () => ps.skipToIndex(index),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _QueueSongMenuButton extends ConsumerWidget {
-  final Song song;
-  final VoidCallback onPlay;
-  final VoidCallback? onDeleted;
-
-  const _QueueSongMenuButton({
-    required this.song,
-    required this.onPlay,
-    this.onDeleted,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return IconButton(
-      key: ValueKey('queue-song-menu-${song.storageKey}'),
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-      padding: EdgeInsets.zero,
-      tooltip: S.of(context).tooltipMore,
-      onPressed: () {
-        final box = context.findRenderObject() as RenderBox?;
-        final position = box == null
-            ? MediaQuery.sizeOf(context).center(Offset.zero)
-            : box.localToGlobal(box.size.center(Offset.zero));
-        SongContextMenu.showForSong(
-          context,
-          ref,
-          song,
-          position: position,
-          onPlay: onPlay,
-          onDeleted: onDeleted,
-        );
-      },
-      icon: const Icon(Icons.more_vert_rounded, size: 18),
-    );
-  }
-}
-
-class _ProgressBar extends StatelessWidget {
-  final AudioPlayerService playerService;
-  final Color? activeColor;
-  final Color? textColor;
-
-  const _ProgressBar({
-    required this.playerService,
-    this.activeColor,
-    this.textColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final actColor = activeColor ?? Theme.of(context).colorScheme.primary;
-    final txtColor =
-        textColor ?? Theme.of(context).colorScheme.onSurfaceVariant;
-
-    return StreamBuilder<Duration>(
-      stream: playerService.positionStream,
-      builder: (context, posSnap) {
-        return StreamBuilder<Duration?>(
-          stream: playerService.durationStream,
-          builder: (context, durSnap) {
-            final position = posSnap.data ?? Duration.zero;
-            final duration = durSnap.data ?? Duration.zero;
-            final progress = duration.inMilliseconds > 0
-                ? position.inMilliseconds / duration.inMilliseconds
-                : 0.0;
-
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 4,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 6,
-                    ),
-                    overlayShape: const RoundSliderOverlayShape(
-                      overlayRadius: 12,
-                    ),
-                    activeTrackColor: actColor,
-                    inactiveTrackColor: txtColor.withValues(alpha: 0.18),
-                    thumbColor: actColor,
-                  ),
-                  child: Slider(
-                    value: progress.clamp(0.0, 1.0),
-                    onChanged: (value) {
-                      final newPos = Duration(
-                        milliseconds: (value * duration.inMilliseconds).round(),
-                      );
-                      playerService.seekTo(newPos);
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _fmt(position),
-                        style: Theme.of(context).textTheme.playerTimestamp
-                            .copyWith(
-                              color: txtColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                      ),
-                      Text(
-                        _fmt(duration),
-                        style: Theme.of(context).textTheme.playerTimestamp
-                            .copyWith(
-                              color: txtColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  String _fmt(Duration d) {
-    final m = d.inMinutes;
-    final s = d.inSeconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
-}
-
-/// 播放控制按钮 — AnimatedIcon play/pause + 响应式 Repeat 状态
-class _PlaybackControls extends StatefulWidget {
-  final AudioPlayerService playerService;
-  final Color? accentColor;
-  final Color? iconColor;
-
-  const _PlaybackControls({
-    required this.playerService,
-    this.accentColor,
-    this.iconColor,
-  });
-
-  @override
-  State<_PlaybackControls> createState() => _PlaybackControlsState();
-}
-
-class _PlaybackControlsState extends State<_PlaybackControls>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _playPauseController;
-  StreamSubscription<bool>? _playingSub;
-  bool _playing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _playPauseController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _playingSub = widget.playerService.playingStream.listen((playing) {
-      if (!mounted) return;
-      setState(() => _playing = playing);
-      if (playing) {
-        _playPauseController.forward();
-      } else {
-        _playPauseController.reverse();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _playingSub?.cancel();
-    _playPauseController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // 播放按钮使用主强调色
-    final btnColor = widget.accentColor ?? context.colors.primary;
-    // 确保按钮上的图标可见：深色按钮用白色图标，浅色按钮用深色图标
-    final btnFg = foregroundOn(btnColor);
-    final controlColor =
-        widget.iconColor ?? Theme.of(context).colorScheme.onSurface;
-    final l10n = S.of(context);
-
-    return PlaybackModeListener(
-      playerService: widget.playerService,
-      builder: (context, shuffle, repeatMode) => Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          PlaybackModeIconButton(
-            selected: shuffle,
-            icon: Icons.shuffle_rounded,
-            iconColor: controlColor,
-            tooltip: playbackShuffleTooltip(l10n, shuffle),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              widget.playerService.toggleShuffle();
-            },
-          ),
-          const SizedBox(width: 12),
-          IconButton(
-            icon: const Icon(Icons.skip_previous_rounded, size: 32),
-            color: controlColor,
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              widget.playerService.previous();
-            },
-            tooltip: S.of(context).playerPrevious,
-          ),
-          const SizedBox(width: 8),
-          Container(
-            width: 62,
-            height: 62,
-            decoration: BoxDecoration(
-              color: btnColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: btnColor.withValues(alpha: 0.42),
-                  blurRadius: 18,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: AnimatedIcon(
-                icon: AnimatedIcons.play_pause,
-                progress: _playPauseController,
-                size: 34,
-                color: btnFg,
-              ),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                if (_playing) {
-                  widget.playerService.pause();
-                } else {
-                  widget.playerService.play();
-                }
-              },
-              tooltip: S.of(context).playerPlayPause,
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.skip_next_rounded, size: 32),
-            color: controlColor,
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              widget.playerService.next();
-            },
-            tooltip: S.of(context).playerNext,
-          ),
-          const SizedBox(width: 12),
-          PlaybackModeIconButton(
-            selected: repeatMode != PlaybackRepeatMode.off,
-            icon: playbackRepeatIcon(repeatMode),
-            iconColor: controlColor,
-            tooltip: playbackRepeatTooltip(l10n, repeatMode),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              widget.playerService.cycleRepeatMode();
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// GPU-composited drag-down dismiss wrapper with spring-back animation.
-class _DragDismissWrapper extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onDismiss;
-
-  const _DragDismissWrapper({required this.child, required this.onDismiss});
-
-  @override
-  State<_DragDismissWrapper> createState() => _DragDismissWrapperState();
-}
-
-class _DragDismissWrapperState extends State<_DragDismissWrapper>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  double _dragExtent = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 250),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _handleDragUpdate(DragUpdateDetails details) {
-    setState(() {
-      _dragExtent = (_dragExtent + details.delta.dy).clamp(0.0, 300.0);
-    });
-  }
-
-  void _handleDragEnd(DragEndDetails details) {
-    if (_dragExtent > 120 || (details.primaryVelocity ?? 0) > 600) {
-      widget.onDismiss();
-    } else {
-      // Spring back with animation
-      final startValue = _dragExtent;
-      _controller.reset();
-      _controller.forward();
-      late final VoidCallback listener;
-      listener = () {
-        setState(() {
-          _dragExtent =
-              startValue * (1 - Curves.easeOut.transform(_controller.value));
-        });
-        if (_controller.isCompleted) {
-          _controller.removeListener(listener);
-        }
-      };
-      _controller.addListener(listener);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final progress = (_dragExtent / 300).clamp(0.0, 1.0);
-    return GestureDetector(
-      onVerticalDragUpdate: _handleDragUpdate,
-      onVerticalDragEnd: _handleDragEnd,
-      behavior: HitTestBehavior.translucent,
-      child: Transform.translate(
-        offset: Offset(0, _dragExtent),
-        child: Opacity(opacity: 1.0 - progress * 0.4, child: widget.child),
-      ),
-    );
-  }
-}
-
-class _PlayerOverflowMenu extends ConsumerWidget {
-  const _PlayerOverflowMenu({required this.song, this.iconColor});
-
-  final Song song;
-  final Color? iconColor;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final canMutate = ref
-        .read(songMediaResolverProvider)
-        .supportsLibraryMutations(song);
-    if (!canMutate) return const SizedBox.shrink();
-    return PopupMenuButton<String>(
-      key: const Key('player-overflow-menu'),
-      tooltip: S.of(context).playerMoreActions,
-      icon: Icon(Icons.more_vert_rounded, color: iconColor),
-      onSelected: (value) {
-        if (value == 'playlist') {
-          SongContextMenu.addToPlaylist(context, ref, song);
-        } else if (value == 'delete') {
-          SongContextMenu.deleteSong(context, ref, song);
-        }
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'playlist',
-          child: Text(S.of(context).contextMenuAddPlaylist),
-        ),
-        PopupMenuItem(
-          key: const Key('player-delete-song-button'),
-          value: 'delete',
-          child: Text(
-            S.of(context).contextMenuDelete,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BottomVolumeAndUtilityRow extends StatelessWidget {
-  const _BottomVolumeAndUtilityRow({
-    required this.playerService,
-    required this.foreground,
-  });
-
-  final AudioPlayerService playerService;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        children: [
-          // 播放倍速微小胶囊
-          StreamBuilder<double>(
-            stream: playerService.player.speedStream,
-            builder: (context, snap) {
-              final speed = snap.data ?? 1.0;
-              return PopupMenuButton<double>(
-                tooltip: S.of(context).playerSpeed,
-                onSelected: (v) {
-                  HapticFeedback.selectionClick();
-                  playerService.setSpeed(v);
-                },
-                itemBuilder: (_) => [
-                  for (final value in [0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
-                    PopupMenuItem(
-                      value: value,
-                      child: Text(S.of(context).playerSpeedValue(value)),
-                    ),
-                ],
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: foreground.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    S.of(context).playerSpeedValue(speed),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: foreground,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 12),
-          // 小喇叭图标 (音量小)
-          Icon(
-            Icons.volume_down_rounded,
-            size: 17,
-            color: foreground.withValues(alpha: 0.6),
-          ),
-          const SizedBox(width: 4),
-          // 极简细音量滑块
-          Expanded(
-            child: StreamBuilder<double>(
-              stream: playerService.player.volumeStream,
-              builder: (context, snapshot) {
-                final volume = snapshot.data ?? playerService.player.volume;
-                return SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 3,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 5,
-                    ),
-                    overlayShape: const RoundSliderOverlayShape(
-                      overlayRadius: 10,
-                    ),
-                    activeTrackColor: foreground.withValues(alpha: 0.65),
-                    inactiveTrackColor: foreground.withValues(alpha: 0.16),
-                    thumbColor: foreground,
-                  ),
-                  child: Slider(
-                    value: volume.clamp(0.0, 1.0),
-                    onChanged: playerService.setVolume,
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 4),
-          // 大喇叭图标 (音量大)
-          Icon(
-            Icons.volume_up_rounded,
-            size: 17,
-            color: foreground.withValues(alpha: 0.6),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -93,12 +93,7 @@ class MiniPlayer extends ConsumerWidget {
           decoration: BoxDecoration(
             color: chromeColor,
             border: Border(
-              top: BorderSide(
-                color: (isDark ? Colors.white : Colors.black).withValues(
-                  alpha: isDark ? 0.12 : 0.06,
-                ),
-                width: 0.8,
-              ),
+              top: BorderSide(color: context.colors.hairlineBorder, width: 0.8),
             ),
             boxShadow: [
               BoxShadow(
@@ -614,21 +609,52 @@ class MiniPlayer extends ConsumerWidget {
     BuildContext context,
     AudioPlayerService playerService,
   ) {
+    return _MiniPlayerVolumeControl(playerService: playerService);
+  }
+}
+
+class _MiniPlayerVolumeControl extends StatefulWidget {
+  const _MiniPlayerVolumeControl({required this.playerService});
+
+  final AudioPlayerService playerService;
+
+  @override
+  State<_MiniPlayerVolumeControl> createState() =>
+      _MiniPlayerVolumeControlState();
+}
+
+class _MiniPlayerVolumeControlState extends State<_MiniPlayerVolumeControl> {
+  double _lastNonZeroVolume = 0.8;
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<double>(
-      stream: playerService.player.volumeStream,
+      stream: widget.playerService.player.volumeStream,
       builder: (context, snapshot) {
-        final volume = snapshot.data ?? playerService.player.volume;
+        final volume = (snapshot.data ?? widget.playerService.player.volume)
+            .clamp(0.0, 1.0);
+        if (volume > 0) _lastNonZeroVolume = volume;
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              volume <= 0
-                  ? Icons.volume_off_rounded
-                  : volume < 0.5
-                  ? Icons.volume_down_rounded
-                  : Icons.volume_up_rounded,
-              size: 18,
-              color: context.colors.onSurfaceVariant,
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              icon: Icon(
+                volume <= 0
+                    ? Icons.volume_off_rounded
+                    : volume < 0.5
+                    ? Icons.volume_down_rounded
+                    : Icons.volume_up_rounded,
+                size: 18,
+                color: context.colors.onSurfaceVariant,
+              ),
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                widget.playerService.setVolume(
+                  volume > 0 ? 0.0 : _lastNonZeroVolume,
+                );
+              },
             ),
             SizedBox(
               width: AppDimensions.volumeSliderWidth,
@@ -637,7 +663,7 @@ class MiniPlayer extends ConsumerWidget {
                 child: Slider(
                   value: volume,
                   onChanged: (value) {
-                    playerService.setVolume(value);
+                    widget.playerService.setVolume(value);
                   },
                 ),
               ),

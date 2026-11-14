@@ -6,11 +6,13 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
-import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
+import 'package:navidrome_player/ui/widgets/loading_skeleton.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
+import 'package:navidrome_player/ui/widgets/song_tile.dart';
 import 'package:navidrome_player/ui/widgets/cloud_auth_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
+import 'package:navidrome_player/player/audio_player_service.dart';
 import 'package:navidrome_player/player/playback_origin.dart';
 import 'package:navidrome_player/utils/player_navigation.dart';
 
@@ -304,7 +306,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: newestSongs.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Padding(
+          padding: EdgeInsets.all(h),
+          child: const SongListSkeleton(itemCount: 8),
+        ),
         error: (_, _) => ErrorState(
           message: S.of(context).commonError,
           onRetry: _refresh,
@@ -382,10 +387,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 8),
               if (recommendations.initialLoading &&
                   recommendations.visibleItems.isEmpty)
-                const SizedBox(
-                  height: 80,
-                  child: Center(child: CircularProgressIndicator()),
-                )
+                const SongListSkeleton(itemCount: 3, shrinkWrap: true)
               else if (recommendations.error != null &&
                   recommendations.visibleItems.isEmpty)
                 ErrorState(
@@ -437,7 +439,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildWeather() {
     final weather = ref.watch(weatherProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return weather.when(
       data: (info) {
         if (info == null) return const SizedBox.shrink();
@@ -454,14 +455,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: (isDark ? Colors.white : Colors.black).withValues(
-                    alpha: isDark ? 0.08 : 0.05,
-                  ),
+                  color: context.colors.subtleSurface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: (isDark ? Colors.white : Colors.black).withValues(
-                      alpha: isDark ? 0.12 : 0.08,
-                    ),
+                    color: context.colors.hairlineBorder,
                     width: 0.8,
                   ),
                 ),
@@ -516,7 +513,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   )
                 : const Icon(Icons.refresh_rounded, size: 16),
             label: Text(
-              '换一批',
+              S.of(context).homeSwapBatch,
               style: Theme.of(context).textTheme.chipLabel.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 13,
@@ -575,20 +572,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (rows.isEmpty) return const SizedBox.shrink();
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount =
-            constraints.maxWidth >= AppDimensions.homeGridTwoPane ? 2 : 1;
-        final rowExtent = MediaQuery.textScalerOf(context).scale(32) + 36;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            mainAxisExtent: rowExtent,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 4,
-          ),
-          itemCount: rows.length,
-          itemBuilder: (context, index) => rows[index],
+        final twoPane = constraints.maxWidth >= AppDimensions.homeGridTwoPane;
+        if (!twoPane) {
+          return Column(
+            children: [
+              for (var i = 0; i < rows.length; i++) ...[
+                rows[i],
+                if (i < rows.length - 1) const SizedBox(height: 6),
+              ],
+            ],
+          );
+        }
+        return Column(
+          children: [
+            for (var i = 0; i < rows.length; i += 2) ...[
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: rows[i]),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: i + 1 < rows.length
+                          ? rows[i + 1]
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              ),
+              if (i + 2 < rows.length) const SizedBox(height: 6),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  AudioPlayerService? _maybePlayer() {
+    try {
+      return ref.watch(audioPlayerServiceProvider);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _withPlaybackState(
+    Widget Function(String? currentKey, bool isPlaying) builder,
+  ) {
+    final player = _maybePlayer();
+    if (player == null) return builder(null, false);
+    return StreamBuilder<Song?>(
+      stream: player.currentSongStream,
+      initialData: player.currentSong,
+      builder: (context, songSnap) {
+        final currentKey = songSnap.data?.storageKey;
+        return StreamBuilder<bool>(
+          stream: player.playingStream,
+          initialData: player.player.playing,
+          builder: (context, playingSnap) =>
+              builder(currentKey, playingSnap.data ?? false),
         );
       },
     );
@@ -596,183 +638,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildRecommendationList(List<RecommendationItem> items) {
     final sessionId = ref.read(recommendationProvider).sessionId;
-    return _buildSongRows([
-      for (final entry in items.asMap().entries)
-        SongContextMenu(
-          song: entry.value.song,
-          playbackOrigin: _homeOrigin(entry.value, sessionId),
-          onImported: () {
-            ref
-                .read(recommendationProvider.notifier)
-                .recordFeedback(
-                  entry.value,
-                  RecommendationFeedbackEvent.imported,
-                );
-          },
-          onPlay: () => _playRecommendations(items, entry.key),
-          child: _HomeSongTile(
+    return _withPlaybackState((currentKey, isPlaying) {
+      return _buildSongRows([
+        for (final entry in items.asMap().entries)
+          SongContextMenu(
             song: entry.value.song,
-            onTap: () => _playRecommendations(items, entry.key),
+            playbackOrigin: _homeOrigin(entry.value, sessionId),
+            onImported: () {
+              ref
+                  .read(recommendationProvider.notifier)
+                  .recordFeedback(
+                    entry.value,
+                    RecommendationFeedbackEvent.imported,
+                  );
+            },
+            onPlay: () => _playRecommendations(items, entry.key),
+            child: SongTile(
+              song: entry.value.song,
+              showCover: true,
+              cardStyle: true,
+              showHoverPlay: true,
+              isActive: currentKey == entry.value.song.storageKey,
+              isPlaying: isPlaying,
+              onTap: () => _playRecommendations(items, entry.key),
+            ),
           ),
-        ),
-    ]);
+      ]);
+    });
   }
 
   Widget _buildRecentSongs(List<Song> songs) {
-    return _buildSongRows([
-      for (final entry in songs.asMap().entries)
-        SongContextMenu(
-          song: entry.value,
-          onPlay: () => _playRecentSongs(songs, entry.key),
-          child: _HomeSongTile(
+    return _withPlaybackState((currentKey, isPlaying) {
+      return _buildSongRows([
+        for (final entry in songs.asMap().entries)
+          SongContextMenu(
             song: entry.value,
-            onTap: () => _playRecentSongs(songs, entry.key),
+            onPlay: () => _playRecentSongs(songs, entry.key),
+            child: SongTile(
+              song: entry.value,
+              showCover: true,
+              cardStyle: true,
+              showHoverPlay: true,
+              isActive: currentKey == entry.value.storageKey,
+              isPlaying: isPlaying,
+              onTap: () => _playRecentSongs(songs, entry.key),
+            ),
           ),
-        ),
-    ]);
+      ]);
+    });
   }
 
   Widget _buildNewestSongs(List<Song> songs) {
-    return _buildSongRows([
-      for (final entry in songs.asMap().entries)
-        SongContextMenu(
-          song: entry.value,
-          onPlay: () => _playRecentSongs(songs, entry.key),
-          child: _HomeSongTile(
+    return _withPlaybackState((currentKey, isPlaying) {
+      return _buildSongRows([
+        for (final entry in songs.asMap().entries)
+          SongContextMenu(
             song: entry.value,
-            onTap: () => _playRecentSongs(songs, entry.key),
-          ),
-        ),
-    ]);
-  }
-}
-
-class _HomeSongTile extends StatefulWidget {
-  final Song song;
-  final VoidCallback onTap;
-
-  const _HomeSongTile({required this.song, required this.onTap});
-
-  @override
-  State<_HomeSongTile> createState() => _HomeSongTileState();
-}
-
-class _HomeSongTileState extends State<_HomeSongTile> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final metadata = [
-      widget.song.artist,
-      widget.song.album,
-    ].where((value) => value.trim().isNotEmpty).join(' · ');
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          color: _hovered
-              ? (isDark ? Colors.white : Colors.black).withValues(
-                  alpha: isDark ? 0.10 : 0.06,
-                )
-              : (isDark ? Colors.white : Colors.black).withValues(
-                  alpha: isDark ? 0.04 : 0.02,
-                ),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: (isDark ? Colors.white : Colors.black).withValues(
-              alpha: _hovered ? (isDark ? 0.14 : 0.08) : (isDark ? 0.06 : 0.04),
-            ),
-            width: 0.6,
-          ),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          child: Semantics(
-            button: true,
-            label: '${widget.song.title}, $metadata',
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: widget.onTap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    ResolvedSongCoverArt(
-                      song: widget.song,
-                      size: 44,
-                      borderRadius: 8,
-                      hasShadow: true,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.song.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.songTitle
-                                .copyWith(fontWeight: FontWeight.w600),
-                          ),
-                          if (metadata.isNotEmpty)
-                            Text(
-                              metadata,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.songSubtitle
-                                  .copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (widget.song.duration != null) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.song.formattedDuration,
-                        style: Theme.of(context).textTheme.songDuration
-                            .copyWith(
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
-                    const SizedBox(width: 8),
-                    AnimatedOpacity(
-                      opacity: _hovered ? 1.0 : 0.4,
-                      duration: const Duration(milliseconds: 150),
-                      child: Icon(
-                        Icons.play_circle_filled_rounded,
-                        size: 24,
-                        color: _hovered
-                            ? context.colors.primary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            onPlay: () => _playRecentSongs(songs, entry.key),
+            child: SongTile(
+              song: entry.value,
+              showCover: true,
+              cardStyle: true,
+              showHoverPlay: true,
+              isActive: currentKey == entry.value.storageKey,
+              isPlaying: isPlaying,
+              onTap: () => _playRecentSongs(songs, entry.key),
             ),
           ),
-        ),
-      ),
-    );
+      ]);
+    });
   }
 }

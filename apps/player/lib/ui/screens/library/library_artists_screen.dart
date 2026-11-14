@@ -5,7 +5,10 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/library_section_tabs.dart';
+import 'package:navidrome_player/ui/widgets/loading_skeleton.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/text_composing.dart';
 
@@ -90,31 +93,25 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
           ),
           Expanded(
             child: artistsAsync.when(
-              loading: () => Center(child: const CircularProgressIndicator()),
-              error: (_, _) => Center(
-                child: Text(
-                  S.of(context).libraryNoArtists,
-                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
+              loading: () => SongListSkeleton(
+                itemCount: 10,
+                padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
+              ),
+              error: (_, _) => ErrorState(
+                message: S.of(context).libraryNoArtists,
+                retryLabel: S.of(context).commonRetry,
+                onRetry: () => ref.invalidate(artistsProvider),
               ),
               data: (artists) {
                 final display = searchState.serverId == serverId
                     ? (searchState.artists ?? artists)
                     : artists;
                 return display.isEmpty
-                    ? Center(
-                        child: Text(
-                          S.of(context).libraryNoArtists,
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
+                    ? EmptyState(
+                        icon: Icons.person_outline_rounded,
+                        message: S.of(context).libraryNoArtists,
                       )
-                    : _buildArtistList(display);
+                    : _buildArtistList(display, h);
               },
             ),
           ),
@@ -123,12 +120,16 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
     );
   }
 
-  Widget _buildArtistList(List<Artist> artists) {
+  Widget _buildArtistList(List<Artist> artists, double h) {
+    final client = ref.read(subsonicClientProvider);
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
       itemCount: artists.length,
       itemBuilder: (context, index) {
         final artist = artists[index];
+        final coverUrl = artist.coverArt != null
+            ? client.coverArtUrl(artist.coverArt, size: 120)
+            : '';
         return Container(
           margin: const EdgeInsets.only(bottom: 2),
           child: ListTile(
@@ -136,8 +137,23 @@ class _LibraryArtistsScreenState extends ConsumerState<LibraryArtistsScreen> {
               horizontal: 12,
               vertical: 4,
             ),
+            leading: coverUrl.isNotEmpty
+                ? ClipOval(
+                    child: CoverArt(url: coverUrl, size: 42, borderRadius: 21),
+                  )
+                : CircleAvatar(
+                    radius: 21,
+                    backgroundColor: context.colors.primarySoft,
+                    child: Icon(
+                      Icons.person_rounded,
+                      size: 20,
+                      color: context.colors.primary,
+                    ),
+                  ),
             title: Text(
               artist.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.songTitle,
             ),
             subtitle: Text(

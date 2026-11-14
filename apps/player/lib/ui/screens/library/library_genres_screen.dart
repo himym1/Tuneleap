@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/empty_state.dart';
+import 'package:navidrome_player/ui/widgets/loading_skeleton.dart';
+import 'package:navidrome_player/ui/widgets/page_back_button.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
@@ -37,16 +41,26 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
               children: [
                 if (_selectedGenre != null) ...[
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                    icon: const Icon(Icons.arrow_back_rounded, size: 22),
                     tooltip: S.of(context).tooltipBack,
                     onPressed: () => setState(() => _selectedGenre = null),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
+                ] else if (context.canPop()) ...[
+                  const PageBackButton(
+                    compact: true,
+                    fallbackRoute: '/library/songs',
+                  ),
+                  const SizedBox(width: 4),
                 ],
-                Text(
-                  _selectedGenre?.name ?? S.of(context).libraryGenresTitle,
-                  style: Theme.of(context).textTheme.pageTitle.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
+                Expanded(
+                  child: Text(
+                    _selectedGenre?.name ?? S.of(context).libraryGenresTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.pageTitle.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                 ),
               ],
@@ -64,26 +78,26 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
           ),
           Expanded(
             child: _selectedGenre != null
-                ? _buildGenreSongs()
-                : _buildGenreList(),
+                ? _buildGenreSongs(h)
+                : _buildGenreList(h),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildGenreList() {
+  Widget _buildGenreList(double h) {
     final genresAsync = ref.watch(genresProvider);
 
     return genresAsync.when(
-      loading: () => Center(child: const CircularProgressIndicator()),
-      error: (_, _) => Center(
-        child: Text(
-          S.of(context).libraryNoGenres,
-          style: Theme.of(context).textTheme.songSubtitle.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
+      loading: () => SongListSkeleton(
+        itemCount: 8,
+        padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
+      ),
+      error: (_, _) => ErrorState(
+        message: S.of(context).libraryNoGenres,
+        retryLabel: S.of(context).commonRetry,
+        onRetry: () => ref.invalidate(genresProvider),
       ),
       data: (genres) {
         final filtered = _searchQuery.isEmpty
@@ -96,17 +110,13 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
                   )
                   .toList();
         if (filtered.isEmpty) {
-          return Center(
-            child: Text(
-              S.of(context).libraryNoGenres,
-              style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
+          return EmptyState(
+            icon: Icons.music_note_outlined,
+            message: S.of(context).libraryNoGenres,
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
           itemCount: filtered.length,
           itemBuilder: (context, index) {
             final genre = filtered[index];
@@ -149,21 +159,21 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
     );
   }
 
-  Widget _buildGenreSongs() {
+  Widget _buildGenreSongs(double h) {
     if (_selectedGenre == null) return const SizedBox.shrink();
 
     final songsAsync = ref.watch(genreSongsProvider(_selectedGenre!.name));
     final client = ref.read(subsonicClientProvider);
 
     return songsAsync.when(
-      loading: () => Center(child: const CircularProgressIndicator()),
-      error: (_, _) => Center(
-        child: Text(
-          S.of(context).libraryNoSongs,
-          style: Theme.of(context).textTheme.songSubtitle.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
+      loading: () => SongListSkeleton(
+        itemCount: 8,
+        padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
+      ),
+      error: (_, _) => ErrorState(
+        message: S.of(context).libraryNoSongs,
+        retryLabel: S.of(context).commonRetry,
+        onRetry: () => ref.invalidate(genreSongsProvider(_selectedGenre!.name)),
       ),
       data: (songs) {
         final filtered = _searchQuery.isEmpty
@@ -183,17 +193,13 @@ class _LibraryGenresScreenState extends ConsumerState<LibraryGenresScreen> {
                   )
                   .toList();
         if (filtered.isEmpty) {
-          return Center(
-            child: Text(
-              S.of(context).libraryNoSongs,
-              style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
+          return EmptyState(
+            icon: Icons.music_off_rounded,
+            message: S.of(context).libraryNoSongs,
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
           itemCount: filtered.length,
           itemBuilder: (context, index) {
             final song = filtered[index];

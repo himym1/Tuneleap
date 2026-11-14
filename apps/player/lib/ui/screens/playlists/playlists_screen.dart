@@ -6,6 +6,8 @@ import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/empty_state.dart';
+import 'package:navidrome_player/ui/widgets/loading_skeleton.dart';
 import 'package:navidrome_player/ui/widgets/rename_playlist_dialog.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
@@ -59,6 +61,11 @@ class PlaylistsScreen extends ConsumerWidget {
                     ),
                   ),
                   IconButton.filledTonal(
+                    tooltip: S.of(context).onlinePlaylistsEntry,
+                    onPressed: () => context.push('/online-playlists'),
+                    icon: const Icon(Icons.cloud_outlined),
+                  ),
+                  IconButton.filledTonal(
                     key: const Key('playlist-create-button'),
                     tooltip: S.of(context).playlistCreate,
                     onPressed: () => _createPlaylist(context, ref),
@@ -70,18 +77,11 @@ class PlaylistsScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             Expanded(
               child: asyncPlaylists.when(
-                loading: () => Center(
-                  child: CircularProgressIndicator(
-                    color: context.colors.primary,
-                  ),
-                ),
-                error: (_, _) => Center(
-                  child: Text(
-                    S.of(context).commonLoadFailed,
-                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                loading: () => const PlaylistGridSkeleton(),
+                error: (_, _) => ErrorState(
+                  message: S.of(context).commonLoadFailed,
+                  retryLabel: S.of(context).commonRetry,
+                  onRetry: () => _refreshPlaylists(ref),
                 ),
                 data: (playlists) => RefreshIndicator(
                   onRefresh: () => _refreshPlaylists(ref),
@@ -131,6 +131,16 @@ class PlaylistsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 12),
                     FilledButton.tonalIcon(
+                      onPressed: () => context.push('/online-playlists'),
+                      icon: const Icon(Icons.cloud_outlined, size: 18),
+                      label: Text(S.of(context).onlinePlaylistsEntry),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 34),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.tonalIcon(
                       onPressed: () => _createPlaylist(context, ref),
                       icon: const Icon(Icons.add_rounded, size: 18),
                       label: Text(S.of(context).commonNew),
@@ -148,16 +158,11 @@ class PlaylistsScreen extends ConsumerWidget {
           // 列表网格
           Expanded(
             child: asyncPlaylists.when(
-              loading: () => Center(
-                child: CircularProgressIndicator(color: context.colors.primary),
-              ),
-              error: (_, _) => Center(
-                child: Text(
-                  S.of(context).commonLoadFailed,
-                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
+              loading: () => const PlaylistGridSkeleton(),
+              error: (_, _) => ErrorState(
+                message: S.of(context).commonLoadFailed,
+                retryLabel: S.of(context).commonRetry,
+                onRetry: () => _refreshPlaylists(ref),
               ),
               data: (playlists) => RefreshIndicator(
                 onRefresh: () => _refreshPlaylists(ref),
@@ -472,13 +477,9 @@ class _PlaylistCard extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            color: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.6),
+            color: context.colors.cardSurface,
             border: Border.all(
-              color: (isDark ? Colors.white : Colors.black).withValues(
-                alpha: isDark ? 0.10 : 0.06,
-              ),
+              color: context.colors.hairlineBorder,
               width: 0.8,
             ),
             boxShadow: [

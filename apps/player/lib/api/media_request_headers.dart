@@ -11,7 +11,8 @@ Map<String, String> mediaRequestHeaders(
   }
 
   final host = uri?.host.toLowerCase() ?? '';
-  final needsBrowserHeaders = _needsBrowserHeaders(host);
+  final needsBrowserHeaders =
+      _needsNeteaseHeaders(host) || _needsBilibiliHeaders(host);
   if (kind == MediaRequestKind.audio && !needsBrowserHeaders) {
     return const {};
   }
@@ -29,13 +30,22 @@ Map<String, String> mediaRequestHeaders(
     },
   };
 
-  if (needsBrowserHeaders) {
+  if (_needsNeteaseHeaders(host)) {
     headers['Referer'] = 'https://music.163.com/';
+  } else if (_needsBilibiliHeaders(host)) {
+    headers['Referer'] = 'https://www.bilibili.com/';
   }
 
   return headers;
 }
 
-bool _needsBrowserHeaders(String host) {
+bool _needsNeteaseHeaders(String host) {
   return host == 'music.126.net' || host.endsWith('.music.126.net');
+}
+
+bool _needsBilibiliHeaders(String host) {
+  return host.endsWith('.bilivideo.com') ||
+      host.endsWith('.hdslb.com') ||
+      host == 'bilibili.com' ||
+      host.endsWith('.bilibili.com');
 }

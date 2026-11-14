@@ -6,6 +6,10 @@ import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/empty_state.dart';
+import 'package:navidrome_player/ui/widgets/loading_skeleton.dart';
+import 'package:navidrome_player/ui/widgets/page_back_button.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/utils/text_composing.dart';
 
@@ -92,11 +96,24 @@ class _LibraryAlbumArtistsScreenState
         children: [
           Padding(
             padding: EdgeInsets.fromLTRB(h, h, h, 16),
-            child: Text(
-              S.of(context).libraryAlbumArtistsTitle,
-              style: Theme.of(context).textTheme.pageTitle.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+            child: Row(
+              children: [
+                if (context.canPop()) ...[
+                  const PageBackButton(
+                    compact: true,
+                    fallbackRoute: '/library/songs',
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Expanded(
+                  child: Text(
+                    S.of(context).libraryAlbumArtistsTitle,
+                    style: Theme.of(context).textTheme.pageTitle.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
@@ -117,14 +134,14 @@ class _LibraryAlbumArtistsScreenState
           ),
           Expanded(
             child: artistsAsync.when(
-              loading: () => Center(child: const CircularProgressIndicator()),
-              error: (_, _) => Center(
-                child: Text(
-                  S.of(context).libraryNoArtists,
-                  style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
+              loading: () => SongListSkeleton(
+                itemCount: 10,
+                padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
+              ),
+              error: (_, _) => ErrorState(
+                message: S.of(context).libraryNoArtists,
+                retryLabel: S.of(context).commonRetry,
+                onRetry: () => ref.invalidate(artistsProvider),
               ),
               data: (artists) {
                 final filteredArtists = artists
@@ -134,17 +151,11 @@ class _LibraryAlbumArtistsScreenState
                     ? (_searchResults ?? filteredArtists)
                     : filteredArtists;
                 return display.isEmpty
-                    ? Center(
-                        child: Text(
-                          S.of(context).libraryNoArtists,
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
+                    ? EmptyState(
+                        icon: Icons.person_outline_rounded,
+                        message: S.of(context).libraryNoArtists,
                       )
-                    : _buildList(display);
+                    : _buildList(display, h);
               },
             ),
           ),
@@ -153,12 +164,16 @@ class _LibraryAlbumArtistsScreenState
     );
   }
 
-  Widget _buildList(List<Artist> artists) {
+  Widget _buildList(List<Artist> artists, double h) {
+    final client = ref.read(subsonicClientProvider);
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: h, vertical: 8),
       itemCount: artists.length,
       itemBuilder: (context, index) {
         final artist = artists[index];
+        final coverUrl = artist.coverArt != null
+            ? client.coverArtUrl(artist.coverArt, size: 120)
+            : '';
         return Container(
           margin: const EdgeInsets.only(bottom: 2),
           child: ListTile(
@@ -166,8 +181,23 @@ class _LibraryAlbumArtistsScreenState
               horizontal: 12,
               vertical: 4,
             ),
+            leading: coverUrl.isNotEmpty
+                ? ClipOval(
+                    child: CoverArt(url: coverUrl, size: 42, borderRadius: 21),
+                  )
+                : CircleAvatar(
+                    radius: 21,
+                    backgroundColor: context.colors.primarySoft,
+                    child: Icon(
+                      Icons.person_rounded,
+                      size: 20,
+                      color: context.colors.primary,
+                    ),
+                  ),
             title: Text(
               artist.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.songTitle,
             ),
             subtitle: Text(

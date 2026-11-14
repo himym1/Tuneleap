@@ -14,6 +14,7 @@ import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/responsive_content.dart';
 import 'package:navidrome_player/ui/widgets/empty_state.dart';
 import 'package:navidrome_player/ui/widgets/import_to_navidrome_button.dart';
+import 'package:navidrome_player/ui/widgets/loading_skeleton.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/ui/widgets/segmented_control.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
@@ -170,7 +171,12 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
     }
 
     if (state.initialLoading && visible.isEmpty) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return ResponsivePageScaffold(
+        body: SongListSkeleton(
+          itemCount: 8,
+          padding: EdgeInsets.symmetric(vertical: h),
+        ),
+      );
     }
 
     if (state.error != null && visible.isEmpty) {
@@ -201,7 +207,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
               leading: IconButton(
                 tooltip: l10n.tooltipBack,
                 onPressed: _goBack,
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                icon: const Icon(Icons.arrow_back_rounded, size: 22),
               ),
               title: Text(
                 l10n.recommendationsTitle,
@@ -224,7 +230,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                   )
                 else
                   IconButton(
-                    tooltip: '换一批',
+                    tooltip: l10n.homeSwapBatch,
                     icon: const Icon(Icons.refresh_rounded, size: 22),
                     onPressed: () {
                       HapticFeedback.lightImpact();
@@ -374,9 +380,9 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                                         Icons.refresh_rounded,
                                         size: 16,
                                       ),
-                                label: const Text(
-                                  '换一批',
-                                  style: TextStyle(fontSize: 13),
+                                label: Text(
+                                  l10n.homeSwapBatch,
+                                  style: const TextStyle(fontSize: 13),
                                 ),
                                 style: OutlinedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(

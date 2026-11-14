@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/empty_state.dart';
+import 'package:navidrome_player/ui/widgets/responsive_content.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// 多服务器管理页面
@@ -14,30 +16,30 @@ class MultiServerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final servers = ref.watch(serversListProvider);
     final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final v = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/home');
       },
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
+      child: ResponsivePageScaffold(
         body: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.symmetric(vertical: v),
           children: [
             Row(
               children: [
                 if (isMobile)
                   IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 20,
-                    ),
+                    tooltip: S.of(context).tooltipBack,
+                    icon: const Icon(Icons.arrow_back_rounded, size: 22),
                     onPressed: () {
                       if (Navigator.of(context).canPop()) {
                         Navigator.of(context).pop();
                       } else {
-                        context.go('/home');
+                        context.go('/settings');
                       }
                     },
                     padding: EdgeInsets.zero,
@@ -75,24 +77,9 @@ class MultiServerScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             if (servers.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(40),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    S.of(context).multiServerEmptyHint,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      height: 1.6,
-                    ),
-                  ),
-                ),
+              EmptyState(
+                icon: Icons.dns_outlined,
+                message: S.of(context).multiServerEmptyHint,
               )
             else
               ...servers.map(

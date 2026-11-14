@@ -227,6 +227,8 @@ void main() {
       'active_server_id': 'server-a',
       'server_url': 'http://music.local',
       onlineSourcesPreferenceKey('server-a'): ['netease', 'joox'],
+      tencentSourceSeedPreferenceKey('server-a'): true,
+      bilibiliSourceSeedPreferenceKey('server-a'): true,
     });
     final prefs = await SharedPreferences.getInstance();
     final backend = _PagedBackendClient();

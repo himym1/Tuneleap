@@ -952,6 +952,38 @@ class SZh extends S {
   String get playlistEmptyHint => '创建一个播放列表来整理你的音乐';
 
   @override
+  String get onlinePlaylistsTitle => '在线歌单';
+
+  @override
+  String get onlinePlaylistsEntry => '在线歌单';
+
+  @override
+  String get onlinePlaylistsRecommended => '推荐';
+
+  @override
+  String get onlinePlaylistsFeatured => '精品';
+
+  @override
+  String get onlinePlaylistsCharts => '榜单';
+
+  @override
+  String get onlinePlaylistsChinese => '华语';
+
+  @override
+  String get onlinePlaylistsSearchHint => '搜索歌单，例如我是歌手第一季';
+
+  @override
+  String get onlinePlaylistsEmpty => '没有找到歌单';
+
+  @override
+  String get onlinePlaylistsPlayAll => '播放全部';
+
+  @override
+  String onlinePlaylistsTruncated(int count) {
+    return '仅显示前 $count 首';
+  }
+
+  @override
   String playlistSongCountLabel(int count) {
     return '$count 首歌曲';
   }
@@ -970,6 +1002,9 @@ class SZh extends S {
 
   @override
   String get playlistSearchSongsHint => '搜索本地曲库';
+
+  @override
+  String get playlistTrackSearchHint => '搜索歌名、歌手或专辑';
 
   @override
   String get playlistNoMatchingSongs => '没有匹配的歌曲';
@@ -1163,6 +1198,9 @@ class SZh extends S {
 
   @override
   String get searchBackendTencent => 'QQ';
+
+  @override
+  String get searchBackendBilibili => 'B站';
 
   @override
   String get searchBackendKugou => '酷狗';
@@ -1738,4 +1776,13 @@ class SZh extends S {
   ) {
     return '第 $current/$total 首：选择结果替换「$title」· $artist';
   }
+
+  @override
+  String get homeSwapBatch => '换一批';
+
+  @override
+  String get searchHistory => '搜索历史';
+
+  @override
+  String get searchHistoryClear => '清空历史';
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
+import 'package:navidrome_player/ui/widgets/page_back_button.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
@@ -94,50 +95,7 @@ class ArtistDetailScreen extends ConsumerWidget {
                                       : null,
                                 ),
                                 const SizedBox(height: 16),
-                                // 返回
-                                InkWell(
-                                  onTap: () => GoRouter.of(context).canPop()
-                                      ? context.pop()
-                                      : context.go('/home'),
-                                  customBorder: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Semantics(
-                                    button: true,
-                                    label: S.of(context).tooltipBack,
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        minHeight: 44,
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.arrow_back_rounded,
-                                            size: 16,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            S.of(context).commonBack,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .songSubtitle
-                                                .copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                const PageBackButton(),
                                 const SizedBox(height: 12),
                                 Text(
                                   artist.name,

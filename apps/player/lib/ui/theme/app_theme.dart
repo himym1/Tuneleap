@@ -263,7 +263,7 @@ class AppTheme {
       scaffoldBackgroundColor: scheme.surface,
       fontFamily: 'Poppins',
     );
-    final primary = useSchemeBrand ? scheme.primary : AppColors.primary;
+    final primary = useSchemeBrand ? scheme.primary : const Color(0xFF6366F1);
     final accent = useSchemeBrand ? scheme.tertiary : AppColors.accent;
     return base.copyWith(
       cardTheme: CardThemeData(
@@ -376,6 +376,23 @@ class AppTheme {
           borderRadius: BorderRadius.circular(3),
         ),
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: amoled
+            ? const Color(0xFF121214)
+            : base.colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titleTextStyle: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: base.colorScheme.onSurface,
+        ),
+        contentTextStyle: TextStyle(
+          fontSize: 14,
+          color: base.colorScheme.onSurfaceVariant,
+          height: 1.5,
+        ),
+      ),
       sliderTheme: SliderThemeData(
         activeTrackColor: accent,
         thumbColor: accent,
@@ -403,6 +420,7 @@ class AppTheme {
         AppSemanticColors._fromScheme(
           base.colorScheme,
           useSchemeBrand: useSchemeBrand,
+          amoled: amoled,
         ),
       ],
     );
@@ -545,6 +563,11 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
   final Color primarySoftSubtle;
   final Color errorSoft;
   final Color navigationIndicator;
+  final Color cardSurface;
+  final Color cardHoverSurface;
+  final Color subtleSurface;
+  final Color hairlineBorder;
+  final Color hairlineBorderStrong;
 
   const AppSemanticColors({
     required this.primary,
@@ -567,16 +590,32 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     required this.primarySoftSubtle,
     required this.errorSoft,
     required this.navigationIndicator,
+    required this.cardSurface,
+    required this.cardHoverSurface,
+    required this.subtleSurface,
+    required this.hairlineBorder,
+    required this.hairlineBorderStrong,
   });
 
   /// Brand tokens from AppColors, or generated scheme colors for dynamic mode.
   factory AppSemanticColors._fromScheme(
     ColorScheme scheme, {
     bool useSchemeBrand = false,
+    bool amoled = false,
   }) {
+    final isDark = scheme.brightness == Brightness.dark;
+    const darkPrimary = Color(0xFF6366F1);
+    const darkSecondary = Color(0xFF818CF8);
+    final resolvedPrimary = useSchemeBrand
+        ? scheme.primary
+        : (isDark ? darkPrimary : AppColors.primary);
+    final resolvedSecondary = useSchemeBrand
+        ? scheme.secondary
+        : (isDark ? darkSecondary : AppColors.secondary);
+
     return AppSemanticColors(
-      primary: useSchemeBrand ? scheme.primary : AppColors.primary,
-      secondary: useSchemeBrand ? scheme.secondary : AppColors.secondary,
+      primary: resolvedPrimary,
+      secondary: resolvedSecondary,
       accent: useSchemeBrand ? scheme.tertiary : AppColors.accent,
       success: AppColors.success,
       background: scheme.surface,
@@ -594,17 +633,88 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       shadowStrong: AppColors.shadowStrong,
       primarySoft: useSchemeBrand
           ? scheme.primary.withValues(alpha: 0.10)
-          : AppColors.primarySoft,
+          : (isDark
+                ? darkPrimary.withValues(alpha: 0.16)
+                : AppColors.primarySoft),
       primarySoftAlt: useSchemeBrand
           ? scheme.primary.withValues(alpha: 0.08)
-          : AppColors.primarySoftAlt,
+          : (isDark
+                ? darkPrimary.withValues(alpha: 0.12)
+                : AppColors.primarySoftAlt),
       primarySoftSubtle: useSchemeBrand
           ? scheme.primary.withValues(alpha: 0.06)
-          : AppColors.primarySoftSubtle,
+          : (isDark
+                ? darkPrimary.withValues(alpha: 0.08)
+                : AppColors.primarySoftSubtle),
       errorSoft: AppColors.errorSoft,
       navigationIndicator: useSchemeBrand
           ? scheme.primaryContainer
-          : AppColors.navigationIndicator,
+          : (isDark
+                ? darkPrimary.withValues(alpha: 0.25)
+                : AppColors.navigationIndicator),
+      cardSurface: amoled
+          ? const Color(0xFF101012)
+          : (isDark
+                ? Colors.white.withValues(alpha: 0.06)
+                : Colors.black.withValues(alpha: 0.03)),
+      cardHoverSurface: amoled
+          ? const Color(0xFF1A1A1E)
+          : (isDark
+                ? Colors.white.withValues(alpha: 0.10)
+                : Colors.black.withValues(alpha: 0.06)),
+      subtleSurface: amoled
+          ? const Color(0xFF141416)
+          : (isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.05)),
+      hairlineBorder: isDark
+          ? Colors.white.withValues(alpha: amoled ? 0.12 : 0.09)
+          : Colors.black.withValues(alpha: 0.06),
+      hairlineBorderStrong: isDark
+          ? Colors.white.withValues(alpha: amoled ? 0.18 : 0.14)
+          : Colors.black.withValues(alpha: 0.10),
+    );
+  }
+
+  /// Fallback semantic colors when a widget is rendered outside AppTheme (e.g. isolated tests).
+  factory AppSemanticColors.fallbackFromScheme(ColorScheme scheme) {
+    final isDark = scheme.brightness == Brightness.dark;
+    return AppSemanticColors(
+      primary: scheme.primary,
+      secondary: scheme.secondary,
+      accent: scheme.tertiary,
+      success: const Color(0xFF22C55E),
+      background: scheme.surface,
+      surface: scheme.surfaceContainerLow,
+      surfaceContainer: scheme.surfaceContainerHigh,
+      onBackground: scheme.onSurface,
+      onSurface: scheme.onSurface,
+      onSurfaceVariant: scheme.onSurfaceVariant,
+      error: scheme.error,
+      onEmphasis: scheme.onPrimary,
+      onEmphasisMuted: scheme.onPrimary.withValues(alpha: 0.70),
+      shadowSoft: const Color(0x08000000),
+      shadowStrong: const Color(0x33000000),
+      primarySoft: scheme.primary.withValues(alpha: 0.12),
+      primarySoftAlt: scheme.primary.withValues(alpha: 0.08),
+      primarySoftSubtle: scheme.primary.withValues(alpha: 0.06),
+      errorSoft: scheme.error.withValues(alpha: 0.15),
+      navigationIndicator: scheme.primaryContainer,
+      cardSurface: isDark
+          ? Colors.white.withValues(alpha: 0.06)
+          : Colors.black.withValues(alpha: 0.03),
+      cardHoverSurface: isDark
+          ? Colors.white.withValues(alpha: 0.10)
+          : Colors.black.withValues(alpha: 0.06),
+      subtleSurface: isDark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.black.withValues(alpha: 0.05),
+      hairlineBorder: isDark
+          ? Colors.white.withValues(alpha: 0.09)
+          : Colors.black.withValues(alpha: 0.06),
+      hairlineBorderStrong: isDark
+          ? Colors.white.withValues(alpha: 0.14)
+          : Colors.black.withValues(alpha: 0.10),
     );
   }
 
@@ -630,6 +740,11 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     Color? primarySoftSubtle,
     Color? errorSoft,
     Color? navigationIndicator,
+    Color? cardSurface,
+    Color? cardHoverSurface,
+    Color? subtleSurface,
+    Color? hairlineBorder,
+    Color? hairlineBorderStrong,
   }) {
     return AppSemanticColors(
       primary: primary ?? this.primary,
@@ -652,6 +767,11 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       primarySoftSubtle: primarySoftSubtle ?? this.primarySoftSubtle,
       errorSoft: errorSoft ?? this.errorSoft,
       navigationIndicator: navigationIndicator ?? this.navigationIndicator,
+      cardSurface: cardSurface ?? this.cardSurface,
+      cardHoverSurface: cardHoverSurface ?? this.cardHoverSurface,
+      subtleSurface: subtleSurface ?? this.subtleSurface,
+      hairlineBorder: hairlineBorder ?? this.hairlineBorder,
+      hairlineBorderStrong: hairlineBorderStrong ?? this.hairlineBorderStrong,
     );
   }
 
@@ -695,11 +815,25 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
         other.navigationIndicator,
         t,
       )!,
+      cardSurface: Color.lerp(cardSurface, other.cardSurface, t)!,
+      cardHoverSurface: Color.lerp(
+        cardHoverSurface,
+        other.cardHoverSurface,
+        t,
+      )!,
+      subtleSurface: Color.lerp(subtleSurface, other.subtleSurface, t)!,
+      hairlineBorder: Color.lerp(hairlineBorder, other.hairlineBorder, t)!,
+      hairlineBorderStrong: Color.lerp(
+        hairlineBorderStrong,
+        other.hairlineBorderStrong,
+        t,
+      )!,
     );
   }
 }
 
 extension AppColorsExtension on BuildContext {
   AppSemanticColors get colors =>
-      Theme.of(this).extension<AppSemanticColors>()!;
+      Theme.of(this).extension<AppSemanticColors>() ??
+      AppSemanticColors.fallbackFromScheme(Theme.of(this).colorScheme);
 }

@@ -499,6 +499,23 @@
     "playlistCreatedList": "已创建的列表",
     "playlistEmptyTitle": "还没有播放列表",
     "playlistEmptyHint": "创建一个播放列表来整理你的音乐",
+    "onlinePlaylistsTitle": "在线歌单",
+    "onlinePlaylistsEntry": "在线歌单",
+    "onlinePlaylistsRecommended": "推荐",
+    "onlinePlaylistsFeatured": "精品",
+    "onlinePlaylistsCharts": "榜单",
+    "onlinePlaylistsChinese": "华语",
+    "onlinePlaylistsSearchHint": "搜索歌单，例如我是歌手第一季",
+    "onlinePlaylistsEmpty": "没有找到歌单",
+    "onlinePlaylistsPlayAll": "播放全部",
+    "onlinePlaylistsTruncated": "仅显示前 {count} 首",
+    "@onlinePlaylistsTruncated": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
     "playlistSongCountLabel": "{count} 首歌曲",
     "@playlistSongCountLabel": {
         "placeholders": {
@@ -512,6 +529,7 @@
     "playlistAddSongs": "添加歌曲",
     "playlistAddSongsTitle": "添加歌曲到歌单",
     "playlistSearchSongsHint": "搜索本地曲库",
+    "playlistTrackSearchHint": "搜索歌名、歌手或专辑",
     "playlistNoMatchingSongs": "没有匹配的歌曲",
     "playlistAddSelected": "添加所选",
     "playlistSongsAdded": "已添加 {count} 首",
@@ -630,6 +648,7 @@
     "searchBackendNavidrome": "Navidrome",
     "searchBackendNetease": "网易云",
     "searchBackendTencent": "QQ",
+    "searchBackendBilibili": "B站",
     "searchBackendKugou": "酷狗",
     "searchBackendMigu": "咪咕",
     "searchBackendKuwo": "酷我",
@@ -955,5 +974,8 @@
             "title": { "type": "String" },
             "artist": { "type": "String" }
         }
-    }
+    },
+    "homeSwapBatch": "换一批",
+    "searchHistory": "搜索历史",
+    "searchHistoryClear": "清空历史"
 }

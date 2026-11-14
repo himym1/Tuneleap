@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/api/models/music_capabilities.dart';
@@ -8,9 +10,26 @@ import 'server_config_provider.dart';
 import 'server_scope.dart';
 
 /// Catalog of online platforms exposed by the player UI.
-const kOnlineCatalogSources = <String>['netease', 'joox'];
+const kOnlineCatalogSources = <String>[
+  'netease',
+  'tencent',
+  'bilibili',
+  'joox',
+];
 
-const kDefaultOnlineSources = <String>['netease', 'joox'];
+const kDefaultOnlineSources = <String>[
+  'netease',
+  'tencent',
+  'bilibili',
+  'joox',
+];
+
+/// 已有安装第一次看到 QQ 音源时默认打开，之后尊重用户开关。
+String tencentSourceSeedPreferenceKey(String serverId) =>
+    'online_sources_seed_tencent_v1_${normalizeServerId(serverId)}';
+
+String bilibiliSourceSeedPreferenceKey(String serverId) =>
+    'online_sources_seed_bilibili_v1_${normalizeServerId(serverId)}';
 
 String onlineSourcesPreferenceKey(String serverId) =>
     'online_search_sources_${normalizeServerId(serverId)}';
@@ -86,6 +105,7 @@ String onlineSourceLabel(BuildContext context, String source) {
   return switch (source) {
     'netease' => l10n.searchBackendNetease,
     'tencent' => l10n.searchBackendTencent,
+    'bilibili' => l10n.searchBackendBilibili,
     'kugou' => l10n.searchBackendKugou,
     'migu' => l10n.searchBackendMigu,
     'joox' => l10n.searchBackendJoox,
@@ -192,10 +212,45 @@ class OnlineSourcePreferencesNotifier extends Notifier<List<String>> {
     final serverId = ref.watch(
       serverConfigProvider.select((config) => config.serverId),
     );
-    final stored = ref
-        .watch(sharedPreferencesProvider)
-        .getStringList(onlineSourcesPreferenceKey(serverId));
-    return sanitizeOnlineSources(stored ?? kDefaultOnlineSources);
+    final preferences = ref.watch(sharedPreferencesProvider);
+    final stored = preferences.getStringList(
+      onlineSourcesPreferenceKey(serverId),
+    );
+    final base = sanitizeOnlineSources(stored ?? kDefaultOnlineSources);
+    final introduceTencent =
+        !(preferences.getBool(tencentSourceSeedPreferenceKey(serverId)) ??
+            false);
+    final introduceBilibili =
+        !(preferences.getBool(bilibiliSourceSeedPreferenceKey(serverId)) ??
+            false);
+    if (!introduceTencent && !introduceBilibili) return base;
+    final seeded = sanitizeOnlineSources([
+      ...base,
+      if (introduceTencent) 'tencent',
+      if (introduceBilibili) 'bilibili',
+    ]);
+    unawaited(_persistIntroducedSources(serverId));
+    return seeded;
+  }
+
+  Future<void> _persistIntroducedSources(String serverId) async {
+    // 让同一帧里的开关先落盘，再记下已经引入过的音源。
+    await Future<void>.delayed(Duration.zero);
+    try {
+      if (!ref.mounted) return;
+      final preferences = ref.read(sharedPreferencesProvider);
+      await preferences.setStringList(
+        onlineSourcesPreferenceKey(serverId),
+        state,
+      );
+      await preferences.setBool(tencentSourceSeedPreferenceKey(serverId), true);
+      await preferences.setBool(
+        bilibiliSourceSeedPreferenceKey(serverId),
+        true,
+      );
+    } catch (_) {
+      // Provider 已销毁时不再回写。
+    }
   }
 
   Future<void> ensureAny(Iterable<String> supported) async {

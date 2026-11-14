@@ -62,11 +62,15 @@ void main() {
 
   test('amoled dark theme uses true black base surfaces', () {
     final theme = AppTheme.dark(amoled: true);
+    final semantic = theme.extension<AppSemanticColors>()!;
 
     expect(theme.scaffoldBackgroundColor, Colors.black);
     expect(theme.colorScheme.surface, Colors.black);
     expect(theme.colorScheme.surfaceContainerLowest, Colors.black);
     expect(theme.colorScheme.surfaceContainerHigh, const Color(0xFF111111));
+    expect(theme.dialogTheme.shape, isA<RoundedRectangleBorder>());
+    expect(semantic.primary, isNot(AppColors.primary));
+    expect(semantic.primary.computeLuminance(), greaterThan(0.15));
   });
 
   test('light theme sliders follow the seed color', () {
@@ -122,20 +126,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Settings cards already wrap ListTiles in DecoratedBox, which Flutter
-    // reports as an ink-splash warning; ignore that pre-existing noise here.
-    final exceptions = <Object?>[];
-    while (true) {
-      final exception = tester.takeException();
-      if (exception == null) break;
-      exceptions.add(exception);
-    }
-    expect(
-      exceptions.whereType<FlutterError>().any(
-        (error) => error.message.contains('A RenderFlex overflowed'),
-      ),
-      isFalse,
-    );
+    expect(tester.takeException(), isNull);
     expect(find.byType(DropdownButton<ThemePreset>), findsOneWidget);
     expect(find.text('Classic'), findsOneWidget);
     expect(find.byType(ResponsivePageScaffold), findsOneWidget);

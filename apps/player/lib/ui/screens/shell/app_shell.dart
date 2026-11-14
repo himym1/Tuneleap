@@ -10,6 +10,7 @@ import 'package:navidrome_player/services/sparkle_updater.dart';
 import 'package:navidrome_player/services/update_checker.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/app_brand_logo.dart';
 import 'package:navidrome_player/ui/widgets/keyboard_shortcuts_dialog.dart';
 import 'package:navidrome_player/ui/widgets/mini_player.dart';
 import 'package:navidrome_player/ui/widgets/nas_import_queue_popup.dart';
@@ -240,7 +241,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   bool _isPlaylistsPath(String path) =>
       path == '/playlists' ||
       path.startsWith('/library/playlists') ||
-      path.startsWith('/playlist/');
+      path.startsWith('/playlist/') ||
+      path.startsWith('/online-playlists') ||
+      path.startsWith('/online-playlist/');
 
   bool _isLibraryPath(String path) =>
       ((path.startsWith('/library/') || path == '/library') &&
@@ -419,19 +422,35 @@ class _AppShellState extends ConsumerState<AppShell> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  selected ? item.activeIcon : item.icon,
-                  size: 20,
-                  color: selected
-                      ? context.colors.primary
-                      : context.colors.onSurfaceVariant,
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? context.colors.primary.withValues(alpha: 0.14)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    selected ? item.activeIcon : item.icon,
+                    size: 20,
+                    color: selected
+                        ? context.colors.primary
+                        : context.colors.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   item.labelOf(context),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.chipLabel.copyWith(
                     fontSize: 11,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
                     color: selected
                         ? context.colors.primary
                         : context.colors.onSurfaceVariant,
@@ -587,9 +606,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             color: sidebarColor,
             border: Border(
               right: BorderSide(
-                color: (isDark ? Colors.white : Colors.black).withValues(
-                  alpha: isDark ? 0.10 : 0.06,
-                ),
+                color: context.colors.hairlineBorder,
                 width: 0.8,
               ),
             ),
@@ -668,33 +685,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _sidebarBrand(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                context.colors.primary,
-                context.colors.primary.withValues(alpha: 0.8),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: context.colors.primary.withValues(alpha: 0.35),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Icon(
-            Icons.music_note_rounded,
-            color: context.colors.onEmphasis,
-            size: 19,
-          ),
-        ),
+        const AppBrandLogo(size: 34, borderRadius: 10, shadowBlur: 10),
         const SizedBox(width: 10),
         Text(
           S.of(context).appShortName,
@@ -736,37 +727,66 @@ class _AppShellState extends ConsumerState<AppShell> {
       child: Tooltip(
         message: item.labelOf(context),
         waitDuration: const Duration(milliseconds: 500),
-        child: Material(
-          color: selected
-              ? context.colors.primary.withValues(alpha: 0.14)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          child: InkWell(
-            onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          decoration: BoxDecoration(
+            color: selected
+                ? context.colors.primary.withValues(alpha: 0.14)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              child: Row(
-                children: [
-                  Icon(
-                    selected ? item.activeIcon : item.icon,
-                    size: 19,
-                    color: selected
-                        ? context.colors.primary
-                        : context.colors.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    item.labelOf(context),
-                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                      fontSize: 13,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 9,
+                ),
+                child: Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: 3,
+                      height: selected ? 16 : 0,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? context.colors.primary
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Icon(
+                      selected ? item.activeIcon : item.icon,
+                      size: 19,
                       color: selected
                           ? context.colors.primary
                           : context.colors.onSurfaceVariant,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Text(
+                        item.labelOf(context),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.songSubtitle
+                            .copyWith(
+                              fontSize: 13,
+                              fontWeight: selected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: selected
+                                  ? context.colors.primary
+                                  : context.colors.onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

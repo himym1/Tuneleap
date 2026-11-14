@@ -4,8 +4,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:navidrome_player/api/media_request_headers.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/api/subsonic_client.dart' show LyricsList;
+import 'package:navidrome_player/utils/audio_file_tags.dart';
 import 'audio_providers.dart';
 import 'server_config_provider.dart';
 import 'package:navidrome_player/providers/server_scope.dart';
@@ -220,7 +222,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
 
       final extension = _safeExtension(song.suffix);
       final safeName = downloadStorageSegment(songId);
-      final savePath = '${downloadsDir.path}/$safeName.$extension';
+      var savePath = '${downloadsDir.path}/$safeName.$extension';
       final transferId = _nextTransferId++;
       tempPath = '$savePath.part-$request-$transferId';
       tempLrcPath = '$tempPath.lrc';
@@ -240,19 +242,53 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       );
       if (!_requests.isCurrent(request)) return;
 
-      final fileSize = File(tempPath).lengthSync();
+      final rawAudio = await File(tempPath).readAsBytes();
+      if (!_requests.isCurrent(request)) return;
+      final sniffed = sniffedAudioExtension(rawAudio);
+      if (sniffed != null && sniffed != extension) {
+        savePath = '${downloadsDir.path}/$safeName.$sniffed';
+      }
+
+      String? lrcText;
+      Uint8List? cover;
       try {
         final lyrics = await resolver.lyrics(song);
         if (_requests.isCurrent(request) &&
             lyrics != null &&
             lyrics.lines.isNotEmpty) {
-          File(tempLrcPath).writeAsStringSync(_buildLrcContent(lyrics));
+          lrcText = _buildLrcContent(lyrics);
+          File(tempLrcPath).writeAsStringSync(lrcText);
+        }
+        if (_requests.isCurrent(request) && song.isOnline) {
+          cover = await _downloadCover(song);
         }
       } catch (e) {
         debugPrint('[Download] Lyrics download failed (non-fatal): $e');
       }
       if (!_requests.isCurrent(request)) return;
 
+      var audio = rawAudio;
+      if (song.isOnline) {
+        try {
+          audio = embedAudioFileTags(
+            rawAudio,
+            title: song.title,
+            artist: song.artist,
+            album: song.album,
+            lyrics: lrcText ?? '',
+            cover: cover,
+          );
+        } catch (e) {
+          debugPrint('[Download] tag embed failed (non-fatal): $e');
+          audio = rawAudio;
+        }
+      }
+      if (!identical(audio, rawAudio)) {
+        await File(tempPath).writeAsBytes(audio, flush: true);
+      }
+      if (!_requests.isCurrent(request)) return;
+
+      final fileSize = File(tempPath).lengthSync();
       // No await between the ownership check and promotion: a server switch
       // cannot interleave and let an obsolete transfer touch a newer file.
       final finalFile = File(savePath);
@@ -364,6 +400,23 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   static String _safeExtension(String? suffix) {
     final extension = suffix?.toLowerCase().trim() ?? '';
     return _allowedExtensions.contains(extension) ? extension : 'mp3';
+  }
+
+  Future<Uint8List?> _downloadCover(Song song) async {
+    final backend = ref.read(backendClientProvider);
+    final url = await backend.resolveCoverArtUrl(song);
+    if (url.isEmpty) return null;
+    final response = await Dio().get<List<int>>(
+      url,
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: mediaRequestHeaders(url),
+        receiveTimeout: const Duration(seconds: 20),
+      ),
+    );
+    final data = response.data;
+    if (data == null || data.isEmpty) return null;
+    return Uint8List.fromList(data);
   }
 
   static String _buildLrcContent(LyricsList lyrics) {

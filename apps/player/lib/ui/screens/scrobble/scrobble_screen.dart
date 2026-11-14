@@ -48,10 +48,8 @@ class ScrobbleScreen extends ConsumerWidget {
               children: [
                 if (isMobile)
                   IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 20,
-                    ),
+                    tooltip: S.of(context).tooltipBack,
+                    icon: const Icon(Icons.arrow_back_rounded, size: 22),
                     onPressed: () => context.go('/settings'),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(

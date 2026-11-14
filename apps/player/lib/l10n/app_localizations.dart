@@ -1861,6 +1861,66 @@ abstract class S {
   /// **'创建一个播放列表来整理你的音乐'**
   String get playlistEmptyHint;
 
+  /// No description provided for @onlinePlaylistsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线歌单'**
+  String get onlinePlaylistsTitle;
+
+  /// No description provided for @onlinePlaylistsEntry.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线歌单'**
+  String get onlinePlaylistsEntry;
+
+  /// No description provided for @onlinePlaylistsRecommended.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐'**
+  String get onlinePlaylistsRecommended;
+
+  /// No description provided for @onlinePlaylistsFeatured.
+  ///
+  /// In zh, this message translates to:
+  /// **'精品'**
+  String get onlinePlaylistsFeatured;
+
+  /// No description provided for @onlinePlaylistsCharts.
+  ///
+  /// In zh, this message translates to:
+  /// **'榜单'**
+  String get onlinePlaylistsCharts;
+
+  /// No description provided for @onlinePlaylistsChinese.
+  ///
+  /// In zh, this message translates to:
+  /// **'华语'**
+  String get onlinePlaylistsChinese;
+
+  /// No description provided for @onlinePlaylistsSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索歌单，例如我是歌手第一季'**
+  String get onlinePlaylistsSearchHint;
+
+  /// No description provided for @onlinePlaylistsEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有找到歌单'**
+  String get onlinePlaylistsEmpty;
+
+  /// No description provided for @onlinePlaylistsPlayAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放全部'**
+  String get onlinePlaylistsPlayAll;
+
+  /// No description provided for @onlinePlaylistsTruncated.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅显示前 {count} 首'**
+  String onlinePlaylistsTruncated(int count);
+
   /// No description provided for @playlistSongCountLabel.
   ///
   /// In zh, this message translates to:
@@ -1896,6 +1956,12 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'搜索本地曲库'**
   String get playlistSearchSongsHint;
+
+  /// No description provided for @playlistTrackSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索歌名、歌手或专辑'**
+  String get playlistTrackSearchHint;
 
   /// No description provided for @playlistNoMatchingSongs.
   ///
@@ -2250,6 +2316,12 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'QQ'**
   String get searchBackendTencent;
+
+  /// No description provided for @searchBackendBilibili.
+  ///
+  /// In zh, this message translates to:
+  /// **'B站'**
+  String get searchBackendBilibili;
 
   /// No description provided for @searchBackendKugou.
   ///
@@ -3275,6 +3347,24 @@ abstract class S {
     String title,
     String artist,
   );
+
+  /// No description provided for @homeSwapBatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'换一批'**
+  String get homeSwapBatch;
+
+  /// No description provided for @searchHistory.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索历史'**
+  String get searchHistory;
+
+  /// No description provided for @searchHistoryClear.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空历史'**
+  String get searchHistoryClear;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

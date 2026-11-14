@@ -33,6 +33,16 @@ void main() {
       expect(headers['Referer'], 'https://music.163.com/');
     });
 
+    test('uses bilibili referer for audio streams', () {
+      final headers = mediaRequestHeaders(
+        'https://upos-sz-mirrorcosov.bilivideo.com/high.m4s',
+        kind: MediaRequestKind.audio,
+      );
+
+      expect(headers['Referer'], 'https://www.bilibili.com/');
+      expect(headers['Accept'], contains('audio/'));
+    });
+
     test('does not add headers for non-http urls', () {
       expect(mediaRequestHeaders(''), isEmpty);
       expect(mediaRequestHeaders('file:///tmp/cover.jpg'), isEmpty);

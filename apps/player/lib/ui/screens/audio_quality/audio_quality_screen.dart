@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/responsive_content.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 
 /// 音质设置页面
@@ -32,25 +33,39 @@ class AudioQualityScreen extends ConsumerWidget {
       ),
     ];
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.of(context).size.width);
+    final v = isMobile
+        ? AppDimensions.paddingMobile
+        : AppDimensions.paddingDesktop;
+
+    return ResponsivePageScaffold(
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.symmetric(vertical: v),
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (AppBreakpoints.isMobile(MediaQuery.of(context).size.width))
+              if (isMobile)
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                  tooltip: S.of(context).tooltipBack,
+                  icon: const Icon(Icons.arrow_back_rounded, size: 22),
                   onPressed: () => context.go('/settings'),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
                 ),
-              Text(
-                S.of(context).settingsAudioQuality,
-                style: Theme.of(context).textTheme.pageTitle.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
+              Expanded(
+                child: Text(
+                  S.of(context).settingsAudioQuality,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.pageTitle.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
               ),
+              const SizedBox(width: 12),
               Text(
                 qualities
                     .firstWhere(
@@ -64,16 +79,17 @@ class AudioQualityScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
 
           // ── 音质选择 ──────────────────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12),
+              color: context.colors.cardSurface,
+              borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
+                color: context.colors.hairlineBorder,
+                width: 0.8,
               ),
             ),
             child: Column(
@@ -87,19 +103,23 @@ class AudioQualityScreen extends ConsumerWidget {
                       color: context.colors.primary,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      S.of(context).audioQualitySelection,
-                      style: Theme.of(context).textTheme.settingsSectionTitle,
+                    Expanded(
+                      child: Text(
+                        S.of(context).audioQualitySelection,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.settingsSectionTitle,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: List.generate(qualities.length, (i) {
-                    final q = qualities[i];
-                    final selected = currentQuality == q.maxBitRate;
-                    return Expanded(
-                      child: Semantics(
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final vertical = constraints.maxWidth < 460;
+                    Widget buildCard(_QualityOption q) {
+                      final selected = currentQuality == q.maxBitRate;
+                      return Semantics(
                         button: true,
                         label: q.name,
                         selected: selected,
@@ -108,24 +128,20 @@ class AudioQualityScreen extends ConsumerWidget {
                               .read(audioQualityProvider.notifier)
                               .setQuality(q.maxBitRate),
                           borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            margin: EdgeInsets.only(
-                              right: i < qualities.length - 1 ? 10 : 0,
-                            ),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            width: vertical ? double.infinity : null,
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: selected
                                   ? context.colors.primary
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHigh,
+                                  : context.colors.subtleSurface,
                               borderRadius: BorderRadius.circular(10),
                               border: selected
                                   ? null
                                   : Border.all(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.outlineVariant,
+                                      color: context.colors.hairlineBorder,
+                                      width: 0.8,
                                     ),
                             ),
                             child: Column(
@@ -162,9 +178,34 @@ class AudioQualityScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                      ),
+                      );
+                    }
+
+                    if (vertical) {
+                      return Column(
+                        children: [
+                          for (var i = 0; i < qualities.length; i++) ...[
+                            buildCard(qualities[i]),
+                            if (i < qualities.length - 1)
+                              const SizedBox(height: 10),
+                          ],
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: List.generate(qualities.length, (i) {
+                        return Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: i < qualities.length - 1 ? 10 : 0,
+                            ),
+                            child: buildCard(qualities[i]),
+                          ),
+                        );
+                      }),
                     );
-                  }),
+                  },
                 ),
               ],
             ),

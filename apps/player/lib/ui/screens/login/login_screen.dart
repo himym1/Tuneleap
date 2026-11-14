@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:navidrome_player/l10n/app_localizations.dart';
 import 'package:navidrome_player/providers/providers.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
+import 'package:navidrome_player/ui/widgets/app_brand_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -103,77 +104,101 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(24),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Icon(
-                      Icons.music_note_rounded,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.primary,
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 32,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colors.cardSurface,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: context.colors.hairlineBorder,
+                      width: 0.8,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      s.appName,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.pageTitle,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      s.loginSubtitle,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    TextField(
-                      controller: _usernameController,
-                      decoration: InputDecoration(
-                        labelText: s.multiServerUsername,
-                        prefixIcon: const Icon(Icons.person_rounded),
-                      ),
-                      textInputAction: TextInputAction.next,
-                      autofillHints: const [AutofillHints.username],
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _passwordController,
-                      decoration: InputDecoration(
-                        labelText: s.multiServerPassword,
-                        prefixIcon: const Icon(Icons.lock_rounded),
-                      ),
-                      obscureText: true,
-                      textInputAction: TextInputAction.done,
-                      autofillHints: const [AutofillHints.password],
-                      onSubmitted: (_) {
-                        if (!_loading) _connect();
-                      },
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        _error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+                  ),
+                  child: AutofillGroup(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Center(
+                          child: AppBrandLogo(
+                            size: 68,
+                            borderRadius: 18,
+                            shadowBlur: 18,
+                          ),
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: _loading ? null : _connect,
-                      child: _loading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(s.loginConnect),
+                        const SizedBox(height: 18),
+                        Text(
+                          s.appName,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.pageTitle,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          s.loginSubtitle,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        const SizedBox(height: 28),
+                        TextField(
+                          controller: _usernameController,
+                          decoration: InputDecoration(
+                            labelText: s.multiServerUsername,
+                            prefixIcon: const Icon(Icons.person_rounded),
+                          ),
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.username],
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(
+                            labelText: s.multiServerPassword,
+                            prefixIcon: const Icon(Icons.lock_rounded),
+                          ),
+                          obscureText: true,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.password],
+                          onSubmitted: (_) {
+                            if (!_loading) _connect();
+                          },
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: _loading ? null : _connect,
+                          child: _loading
+                              ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: context.colors.onEmphasis,
+                                  ),
+                                )
+                              : Text(s.loginConnect),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

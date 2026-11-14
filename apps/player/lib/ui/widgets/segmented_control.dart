@@ -29,16 +29,9 @@ class AppSegmentedControl<T> extends StatelessWidget {
       height: height,
       padding: const EdgeInsets.all(3.5),
       decoration: BoxDecoration(
-        color: (isDark ? Colors.white : Colors.black).withValues(
-          alpha: isDark ? 0.08 : 0.05,
-        ),
+        color: context.colors.subtleSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: (isDark ? Colors.white : Colors.black).withValues(
-            alpha: isDark ? 0.10 : 0.07,
-          ),
-          width: 0.8,
-        ),
+        border: Border.all(color: context.colors.hairlineBorder, width: 0.8),
       ),
       child: isExpanded
           ? Row(

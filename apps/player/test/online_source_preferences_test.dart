@@ -38,6 +38,7 @@ void main() {
       expect(sanitizeOnlineSources(const []), kDefaultOnlineSources);
       expect(sanitizeOnlineSources(['netease']), ['netease']);
       expect(sanitizeOnlineSources(['joox', 'netease']), ['netease', 'joox']);
+      expect(sanitizeOnlineSources(['qq', 'netease']), ['netease', 'tencent']);
     },
   );
   test('adapter capabilities filter enabled platform tabs', () {
@@ -77,10 +78,41 @@ void main() {
 
     final notifier = container.read(onlineSourcePreferencesProvider.notifier);
     await notifier.setEnabled('joox', enabled: false);
+    await notifier.setEnabled('tencent', enabled: false);
+    await notifier.setEnabled('bilibili', enabled: false);
     final kept = await notifier.setEnabled('netease', enabled: false);
 
     expect(kept, isFalse);
     expect(container.read(onlineSourcePreferencesProvider), ['netease']);
+  });
+
+  test('existing installs gain QQ once', () async {
+    SharedPreferences.setMockInitialValues({
+      'active_server_id': 'server-a',
+      'server_url': 'http://music.local',
+      onlineSourcesPreferenceKey('server-a'): ['netease', 'joox'],
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+
+    expect(container.read(onlineSourcePreferencesProvider), [
+      'netease',
+      'tencent',
+      'bilibili',
+      'joox',
+    ]);
+    await Future<void>.delayed(Duration.zero);
+    expect(prefs.getBool(tencentSourceSeedPreferenceKey('server-a')), isTrue);
+    expect(prefs.getBool(bilibiliSourceSeedPreferenceKey('server-a')), isTrue);
+    expect(prefs.getStringList(onlineSourcesPreferenceKey('server-a')), [
+      'netease',
+      'tencent',
+      'bilibili',
+      'joox',
+    ]);
   });
 
   test('adapter preference is isolated by server id', () async {
@@ -109,6 +141,8 @@ void main() {
       'server_url': 'http://a.local',
       onlineSourcesPreferenceKey('server-a'): ['netease'],
       onlineSourcesPreferenceKey('server-b'): ['kugou', 'migu'],
+      tencentSourceSeedPreferenceKey('server-a'): true,
+      bilibiliSourceSeedPreferenceKey('server-a'): true,
     });
     final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(

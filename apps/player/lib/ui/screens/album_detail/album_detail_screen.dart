@@ -7,6 +7,7 @@ import 'package:navidrome_player/ui/theme/app_dimensions.dart';
 import 'package:navidrome_player/ui/theme/app_theme.dart';
 import 'package:navidrome_player/ui/widgets/cover_art.dart';
 import 'package:navidrome_player/ui/widgets/audio_visualizer_bars.dart';
+import 'package:navidrome_player/ui/widgets/page_back_button.dart';
 import 'package:navidrome_player/ui/widgets/song_context_menu.dart';
 import 'package:navidrome_player/api/models/models.dart';
 import 'package:navidrome_player/player/audio_player_service.dart';
@@ -112,46 +113,11 @@ class AlbumDetailScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Semantics(
-                            button: true,
-                            label: S.of(context).tooltipBack,
-                            child: InkWell(
-                              onTap: () => GoRouter.of(context).canPop()
-                                  ? context.pop()
-                                  : context.go('/home'),
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  minHeight: 44,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.arrow_back_rounded,
-                                      size: 16,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      S.of(context).commonBack,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .songSubtitle
-                                          .copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: PageBackButton(),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           CoverArt(
                             url: client.coverArtUrl(album.coverArt, size: 600),
                             size: coverSize,
@@ -231,7 +197,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                                   Icons.shuffle_rounded,
                                   size: 17,
                                 ),
-                                label: const Text('随机播放'),
+                                label: Text(S.of(context).albumShufflePlay),
                                 style: OutlinedButton.styleFrom(
                                   minimumSize: const Size(0, 40),
                                 ),
@@ -459,36 +425,7 @@ class AlbumDetailScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Semantics(
-          button: true,
-          label: S.of(context).tooltipBack,
-          child: InkWell(
-            onTap: () => GoRouter.of(context).canPop()
-                ? context.pop()
-                : context.go('/home'),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 44),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.arrow_back_rounded,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    S.of(context).commonBack,
-                    style: Theme.of(context).textTheme.songSubtitle.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        const PageBackButton(),
         const SizedBox(height: 12),
         Text(
           album.name,
@@ -541,7 +478,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                 }
               },
               icon: const Icon(Icons.shuffle_rounded, size: 17),
-              label: const Text('随机播放'),
+              label: Text(S.of(context).albumShufflePlay),
               style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
             ),
             const SizedBox(width: 8),

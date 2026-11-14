@@ -22,6 +22,8 @@ import 'package:navidrome_player/ui/screens/library_style/library_style_screen.d
 import 'package:navidrome_player/ui/screens/library_playlist_organize/library_playlist_organize_screen.dart';
 import 'package:navidrome_player/ui/screens/search/search_screen.dart';
 import 'package:navidrome_player/ui/screens/player/player_screen.dart';
+import 'package:navidrome_player/ui/screens/online_playlists/online_playlist_detail_screen.dart';
+import 'package:navidrome_player/ui/screens/online_playlists/online_playlists_screen.dart';
 import 'package:navidrome_player/ui/screens/playlists/playlists_screen.dart';
 import 'package:navidrome_player/ui/screens/playlist_detail/playlist_detail_screen.dart';
 import 'package:navidrome_player/ui/screens/settings/settings_screen.dart';
@@ -458,6 +460,24 @@ class _NavidromePlayerAppState extends ConsumerState<NavidromePlayerApp> {
                 GoRoute(
                   path: '/playlists',
                   redirect: (context, state) => '/library/playlists',
+                ),
+                GoRoute(
+                  path: '/online-playlists',
+                  pageBuilder: (context, state) => _detailSlidePage(
+                    key: state.pageKey,
+                    child: const OnlinePlaylistsScreen(),
+                  ),
+                ),
+                GoRoute(
+                  path: '/online-playlist/:id',
+                  pageBuilder: (context, state) => _detailSlidePage(
+                    key: state.pageKey,
+                    child: OnlinePlaylistDetailScreen(
+                      playlistId: Uri.decodeComponent(
+                        state.pathParameters['id']!,
+                      ),
+                    ),
+                  ),
                 ),
                 GoRoute(
                   path: '/playlist/:id',

@@ -57,6 +57,7 @@ class Song {
   String? get sourceLabel => switch (onlineSource) {
     'netease' => '网易云',
     'tencent' => 'QQ',
+    'bilibili' => 'B站',
     'migu' => '咪咕',
     'joox' => 'JOOX',
     'kuwo' => '酷我',

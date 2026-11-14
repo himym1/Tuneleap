@@ -601,19 +601,11 @@ class _SettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.colors;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: (isDark ? Colors.white : Colors.black).withValues(
-          alpha: isDark ? 0.08 : 0.04,
-        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: (isDark ? Colors.white : Colors.black).withValues(
-            alpha: isDark ? 0.10 : 0.06,
-          ),
-          width: 0.8,
-        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.03),
@@ -622,8 +614,15 @@ class _SettingsCard extends StatelessWidget {
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(mainAxisSize: MainAxisSize.min, children: children),
+      child: Material(
+        color: colors.cardSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: colors.hairlineBorder, width: 0.8),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(mainAxisSize: MainAxisSize.min, children: children),
+      ),
     );
   }
 }
@@ -647,23 +646,15 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return ListTile(
       leading: Container(
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: (isDark ? Colors.white : Colors.black).withValues(
-            alpha: isDark ? 0.10 : 0.06,
-          ),
+          color: context.colors.subtleSurface,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+        child: Icon(icon, size: 18, color: context.colors.primary),
       ),
       title: Text(
         title,
